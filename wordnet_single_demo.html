@@ -1,0 +1,578 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WordNet 可视化 Demo</title>
+    <script src="https://cdn.jsdelivr.net/npm/vue@3.4.21/dist/vue.global.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/cytoscape/3.28.1/cytoscape.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f5f7fa;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        #app {
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 16px 24px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .header h1 {
+            font-size: 24px;
+            margin: 0;
+        }
+
+        .main-layout {
+            flex: 1;
+            display: flex;
+            overflow: hidden;
+        }
+
+        .sidebar {
+            width: 320px;
+            background: white;
+            padding: 20px;
+            overflow-y: auto;
+            border-right: 2px solid #e1e8ed;
+        }
+
+        .search-box {
+            margin-bottom: 20px;
+        }
+
+        .search-input {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid #e1e8ed;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: all 0.2s;
+        }
+
+        .search-input:focus {
+            outline: none;
+            border-color: #3498db;
+            box-shadow: 0 0 0 3px rgba(52,152,219,0.1);
+        }
+
+        .btn {
+            width: 100%;
+            padding: 12px;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            margin-top: 8px;
+            transition: all 0.2s;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102,126,234,0.4);
+        }
+
+        .btn-secondary {
+            background: #ecf0f1;
+            color: #2c3e50;
+        }
+
+        .filters {
+            margin-top: 24px;
+            padding-top: 20px;
+            border-top: 2px solid #f1f3f5;
+        }
+
+        .filters h3 {
+            font-size: 14px;
+            margin-bottom: 12px;
+            color: #2c3e50;
+        }
+
+        .filter-item {
+            display: flex;
+            align-items: center;
+            padding: 8px;
+            margin-bottom: 4px;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .filter-item:hover {
+            background: #f8f9fa;
+        }
+
+        .filter-item input {
+            margin-right: 8px;
+        }
+
+        .filter-color {
+            width: 20px;
+            height: 3px;
+            margin-right: 8px;
+            border-radius: 2px;
+        }
+
+        .content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+        }
+
+        .toolbar {
+            background: white;
+            padding: 12px 16px;
+            border-bottom: 2px solid #e1e8ed;
+            display: flex;
+            gap: 12px;
+            align-items: center;
+        }
+
+        .toolbar select {
+            padding: 8px 12px;
+            border: 1px solid #dfe6e9;
+            border-radius: 6px;
+            font-size: 14px;
+            background: white;
+            cursor: pointer;
+        }
+
+        .toolbar button {
+            padding: 8px 16px;
+            border: none;
+            background: #ecf0f1;
+            border-radius: 6px;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .toolbar button:hover {
+            background: #bdc3c7;
+        }
+
+        #cy {
+            flex: 1;
+            background: white;
+        }
+
+        .legend {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            background: white;
+            padding: 16px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            z-index: 10;
+        }
+
+        .legend h4 {
+            margin: 0 0 12px 0;
+            font-size: 14px;
+            color: #2c3e50;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 8px;
+            font-size: 13px;
+        }
+
+        .legend-color {
+            width: 20px;
+            height: 3px;
+            margin-right: 10px;
+            border-radius: 2px;
+        }
+
+        .node-detail {
+            position: absolute;
+            top: 0;
+            right: -400px;
+            width: 380px;
+            height: 100%;
+            background: white;
+            box-shadow: -2px 0 8px rgba(0,0,0,0.1);
+            transition: right 0.3s;
+            z-index: 100;
+            overflow-y: auto;
+        }
+
+        .node-detail.show {
+            right: 0;
+        }
+
+        .detail-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .detail-content {
+            padding: 20px;
+        }
+
+        .detail-section {
+            margin-bottom: 20px;
+        }
+
+        .detail-section h3 {
+            font-size: 14px;
+            color: #7f8c8d;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+        }
+
+        .word-title {
+            font-size: 32px;
+            color: #2c3e50;
+            margin-bottom: 8px;
+        }
+
+        .pos-tag {
+            display: inline-block;
+            padding: 4px 12px;
+            background: #e3f2fd;
+            color: #1976d2;
+            border-radius: 16px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .close-btn {
+            background: rgba(255,255,255,0.2);
+            border: none;
+            color: white;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            font-size: 24px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .close-btn:hover {
+            background: rgba(255,255,255,0.3);
+            transform: rotate(90deg);
+        }
+
+        .loading {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+        }
+
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 4px solid #ecf0f1;
+            border-top-color: #3498db;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div id="app">
+        <div class="header">
+            <h1>📚 WordNet 可视化</h1>
+        </div>
+
+        <div class="main-layout">
+            <div class="sidebar">
+                <div class="search-box">
+                    <input 
+                        v-model="searchQuery" 
+                        class="search-input" 
+                        placeholder="搜索词汇 (例如: dog, happy)"
+                        @keyup.enter="loadGraph"
+                    />
+                    <button class="btn btn-primary" @click="loadGraph" :disabled="loading">
+                        {{ loading ? '⏳ 加载中...' : '📊 加载词汇图谱' }}
+                    </button>
+                </div>
+
+                <div class="filters">
+                    <h3>关系类型筛选</h3>
+                    <label 
+                        v-for="(label, key) in relationLabels" 
+                        :key="key"
+                        class="filter-item"
+                    >
+                        <input 
+                            type="checkbox" 
+                            v-model="activeRelations"
+                            :value="key"
+                        />
+                        <span 
+                            class="filter-color" 
+                            :style="{backgroundColor: relationColors[key]}"
+                        ></span>
+                        {{ label }}
+                    </label>
+                </div>
+            </div>
+
+            <div class="content">
+                <div class="toolbar">
+                    <button @click="fitView">🔍 适应视图</button>
+                    <button @click="exportPNG">📷 导出PNG</button>
+                    <select v-model="layout" @change="changeLayout">
+                        <option value="cose">力导向布局</option>
+                        <option value="circle">圆形布局</option>
+                        <option value="grid">网格布局</option>
+                        <option value="breadthfirst">层次布局</option>
+                    </select>
+                </div>
+
+                <div id="cy"></div>
+
+                <div v-if="loading" class="loading">
+                    <div class="spinner"></div>
+                    <p>加载中...</p>
+                </div>
+
+                <div class="legend">
+                    <h4>关系类型</h4>
+                    <div v-for="(label, key) in relationLabels" :key="key" class="legend-item">
+                        <span class="legend-color" :style="{backgroundColor: relationColors[key]}"></span>
+                        {{ label }}
+                    </div>
+                </div>
+
+                <div class="node-detail" :class="{show: selectedNode}">
+                    <div class="detail-header">
+                        <h2>节点详情</h2>
+                        <button class="close-btn" @click="selectedNode = null">×</button>
+                    </div>
+                    <div v-if="selectedNode" class="detail-content">
+                        <div class="detail-section">
+                            <div class="word-title">{{ selectedNode.label }}</div>
+                            <span class="pos-tag">{{ selectedNode.pos }}</span>
+                        </div>
+                        <div class="detail-section" v-if="selectedNode.definition">
+                            <h3>📖 定义</h3>
+                            <p>{{ selectedNode.definition }}</p>
+                        </div>
+                        <div class="detail-section" v-if="selectedNode.examples">
+                            <h3>💬 例句</h3>
+                            <ul>
+                                <li v-for="(ex, i) in selectedNode.examples" :key="i">"{{ ex }}"</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const { createApp } = Vue;
+
+        createApp({
+            data() {
+                return {
+                    searchQuery: 'dog',
+                    loading: false,
+                    layout: 'cose',
+                    cy: null,
+                    selectedNode: null,
+                    activeRelations: ['hypernym', 'hyponym', 'synonym', 'antonym', 'meronym', 'holonym'],
+                    relationColors: {
+                        hypernym: '#e74c3c',
+                        hyponym: '#3498db',
+                        synonym: '#2ecc71',
+                        antonym: '#f39c12',
+                        meronym: '#9b59b6',
+                        holonym: '#1abc9c'
+                    },
+                    relationLabels: {
+                        hypernym: '上位词',
+                        hyponym: '下位词',
+                        synonym: '同义词',
+                        antonym: '反义词',
+                        meronym: '部分词',
+                        holonym: '整体词'
+                    },
+                    graphData: {
+                        nodes: [
+                            { data: { id: 'dog', label: 'dog', pos: 'noun', definition: '驯养的食肉哺乳动物', examples: ['The dog barked.'] }},
+                            { data: { id: 'canine', label: 'canine', pos: 'noun', definition: '犬科动物' }},
+                            { data: { id: 'animal', label: 'animal', pos: 'noun', definition: '动物' }},
+                            { data: { id: 'mammal', label: 'mammal', pos: 'noun', definition: '哺乳动物' }},
+                            { data: { id: 'puppy', label: 'puppy', pos: 'noun', definition: '幼犬', examples: ['The puppy is cute!'] }},
+                            { data: { id: 'hound', label: 'hound', pos: 'noun', definition: '猎犬' }},
+                            { data: { id: 'bulldog', label: 'bulldog', pos: 'noun', definition: '斗牛犬' }},
+                            { data: { id: 'tail', label: 'tail', pos: 'noun', definition: '尾巴' }},
+                            { data: { id: 'paw', label: 'paw', pos: 'noun', definition: '爪子' }},
+                            { data: { id: 'cat', label: 'cat', pos: 'noun', definition: '猫' }},
+                        ],
+                        edges: [
+                            { data: { source: 'dog', target: 'canine', relation: 'hypernym' }},
+                            { data: { source: 'canine', target: 'mammal', relation: 'hypernym' }},
+                            { data: { source: 'mammal', target: 'animal', relation: 'hypernym' }},
+                            { data: { source: 'dog', target: 'puppy', relation: 'hyponym' }},
+                            { data: { source: 'dog', target: 'hound', relation: 'hyponym' }},
+                            { data: { source: 'dog', target: 'bulldog', relation: 'hyponym' }},
+                            { data: { source: 'dog', target: 'tail', relation: 'meronym' }},
+                            { data: { source: 'dog', target: 'paw', relation: 'meronym' }},
+                            { data: { source: 'cat', target: 'mammal', relation: 'hypernym' }},
+                        ]
+                    }
+                };
+            },
+            mounted() {
+                this.initCytoscape();
+                this.loadGraph();
+            },
+            watch: {
+                activeRelations() {
+                    this.updateGraph();
+                }
+            },
+            methods: {
+                initCytoscape() {
+                    this.cy = cytoscape({
+                        container: document.getElementById('cy'),
+                        style: [
+                            {
+                                selector: 'node',
+                                style: {
+                                    'background-color': '#3498db',
+                                    'label': 'data(label)',
+                                    'color': '#2c3e50',
+                                    'text-valign': 'center',
+                                    'text-halign': 'center',
+                                    'font-size': '12px',
+                                    'font-weight': 'bold',
+                                    'width': '60px',
+                                    'height': '60px',
+                                    'border-width': 2,
+                                    'border-color': '#2980b9',
+                                    'text-outline-width': 2,
+                                    'text-outline-color': '#fff'
+                                }
+                            },
+                            {
+                                selector: 'node:selected',
+                                style: {
+                                    'background-color': '#e74c3c',
+                                    'border-color': '#c0392b'
+                                }
+                            },
+                            {
+                                selector: 'edge',
+                                style: {
+                                    'width': 2,
+                                    'target-arrow-shape': 'triangle',
+                                    'curve-style': 'bezier',
+                                    'arrow-scale': 1.5
+                                }
+                            },
+                            ...Object.keys(this.relationColors).map(rel => ({
+                                selector: `edge[relation="${rel}"]`,
+                                style: {
+                                    'line-color': this.relationColors[rel],
+                                    'target-arrow-color': this.relationColors[rel],
+                                    'line-style': rel === 'synonym' ? 'dashed' : rel === 'antonym' ? 'dotted' : 'solid'
+                                }
+                            }))
+                        ],
+                        minZoom: 0.3,
+                        maxZoom: 3
+                    });
+
+                    this.cy.on('tap', 'node', (e) => {
+                        this.selectedNode = e.target.data();
+                    });
+                },
+                loadGraph() {
+                    this.loading = true;
+                    setTimeout(() => {
+                        this.updateGraph();
+                        this.loading = false;
+                    }, 500);
+                },
+                updateGraph() {
+                    if (!this.cy) return;
+
+                    const filteredEdges = this.graphData.edges.filter(edge =>
+                        this.activeRelations.includes(edge.data.relation)
+                    );
+
+                    this.cy.elements().remove();
+                    this.cy.add(this.graphData.nodes);
+                    this.cy.add(filteredEdges);
+                    this.runLayout();
+                },
+                runLayout() {
+                    const layoutOptions = {
+                        name: this.layout,
+                        animate: true,
+                        animationDuration: 500
+                    };
+
+                    if (this.layout === 'cose') {
+                        Object.assign(layoutOptions, {
+                            nodeRepulsion: 8000,
+                            idealEdgeLength: 100,
+                            edgeElasticity: 100
+                        });
+                    }
+
+                    this.cy.layout(layoutOptions).run();
+                },
+                changeLayout() {
+                    this.runLayout();
+                },
+                fitView() {
+                    this.cy.fit(null, 50);
+                },
+                exportPNG() {
+                    const png = this.cy.png({ output: 'blob', bg: '#ffffff', full: true, scale: 2 });
+                    const url = URL.createObjectURL(png);
+                    const link = document.createElement('a');
+                    link.href = url;
+                    link.download = `wordnet-${Date.now()}.png`;
+                    link.click();
+                    URL.revokeObjectURL(url);
+                }
+            }
+        }).mount('#app');
+    </script>
+</body>
+</html>
