@@ -1,16 +1,14 @@
 <template>
   <div
     v-if="graphStore.selectedNode"
-    class="absolute top-0 right-0 w-96 h-full bg-white shadow-xl z-50 overflow-y-auto transition-transform duration-300"
-    :class="{ 'translate-x-0': graphStore.selectedNode, 'translate-x-full': !graphStore.selectedNode }"
+    class="absolute top-5 right-5 w-80 max-h-[calc(100%-2.5rem)] bg-white/60 backdrop-blur-md shadow-2xl z-50 overflow-y-auto transition-all duration-300 rounded-lg border border-white/50"
+    :class="{ 'translate-x-0 opacity-100': graphStore.selectedNode, 'translate-x-full opacity-0': !graphStore.selectedNode }"
   >
     <!-- Header -->
-    <div
-      class="bg-gradient-to-r from-primary-500 to-secondary-500 text-white px-5 py-5 flex justify-between items-center"
-    >
-      <h2 class="text-lg font-bold">节点详情</h2>
+    <div class="bg-gradient-to-r from-blue-500/60 to-purple-500/60 backdrop-blur-sm text-white px-4 py-3 flex justify-between items-center sticky top-0 z-10">
+      <h2 class="text-base font-bold">节点详情</h2>
       <button
-        class="w-8 h-8 bg-white/20 rounded-full text-2xl leading-none hover:bg-white/30 transition-all hover:rotate-90 duration-200"
+        class="w-7 h-7 bg-white/20 rounded-full text-xl leading-none hover:bg-white/30 transition-all hover:rotate-90 duration-200"
         @click="graphStore.setSelectedNode(null)"
       >
         ×
@@ -18,33 +16,33 @@
     </div>
 
     <!-- Content -->
-    <div v-if="graphStore.selectedNode" class="p-5">
+    <div v-if="graphStore.selectedNode" class="p-4">
       <!-- Word Title -->
-      <div class="mb-5">
-        <div class="text-3xl font-bold text-gray-800 mb-2">
+      <div class="mb-4">
+        <div class="text-2xl font-bold text-gray-800 mb-2">
           {{ graphStore.selectedNode.label }}
         </div>
         <span
-          class="inline-block px-3 py-1 bg-blue-50 text-blue-700 rounded-full text-xs font-semibold uppercase"
+          class="inline-block px-2.5 py-1 bg-blue-100/80 text-blue-700 rounded-full text-xs font-semibold uppercase"
         >
           {{ graphStore.selectedNode.pos }}
         </span>
       </div>
 
       <!-- Definition -->
-      <div v-if="graphStore.selectedNode.definition" class="mb-5">
-        <h3 class="text-xs font-semibold text-gray-500 mb-2 uppercase tracking-wide">📖 定义</h3>
-        <p class="text-gray-700 leading-relaxed">{{ graphStore.selectedNode.definition }}</p>
+      <div v-if="graphStore.selectedNode.definition" class="mb-4">
+        <h3 class="text-xs font-semibold text-gray-600 mb-2 uppercase tracking-wide">📖 定义</h3>
+        <p class="text-gray-700 leading-relaxed bg-gray-50/50 p-3 rounded-md">{{ graphStore.selectedNode.definition }}</p>
       </div>
 
       <!-- Examples -->
-      <div v-if="graphStore.selectedNode.examples?.length" class="mb-5">
-        <h3 class="text-xs font-semibold text-gray-500 mb-2 uppercase tracking-wide">💬 例句</h3>
+      <div v-if="graphStore.selectedNode.examples?.length" class="mb-4">
+        <h3 class="text-xs font-semibold text-gray-600 mb-2 uppercase tracking-wide">💬 例句</h3>
         <ul class="space-y-2">
           <li
             v-for="(example, i) in graphStore.selectedNode.examples"
             :key="i"
-            class="text-gray-700 italic pl-4 border-l-2 border-gray-200"
+            class="text-gray-700 text-sm italic pl-3 py-2 border-l-3 border-blue-300/60 bg-gray-50/30 rounded-r"
           >
             "{{ example }}"
           </li>

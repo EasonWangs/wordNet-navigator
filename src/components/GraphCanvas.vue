@@ -1,8 +1,6 @@
 <template>
-  <div class="flex-1 flex flex-col relative">
-    <Toolbar @fit-view="fitView" @export-p-n-g="exportPNG" />
-
-    <div ref="containerRef" class="flex-1 bg-white" />
+  <div class="relative h-full w-full">
+    <div ref="containerRef" class="h-full w-full bg-white" />
 
     <div
       v-if="graphStore.loading"
@@ -25,7 +23,6 @@
 import { toRef } from 'vue'
 import { useGraphStore } from '@/stores/graphStore'
 import { useCytoscape } from '@/composables/useCytoscape'
-import Toolbar from './Toolbar.vue'
 import Legend from './Legend.vue'
 import NodeDetail from './NodeDetail.vue'
 
@@ -47,5 +44,11 @@ const { containerRef, fitView, exportPNG } = useCytoscape({
     return layoutRef.value
   },
   onNodeClick: (nodeData) => graphStore.setSelectedNode(nodeData),
+})
+
+// 导出方法供父组件调用
+defineExpose({
+  fitView,
+  exportPNG,
 })
 </script>

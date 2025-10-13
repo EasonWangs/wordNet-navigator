@@ -207,6 +207,7 @@ export class WordNetService {
               pos: w.pos,
               definition: w.definition,
               examples: w.examples,
+              isCenter: w.id === targetWord.id, // 标记中心词
             },
           }))
 
