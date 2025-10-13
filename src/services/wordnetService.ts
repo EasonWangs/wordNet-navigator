@@ -129,7 +129,16 @@ export class WordNetService {
             },
           }))
 
-          const edges = allConnections.map((c) => ({
+          // 过滤同义词和反义词，只显示单向关系
+          const filteredEdges = allConnections.filter((c) => {
+            // 对于同义词和反义词，只保留源ID < 目标ID的边，避免显示双向箭头
+            if (c.relation === 'synonym' || c.relation === 'antonym') {
+              return c.source < c.target
+            }
+            return true
+          })
+
+          const edges = filteredEdges.map((c) => ({
             data: {
               source: c.source,
               target: c.target,
@@ -201,15 +210,24 @@ export class WordNetService {
             },
           }))
 
-        const edges = allConnections
-          .filter((c) => edgesToInclude.has(c.id))
-          .map((c) => ({
-            data: {
-              source: c.source,
-              target: c.target,
-              relation: c.relation,
-            },
-          }))
+        // 过滤同义词和反义词，只显示单向关系
+        const filteredEdges = allConnections.filter((c) => {
+          if (!edgesToInclude.has(c.id)) return false
+
+          // 对于同义词和反义词，只保留源ID < 目标ID的边，避免显示双向箭头
+          if (c.relation === 'synonym' || c.relation === 'antonym') {
+            return c.source < c.target
+          }
+          return true
+        })
+
+        const edges = filteredEdges.map((c) => ({
+          data: {
+            source: c.source,
+            target: c.target,
+            relation: c.relation,
+          },
+        }))
 
         resolve({ nodes, edges })
       }, 300)

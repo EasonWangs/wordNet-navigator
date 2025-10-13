@@ -11,11 +11,9 @@ export const useGraphStore = defineStore('graph', () => {
   const layout = ref<LayoutType>('cose')
   const activeRelations = ref<RelationType[]>([
     'hypernym',
-    'hyponym',
     'synonym',
     'antonym',
     'meronym',
-    'holonym',
   ])
 
   // Computed (if needed)
