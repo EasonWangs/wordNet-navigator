@@ -69,6 +69,42 @@ export const useAdminStore = defineStore('admin', () => {
     relationTypes.value = relationTypes.value.filter((t) => t.key !== key)
   }
 
+  // Update word relations (批量更新一个词汇的所有关系)
+  function updateWordRelations(
+    wordId: string,
+    relations: {
+      hypernym: string[]
+      hyponym: string[]
+      synonym: string[]
+      antonym: string[]
+      holonym: string[]
+      meronym: string[]
+    }
+  ) {
+    // 删除该词汇的所有现有关系
+    const existingConnections = connections.value.filter((c) => c.source === wordId)
+    existingConnections.forEach((conn) => {
+      storageService.deleteConnection(conn.id)
+    })
+
+    // 添加新的关系
+    const newConnections: StoredConnection[] = []
+    Object.entries(relations).forEach(([relationType, targetIds]) => {
+      targetIds.forEach((targetId) => {
+        const newConn = storageService.addConnection({
+          source: wordId,
+          target: targetId,
+          relation: relationType as any,
+        })
+        newConnections.push(newConn)
+      })
+    })
+
+    // 更新本地状态
+    connections.value = connections.value.filter((c) => c.source !== wordId)
+    connections.value.push(...newConnections)
+  }
+
   // Import/Export
   function exportData() {
     return storageService.exportData()
@@ -92,6 +128,7 @@ export const useAdminStore = defineStore('admin', () => {
     addRelationType,
     updateRelationType,
     deleteRelationType,
+    updateWordRelations,
     exportData,
     importData,
   }

@@ -38,8 +38,7 @@
 
 <script setup lang="ts">
 const navItems = [
+  { path: '/admin/words', label: '词汇与关系' },
   { path: '/admin/relations', label: '关系类型' },
-  { path: '/admin/words', label: '词汇管理' },
-  { path: '/admin/connections', label: '词汇关系' },
 ]
 </script>

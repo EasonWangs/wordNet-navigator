@@ -12,26 +12,20 @@ const routes: RouteRecordRaw[] = [
     path: '/admin',
     name: 'Admin',
     component: () => import('@/layouts/AdminLayout.vue'),
-    redirect: '/admin/relations',
+    redirect: '/admin/words',
     meta: { title: '数据管理' },
     children: [
+      {
+        path: 'words',
+        name: 'AdminWords',
+        component: () => import('@/views/admin/Words.vue'),
+        meta: { title: '词汇与关系管理' },
+      },
       {
         path: 'relations',
         name: 'AdminRelations',
         component: () => import('@/views/admin/RelationTypes.vue'),
         meta: { title: '关系类型管理' },
-      },
-      {
-        path: 'words',
-        name: 'AdminWords',
-        component: () => import('@/views/admin/Words.vue'),
-        meta: { title: '词汇管理' },
-      },
-      {
-        path: 'connections',
-        name: 'AdminConnections',
-        component: () => import('@/views/admin/Connections.vue'),
-        meta: { title: '词汇关系管理' },
       },
     ],
   },
