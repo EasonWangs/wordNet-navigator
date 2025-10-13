@@ -92,7 +92,7 @@
           </div>
           <div>
             <label class="block text-sm font-medium text-gray-700 mb-1">例句</label>
-            <div v-for="(example, index) in formData.examples" :key="index" class="flex mb-2">
+            <div v-for="(_example, index) in formData.examples" :key="index" class="flex mb-2">
               <input
                 v-model="formData.examples[index]"
                 type="text"

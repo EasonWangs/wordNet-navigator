@@ -180,6 +180,49 @@ class StorageService {
     localStorage.removeItem(STORAGE_KEYS.CONNECTIONS)
     localStorage.removeItem(STORAGE_KEYS.RELATION_TYPES)
   }
+
+  // 初始化数据（从 Mock 数据迁移）
+  initializeMockData(mockData: { nodes: Array<{ data: WordNode }>; edges: Array<{ data: WordEdge }> }): void {
+    // 检查是否已经初始化过
+    const existingWords = this.getWords()
+    if (existingWords.length > 0) {
+      console.log('数据已存在，跳过初始化')
+      return
+    }
+
+    const now = new Date().toISOString()
+
+    // 转换节点数据为 StoredWord 格式
+    const words: StoredWord[] = mockData.nodes.map((node) => ({
+      id: node.data.id,
+      label: node.data.label,
+      pos: node.data.pos,
+      definition: node.data.definition,
+      examples: node.data.examples,
+      createdAt: now,
+      updatedAt: now,
+    }))
+
+    // 转换边数据为 StoredConnection 格式
+    const connections: StoredConnection[] = mockData.edges.map((edge, index) => ({
+      id: `conn_init_${index}_${Date.now()}`,
+      source: edge.data.source,
+      target: edge.data.target,
+      relation: edge.data.relation,
+      createdAt: now,
+    }))
+
+    // 保存到 localStorage
+    this.saveWords(words)
+    this.saveConnections(connections)
+
+    console.log(`已初始化 ${words.length} 个词汇和 ${connections.length} 个关系连接`)
+  }
+
+  // 检查是否已初始化
+  isInitialized(): boolean {
+    return this.getWords().length > 0
+  }
 }
 
 export const storageService = new StorageService()
