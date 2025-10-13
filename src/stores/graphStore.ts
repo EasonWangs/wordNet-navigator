@@ -6,7 +6,7 @@ export const useGraphStore = defineStore('graph', () => {
   // State
   const graphData = ref<GraphData>({ nodes: [], edges: [] })
   const selectedNode = ref<WordNode | null>(null)
-  const searchQuery = ref<string>('dog')
+  const searchQuery = ref<string>('*')
   const loading = ref<boolean>(false)
   const layout = ref<LayoutType>('cose')
   const activeRelations = ref<RelationType[]>([

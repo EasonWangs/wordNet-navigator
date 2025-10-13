@@ -130,7 +130,6 @@
       <div class="bg-white rounded-lg p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
         <h3 class="text-lg font-semibold mb-4">{{ editingWord ? '编辑词汇' : '添加词汇' }}</h3>
         <div class="space-y-4">
-          <!-- 基本信息 -->
           <div class="grid grid-cols-2 gap-4">
             <div>
               <label class="block text-sm font-medium text-gray-700 mb-1">词汇 *</label>
@@ -165,7 +164,6 @@
             />
           </div>
 
-          <!-- 例句 -->
           <div>
             <label class="block text-sm font-medium text-gray-700 mb-1">例句</label>
             <div v-for="(_example, index) in wordFormData.examples" :key="index" class="flex mb-2">
@@ -218,114 +216,197 @@
         <h3 class="text-lg font-semibold mb-4">
           编辑词汇关系: <span class="text-primary-600">{{ editingRelationsWord.label }}</span>
         </h3>
-        <div class="space-y-4">
-          <div class="grid grid-cols-2 gap-4">
-            <!-- 上位词 -->
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">
+        <div class="space-y-6">
+          <!-- 上位词 -->
+          <div>
+            <div class="flex items-center justify-between mb-2">
+              <label class="block text-sm font-medium text-gray-700">
                 上位词 (Hypernym)
                 <span class="text-xs text-gray-500 ml-1">更抽象/更广泛的概念</span>
               </label>
-              <select
-                v-model="relationsFormData.hypernym"
-                multiple
-                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary-500 min-h-[100px]"
+              <button
+                @click="openAddRelationDialog('hypernym')"
+                class="px-3 py-1 text-xs bg-blue-500 text-white rounded hover:bg-blue-600"
               >
-                <option v-for="word in availableWords" :key="word.id" :value="word.id">
-                  {{ word.label }} ({{ word.pos }})
-                </option>
-              </select>
+                + 新增
+              </button>
             </div>
+            <div class="flex flex-wrap gap-2 min-h-[40px] p-3 border border-gray-200 rounded-md bg-gray-50">
+              <span
+                v-for="wordId in relationsFormData.hypernym"
+                :key="wordId"
+                class="inline-flex items-center gap-1 px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm"
+              >
+                {{ getWordLabel(wordId) }}
+                <button
+                  @click="removeRelation('hypernym', wordId)"
+                  class="hover:text-blue-900"
+                >
+                  ×
+                </button>
+              </span>
+              <span v-if="relationsFormData.hypernym.length === 0" class="text-sm text-gray-400">暂无关系</span>
+            </div>
+          </div>
 
-            <!-- 下位词 -->
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">
+          <!-- 下位词 -->
+          <div>
+            <div class="flex items-center justify-between mb-2">
+              <label class="block text-sm font-medium text-gray-700">
                 下位词 (Hyponym)
                 <span class="text-xs text-gray-500 ml-1">更具体/更狭窄的概念</span>
               </label>
-              <select
-                v-model="relationsFormData.hyponym"
-                multiple
-                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary-500 min-h-[100px]"
+              <button
+                @click="openAddRelationDialog('hyponym')"
+                class="px-3 py-1 text-xs bg-green-500 text-white rounded hover:bg-green-600"
               >
-                <option v-for="word in availableWords" :key="word.id" :value="word.id">
-                  {{ word.label }} ({{ word.pos }})
-                </option>
-              </select>
+                + 新增
+              </button>
             </div>
+            <div class="flex flex-wrap gap-2 min-h-[40px] p-3 border border-gray-200 rounded-md bg-gray-50">
+              <span
+                v-for="wordId in relationsFormData.hyponym"
+                :key="wordId"
+                class="inline-flex items-center gap-1 px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm"
+              >
+                {{ getWordLabel(wordId) }}
+                <button
+                  @click="removeRelation('hyponym', wordId)"
+                  class="hover:text-green-900"
+                >
+                  ×
+                </button>
+              </span>
+              <span v-if="relationsFormData.hyponym.length === 0" class="text-sm text-gray-400">暂无关系</span>
+            </div>
+          </div>
 
-            <!-- 同义词 -->
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">
+          <!-- 同义词 -->
+          <div>
+            <div class="flex items-center justify-between mb-2">
+              <label class="block text-sm font-medium text-gray-700">
                 同义词 (Synonym)
                 <span class="text-xs text-gray-500 ml-1">意义相同或相近</span>
               </label>
-              <select
-                v-model="relationsFormData.synonym"
-                multiple
-                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary-500 min-h-[100px]"
+              <button
+                @click="openAddRelationDialog('synonym')"
+                class="px-3 py-1 text-xs bg-purple-500 text-white rounded hover:bg-purple-600"
               >
-                <option v-for="word in availableWords" :key="word.id" :value="word.id">
-                  {{ word.label }} ({{ word.pos }})
-                </option>
-              </select>
+                + 新增
+              </button>
             </div>
+            <div class="flex flex-wrap gap-2 min-h-[40px] p-3 border border-gray-200 rounded-md bg-gray-50">
+              <span
+                v-for="wordId in relationsFormData.synonym"
+                :key="wordId"
+                class="inline-flex items-center gap-1 px-3 py-1 bg-purple-100 text-purple-800 rounded-full text-sm"
+              >
+                {{ getWordLabel(wordId) }}
+                <button
+                  @click="removeRelation('synonym', wordId)"
+                  class="hover:text-purple-900"
+                >
+                  ×
+                </button>
+              </span>
+              <span v-if="relationsFormData.synonym.length === 0" class="text-sm text-gray-400">暂无关系</span>
+            </div>
+          </div>
 
-            <!-- 反义词 -->
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">
+          <!-- 反义词 -->
+          <div>
+            <div class="flex items-center justify-between mb-2">
+              <label class="block text-sm font-medium text-gray-700">
                 反义词 (Antonym)
                 <span class="text-xs text-gray-500 ml-1">意义相反</span>
               </label>
-              <select
-                v-model="relationsFormData.antonym"
-                multiple
-                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary-500 min-h-[100px]"
+              <button
+                @click="openAddRelationDialog('antonym')"
+                class="px-3 py-1 text-xs bg-red-500 text-white rounded hover:bg-red-600"
               >
-                <option v-for="word in availableWords" :key="word.id" :value="word.id">
-                  {{ word.label }} ({{ word.pos }})
-                </option>
-              </select>
+                + 新增
+              </button>
             </div>
+            <div class="flex flex-wrap gap-2 min-h-[40px] p-3 border border-gray-200 rounded-md bg-gray-50">
+              <span
+                v-for="wordId in relationsFormData.antonym"
+                :key="wordId"
+                class="inline-flex items-center gap-1 px-3 py-1 bg-red-100 text-red-800 rounded-full text-sm"
+              >
+                {{ getWordLabel(wordId) }}
+                <button
+                  @click="removeRelation('antonym', wordId)"
+                  class="hover:text-red-900"
+                >
+                  ×
+                </button>
+              </span>
+              <span v-if="relationsFormData.antonym.length === 0" class="text-sm text-gray-400">暂无关系</span>
+            </div>
+          </div>
 
-            <!-- 整体词 -->
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">
+          <!-- 整体词 -->
+          <div>
+            <div class="flex items-center justify-between mb-2">
+              <label class="block text-sm font-medium text-gray-700">
                 整体词 (Holonym)
                 <span class="text-xs text-gray-500 ml-1">当前词是其一部分</span>
               </label>
-              <select
-                v-model="relationsFormData.holonym"
-                multiple
-                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary-500 min-h-[100px]"
+              <button
+                @click="openAddRelationDialog('holonym')"
+                class="px-3 py-1 text-xs bg-orange-500 text-white rounded hover:bg-orange-600"
               >
-                <option v-for="word in availableWords" :key="word.id" :value="word.id">
-                  {{ word.label }} ({{ word.pos }})
-                </option>
-              </select>
+                + 新增
+              </button>
             </div>
+            <div class="flex flex-wrap gap-2 min-h-[40px] p-3 border border-gray-200 rounded-md bg-gray-50">
+              <span
+                v-for="wordId in relationsFormData.holonym"
+                :key="wordId"
+                class="inline-flex items-center gap-1 px-3 py-1 bg-orange-100 text-orange-800 rounded-full text-sm"
+              >
+                {{ getWordLabel(wordId) }}
+                <button
+                  @click="removeRelation('holonym', wordId)"
+                  class="hover:text-orange-900"
+                >
+                  ×
+                </button>
+              </span>
+              <span v-if="relationsFormData.holonym.length === 0" class="text-sm text-gray-400">暂无关系</span>
+            </div>
+          </div>
 
-            <!-- 部分词 -->
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">
+          <!-- 部分词 -->
+          <div>
+            <div class="flex items-center justify-between mb-2">
+              <label class="block text-sm font-medium text-gray-700">
                 部分词 (Meronym)
                 <span class="text-xs text-gray-500 ml-1">当前词的组成部分</span>
               </label>
-              <select
-                v-model="relationsFormData.meronym"
-                multiple
-                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary-500 min-h-[100px]"
+              <button
+                @click="openAddRelationDialog('meronym')"
+                class="px-3 py-1 text-xs bg-yellow-500 text-white rounded hover:bg-yellow-600"
               >
-                <option v-for="word in availableWords" :key="word.id" :value="word.id">
-                  {{ word.label }} ({{ word.pos }})
-                </option>
-              </select>
+                + 新增
+              </button>
             </div>
-          </div>
-          <div class="bg-blue-50 border border-blue-200 rounded-md p-3 mt-4">
-            <p class="text-xs text-blue-800">
-              💡 <strong>提示:</strong> 按住 Ctrl (Windows) 或 Cmd (Mac) 键可以选择多个词汇
-            </p>
+            <div class="flex flex-wrap gap-2 min-h-[40px] p-3 border border-gray-200 rounded-md bg-gray-50">
+              <span
+                v-for="wordId in relationsFormData.meronym"
+                :key="wordId"
+                class="inline-flex items-center gap-1 px-3 py-1 bg-yellow-100 text-yellow-800 rounded-full text-sm"
+              >
+                {{ getWordLabel(wordId) }}
+                <button
+                  @click="removeRelation('meronym', wordId)"
+                  class="hover:text-yellow-900"
+                >
+                  ×
+                </button>
+              </span>
+              <span v-if="relationsFormData.meronym.length === 0" class="text-sm text-gray-400">暂无关系</span>
+            </div>
           </div>
         </div>
 
@@ -341,6 +422,44 @@
             class="px-4 py-2 bg-primary-500 text-white rounded-md hover:bg-primary-600 transition-colors"
           >
             保存
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 选择词汇对话框 -->
+    <div
+      v-if="showAddRelationDialog"
+      class="fixed inset-0 bg-black/50 flex items-center justify-center z-[60] p-4"
+      @click.self="closeAddRelationDialog"
+    >
+      <div class="bg-white rounded-lg p-6 w-full max-w-lg max-h-[70vh] overflow-y-auto">
+        <h3 class="text-lg font-semibold mb-4">选择词汇</h3>
+        <div class="space-y-2">
+          <input
+            v-model="wordSearchQuery"
+            type="text"
+            placeholder="搜索词汇..."
+            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary-500 mb-4"
+          />
+          <div class="space-y-1 max-h-[400px] overflow-y-auto">
+            <button
+              v-for="word in filteredAvailableWords"
+              :key="word.id"
+              @click="addRelationToList(word.id)"
+              class="w-full text-left px-4 py-2 hover:bg-gray-100 rounded-md transition-colors"
+            >
+              <span class="font-medium">{{ word.label }}</span>
+              <span class="text-sm text-gray-500 ml-2">({{ word.pos }})</span>
+            </button>
+          </div>
+        </div>
+        <div class="mt-6 flex justify-end">
+          <button
+            @click="closeAddRelationDialog"
+            class="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-md transition-colors"
+          >
+            关闭
           </button>
         </div>
       </div>
@@ -378,9 +497,29 @@ const relationsFormData = ref({
   meronym: [] as string[],
 })
 
+// 添加关系对话框相关
+const showAddRelationDialog = ref(false)
+const currentRelationType = ref<RelationType | null>(null)
+const wordSearchQuery = ref('')
+
 const availableWords = computed(() => {
-  // 过滤掉当前正在编辑关系的词汇
-  return adminStore.words.filter((w) => w.id !== editingRelationsWord.value?.id)
+  return adminStore.words.filter((w) => {
+    // 排除当前编辑的词汇
+    if (w.id === editingRelationsWord.value?.id) return false
+    // 排除已经添加的词汇
+    if (currentRelationType.value && relationsFormData.value[currentRelationType.value].includes(w.id)) {
+      return false
+    }
+    return true
+  })
+})
+
+const filteredAvailableWords = computed(() => {
+  if (!wordSearchQuery.value.trim()) return availableWords.value
+  const query = wordSearchQuery.value.toLowerCase()
+  return availableWords.value.filter((w) =>
+    w.label.toLowerCase().includes(query) || w.pos.toLowerCase().includes(query)
+  )
 })
 
 onMounted(() => {
@@ -477,6 +616,33 @@ function saveRelations() {
     adminStore.updateWordRelations(editingRelationsWord.value.id, relationsFormData.value)
   }
   closeRelationsDialog()
+}
+
+function removeRelation(relationType: RelationType, wordId: string) {
+  const index = relationsFormData.value[relationType].indexOf(wordId)
+  if (index > -1) {
+    relationsFormData.value[relationType].splice(index, 1)
+  }
+}
+
+// 添加关系对话框函数
+function openAddRelationDialog(relationType: RelationType) {
+  currentRelationType.value = relationType
+  showAddRelationDialog.value = true
+  wordSearchQuery.value = ''
+}
+
+function closeAddRelationDialog() {
+  showAddRelationDialog.value = false
+  currentRelationType.value = null
+  wordSearchQuery.value = ''
+}
+
+function addRelationToList(wordId: string) {
+  if (currentRelationType.value && !relationsFormData.value[currentRelationType.value].includes(wordId)) {
+    relationsFormData.value[currentRelationType.value].push(wordId)
+  }
+  closeAddRelationDialog()
 }
 
 function deleteWord(id: string) {

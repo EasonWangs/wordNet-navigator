@@ -81,26 +81,86 @@ export const useAdminStore = defineStore('admin', () => {
       meronym: string[]
     }
   ) {
-    // 删除该词汇的所有现有关系
+    // 定义关系映射：添加某种关系时，需要在目标词汇添加的反向关系
+    const relationMapping: Record<string, string | null> = {
+      hypernym: 'hyponym',    // 上位词 -> 下位词
+      hyponym: 'hypernym',    // 下位词 -> 上位词
+      synonym: 'synonym',     // 同义词 -> 同义词
+      antonym: 'antonym',     // 反义词 -> 反义词
+      holonym: 'meronym',     // 整体词 -> 部分词
+      meronym: 'holonym',     // 部分词 -> 整体词
+    }
+
+    // 1. 删除该词汇的所有现有关系（只删除源为当前词的关系）
     const existingConnections = connections.value.filter((c) => c.source === wordId)
+
+    // 记录旧的关系，用于删除反向关系
+    const oldRelations: Record<string, Set<string>> = {
+      hypernym: new Set(),
+      hyponym: new Set(),
+      synonym: new Set(),
+      antonym: new Set(),
+      holonym: new Set(),
+      meronym: new Set(),
+    }
+
     existingConnections.forEach((conn) => {
+      if (oldRelations[conn.relation]) {
+        oldRelations[conn.relation].add(conn.target)
+      }
       storageService.deleteConnection(conn.id)
     })
 
-    // 添加新的关系
+    // 2. 删除旧的反向关系
+    Object.entries(oldRelations).forEach(([relationType, oldTargetIds]) => {
+      const reverseRelation = relationMapping[relationType]
+      if (reverseRelation) {
+        oldTargetIds.forEach((oldTargetId) => {
+          // 查找并删除反向关系
+          const reverseConn = connections.value.find(
+            (c) => c.source === oldTargetId && c.target === wordId && c.relation === reverseRelation
+          )
+          if (reverseConn) {
+            storageService.deleteConnection(reverseConn.id)
+            connections.value = connections.value.filter((c) => c.id !== reverseConn.id)
+          }
+        })
+      }
+    })
+
+    // 3. 添加新的关系
     const newConnections: StoredConnection[] = []
     Object.entries(relations).forEach(([relationType, targetIds]) => {
       targetIds.forEach((targetId) => {
+        // 添加正向关系
         const newConn = storageService.addConnection({
           source: wordId,
           target: targetId,
           relation: relationType as any,
         })
         newConnections.push(newConn)
+
+        // 添加反向关系
+        const reverseRelation = relationMapping[relationType]
+        if (reverseRelation) {
+          // 检查反向关系是否已存在，避免重复
+          const existingReverse = connections.value.find(
+            (c) => c.source === targetId && c.target === wordId && c.relation === reverseRelation
+          )
+
+          if (!existingReverse) {
+            const reverseConn = storageService.addConnection({
+              source: targetId,
+              target: wordId,
+              relation: reverseRelation as any,
+            })
+            newConnections.push(reverseConn)
+          }
+        }
       })
     })
 
-    // 更新本地状态
+    // 4. 更新本地状态
     connections.value = connections.value.filter((c) => c.source !== wordId)
     connections.value.push(...newConnections)
   }

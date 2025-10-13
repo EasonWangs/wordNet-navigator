@@ -5,7 +5,7 @@
       <input
         v-model="graphStore.searchQuery"
         type="text"
-        placeholder="搜索词汇 (例如: dog, happy)"
+        placeholder="搜索词汇 (例如: dog, * 显示全部)"
         class="w-full px-4 py-3 border-2 border-gray-200 rounded-lg text-sm transition-all focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
         @keypress.enter="handleLoadGraph"
       />

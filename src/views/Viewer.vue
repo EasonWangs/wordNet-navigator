@@ -29,7 +29,8 @@ const graphStore = useGraphStore()
 onMounted(async () => {
   graphStore.setLoading(true)
   try {
-    const data = await WordNetService.fetchWordGraph('dog')
+    // Load all words initially (use '*' to show all)
+    const data = await WordNetService.fetchWordGraph('*')
     graphStore.setGraphData(data)
   } catch (error) {
     console.error('Failed to load initial data:', error)
