@@ -1,11 +1,11 @@
 import { ref, onMounted, onBeforeUnmount, watch } from 'vue'
 import cytoscape, { type Core, type NodeSingular } from 'cytoscape'
-import type { GraphData, LayoutType, RelationType } from '@/types/wordnet'
-import { relationConfig } from '@/utils/relationConfig'
+import type { GraphData, LayoutType } from '@/types/wordnet'
+import { storageService } from '@/services/storageService'
 
 interface UseCytoscapeOptions {
   graphData: GraphData
-  activeRelations: RelationType[]
+  activeRelations: string[]
   layout: LayoutType
   onNodeClick?: (nodeData: any) => void
 }
@@ -16,6 +16,45 @@ export function useCytoscape(options: UseCytoscapeOptions) {
 
   const initCytoscape = () => {
     if (!containerRef.value) return
+
+    // 动态加载关系类型配置
+    const relationTypes = storageService.getRelationTypes()
+    const edgeStyles = relationTypes.map((rt) => {
+      // 箭头形状映射
+      const arrowStyle = rt.arrowStyle || 'filled'
+      let arrowShape: 'triangle' | 'triangle-tee' | 'vee' | 'none' = 'triangle'
+      let arrowFill: 'filled' | 'hollow' = 'filled'
+
+      switch (arrowStyle) {
+        case 'filled':
+          arrowShape = 'triangle'
+          arrowFill = 'filled'
+          break
+        case 'hollow':
+          arrowShape = 'triangle'
+          arrowFill = 'hollow'
+          break
+        case 'line':
+          arrowShape = 'vee'
+          arrowFill = 'filled'
+          break
+        case 'none':
+          arrowShape = 'none'
+          arrowFill = 'filled'
+          break
+      }
+
+      return {
+        selector: `edge[relation="${rt.key}"]`,
+        style: {
+          'line-color': rt.color,
+          'target-arrow-color': rt.color,
+          'line-style': rt.lineStyle,
+          'target-arrow-shape': arrowShape,
+          'target-arrow-fill': arrowFill,
+        },
+      }
+    })
 
     const cy = cytoscape({
       container: containerRef.value,
@@ -54,14 +93,7 @@ export function useCytoscape(options: UseCytoscapeOptions) {
             'arrow-scale': 1.5,
           },
         },
-        ...Object.entries(relationConfig).map(([rel, config]) => ({
-          selector: `edge[relation="${rel}"]`,
-          style: {
-            'line-color': config.color,
-            'target-arrow-color': config.color,
-            'line-style': config.lineStyle,
-          },
-        })),
+        ...edgeStyles,
       ],
       minZoom: 0.3,
       maxZoom: 3,
@@ -169,7 +201,7 @@ export function useCytoscape(options: UseCytoscapeOptions) {
 
     // 遍历所有边，根据 activeRelations 设置可见性
     cyInstance.value.edges().forEach((edge) => {
-      const relation = edge.data('relation') as RelationType
+      const relation = edge.data('relation') as string
       if (options.activeRelations.includes(relation)) {
         edge.style('display', 'element')
       } else {

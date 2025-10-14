@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
-import type { GraphData, WordNode, RelationType, LayoutType } from '@/types/wordnet'
+import type { GraphData, WordNode, LayoutType } from '@/types/wordnet'
+import { storageService } from '@/services/storageService'
 
 export const useGraphStore = defineStore('graph', () => {
   // State
@@ -9,12 +10,17 @@ export const useGraphStore = defineStore('graph', () => {
   const searchQuery = ref<string>('*')
   const loading = ref<boolean>(false)
   const layout = ref<LayoutType>('cose')
-  const activeRelations = ref<RelationType[]>([
-    'hypernym',
-    'synonym',
-    'antonym',
-    'meronym',
-  ])
+
+  // 动态从 LocalStorage 加载默认激活的关系类型
+  const getDefaultActiveRelations = (): string[] => {
+    const relationTypes = storageService.getRelationTypes()
+    // 默认激活除了 hyponym 和 holonym 以外的所有关系类型
+    return relationTypes
+      .filter(rt => rt.key !== 'hyponym' && rt.key !== 'holonym')
+      .map(rt => rt.key)
+  }
+
+  const activeRelations = ref<string[]>(getDefaultActiveRelations())
 
   // Computed (if needed)
   const hasGraphData = computed(() => graphData.value.nodes.length > 0)
@@ -40,7 +46,7 @@ export const useGraphStore = defineStore('graph', () => {
     layout.value = newLayout
   }
 
-  function toggleRelation(relation: RelationType) {
+  function toggleRelation(relation: string) {
     const index = activeRelations.value.indexOf(relation)
     if (index > -1) {
       activeRelations.value.splice(index, 1)
@@ -49,8 +55,13 @@ export const useGraphStore = defineStore('graph', () => {
     }
   }
 
-  function setActiveRelations(relations: RelationType[]) {
+  function setActiveRelations(relations: string[]) {
     activeRelations.value = relations
+  }
+
+  // 重新加载默认激活关系（在关系类型更新后调用）
+  function reloadActiveRelations() {
+    activeRelations.value = getDefaultActiveRelations()
   }
 
   return {
@@ -71,5 +82,6 @@ export const useGraphStore = defineStore('graph', () => {
     setLayout,
     toggleRelation,
     setActiveRelations,
+    reloadActiveRelations,
   }
 })

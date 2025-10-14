@@ -15,88 +15,39 @@
       <table class="min-w-full divide-y divide-gray-200">
         <thead class="bg-gray-50">
           <tr>
-            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">词汇</th>
+            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase sticky left-0 bg-gray-50 z-10">词汇</th>
             <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">词性</th>
-            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">上位词</th>
-            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">下位词</th>
-            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">同义词</th>
-            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">反义词</th>
-            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">整体词</th>
-            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">部分词</th>
-            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">操作</th>
+            <th
+              v-for="relationType in adminStore.relationTypes"
+              :key="relationType.key"
+              class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase"
+            >
+              {{ relationType.label }}
+            </th>
+            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase sticky right-0 bg-gray-50 z-10">操作</th>
           </tr>
         </thead>
         <tbody class="bg-white divide-y divide-gray-200">
           <tr v-for="word in adminStore.words" :key="word.id" class="hover:bg-gray-50">
-            <td class="px-4 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{{ word.label }}</td>
+            <td class="px-4 py-4 whitespace-nowrap text-sm font-medium text-gray-900 sticky left-0 bg-white z-10">{{ word.label }}</td>
             <td class="px-4 py-4 whitespace-nowrap text-sm text-gray-500">{{ word.pos }}</td>
-            <td class="px-4 py-3">
+            <td
+              v-for="relationType in adminStore.relationTypes"
+              :key="relationType.key"
+              class="px-4 py-3"
+            >
               <div class="flex flex-wrap gap-1">
                 <span
-                  v-for="rel in getRelatedWords(word.id, 'hypernym')"
+                  v-for="rel in getRelatedWords(word.id, relationType.key)"
                   :key="rel"
-                  class="px-2 py-1 text-xs bg-blue-100 text-blue-800 rounded"
+                  class="px-2 py-1 text-xs rounded"
+                  :class="getRelationColorClass(relationType.key)"
                 >
                   {{ getWordLabel(rel) }}
                 </span>
               </div>
             </td>
-            <td class="px-4 py-3">
-              <div class="flex flex-wrap gap-1">
-                <span
-                  v-for="rel in getRelatedWords(word.id, 'hyponym')"
-                  :key="rel"
-                  class="px-2 py-1 text-xs bg-green-100 text-green-800 rounded"
-                >
-                  {{ getWordLabel(rel) }}
-                </span>
-              </div>
-            </td>
-            <td class="px-4 py-3">
-              <div class="flex flex-wrap gap-1">
-                <span
-                  v-for="rel in getRelatedWords(word.id, 'synonym')"
-                  :key="rel"
-                  class="px-2 py-1 text-xs bg-purple-100 text-purple-800 rounded"
-                >
-                  {{ getWordLabel(rel) }}
-                </span>
-              </div>
-            </td>
-            <td class="px-4 py-3">
-              <div class="flex flex-wrap gap-1">
-                <span
-                  v-for="rel in getRelatedWords(word.id, 'antonym')"
-                  :key="rel"
-                  class="px-2 py-1 text-xs bg-red-100 text-red-800 rounded"
-                >
-                  {{ getWordLabel(rel) }}
-                </span>
-              </div>
-            </td>
-            <td class="px-4 py-3">
-              <div class="flex flex-wrap gap-1">
-                <span
-                  v-for="rel in getRelatedWords(word.id, 'holonym')"
-                  :key="rel"
-                  class="px-2 py-1 text-xs bg-orange-100 text-orange-800 rounded"
-                >
-                  {{ getWordLabel(rel) }}
-                </span>
-              </div>
-            </td>
-            <td class="px-4 py-3">
-              <div class="flex flex-wrap gap-1">
-                <span
-                  v-for="rel in getRelatedWords(word.id, 'meronym')"
-                  :key="rel"
-                  class="px-2 py-1 text-xs bg-yellow-100 text-yellow-800 rounded"
-                >
-                  {{ getWordLabel(rel) }}
-                </span>
-              </div>
-            </td>
-            <td class="px-4 py-4 whitespace-nowrap text-sm font-medium space-x-2">
+            <td class="px-4 py-4 whitespace-nowrap text-sm font-medium space-x-2 sticky right-0 bg-white z-10">
               <button
                 @click="editWord(word)"
                 class="text-primary-600 hover:text-primary-900"
@@ -217,195 +168,37 @@
           编辑词汇关系: <span class="text-primary-600">{{ editingRelationsWord.label }}</span>
         </h3>
         <div class="space-y-6">
-          <!-- 上位词 -->
-          <div>
+          <!-- 动态渲染所有关系类型 -->
+          <div v-for="relationType in adminStore.relationTypes" :key="relationType.key">
             <div class="flex items-center justify-between mb-2">
               <label class="block text-sm font-medium text-gray-700">
-                上位词 (Hypernym)
-                <span class="text-xs text-gray-500 ml-1">更抽象/更广泛的概念</span>
+                {{ relationType.label }} ({{ relationType.key }})
+                <span v-if="relationType.description" class="text-xs text-gray-500 ml-1">{{ relationType.description }}</span>
               </label>
               <button
-                @click="openAddRelationDialog('hypernym')"
-                class="px-3 py-1 text-xs bg-blue-500 text-white rounded hover:bg-blue-600"
+                @click="openAddRelationDialog(relationType.key)"
+                class="px-3 py-1 text-xs text-white rounded"
+                :class="getRelationButtonClass(relationType.key)"
               >
                 + 新增
               </button>
             </div>
             <div class="flex flex-wrap gap-2 min-h-[40px] p-3 border border-gray-200 rounded-md bg-gray-50">
               <span
-                v-for="wordId in relationsFormData.hypernym"
+                v-for="wordId in (relationsFormData[relationType.key] || [])"
                 :key="wordId"
-                class="inline-flex items-center gap-1 px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm"
+                class="inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm"
+                :class="getRelationColorClass(relationType.key)"
               >
                 {{ getWordLabel(wordId) }}
                 <button
-                  @click="removeRelation('hypernym', wordId)"
-                  class="hover:text-blue-900"
+                  @click="removeRelation(relationType.key, wordId)"
+                  class="hover:opacity-75"
                 >
                   ×
                 </button>
               </span>
-              <span v-if="relationsFormData.hypernym.length === 0" class="text-sm text-gray-400">暂无关系</span>
-            </div>
-          </div>
-
-          <!-- 下位词 -->
-          <div>
-            <div class="flex items-center justify-between mb-2">
-              <label class="block text-sm font-medium text-gray-700">
-                下位词 (Hyponym)
-                <span class="text-xs text-gray-500 ml-1">更具体/更狭窄的概念</span>
-              </label>
-              <button
-                @click="openAddRelationDialog('hyponym')"
-                class="px-3 py-1 text-xs bg-green-500 text-white rounded hover:bg-green-600"
-              >
-                + 新增
-              </button>
-            </div>
-            <div class="flex flex-wrap gap-2 min-h-[40px] p-3 border border-gray-200 rounded-md bg-gray-50">
-              <span
-                v-for="wordId in relationsFormData.hyponym"
-                :key="wordId"
-                class="inline-flex items-center gap-1 px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm"
-              >
-                {{ getWordLabel(wordId) }}
-                <button
-                  @click="removeRelation('hyponym', wordId)"
-                  class="hover:text-green-900"
-                >
-                  ×
-                </button>
-              </span>
-              <span v-if="relationsFormData.hyponym.length === 0" class="text-sm text-gray-400">暂无关系</span>
-            </div>
-          </div>
-
-          <!-- 同义词 -->
-          <div>
-            <div class="flex items-center justify-between mb-2">
-              <label class="block text-sm font-medium text-gray-700">
-                同义词 (Synonym)
-                <span class="text-xs text-gray-500 ml-1">意义相同或相近</span>
-              </label>
-              <button
-                @click="openAddRelationDialog('synonym')"
-                class="px-3 py-1 text-xs bg-purple-500 text-white rounded hover:bg-purple-600"
-              >
-                + 新增
-              </button>
-            </div>
-            <div class="flex flex-wrap gap-2 min-h-[40px] p-3 border border-gray-200 rounded-md bg-gray-50">
-              <span
-                v-for="wordId in relationsFormData.synonym"
-                :key="wordId"
-                class="inline-flex items-center gap-1 px-3 py-1 bg-purple-100 text-purple-800 rounded-full text-sm"
-              >
-                {{ getWordLabel(wordId) }}
-                <button
-                  @click="removeRelation('synonym', wordId)"
-                  class="hover:text-purple-900"
-                >
-                  ×
-                </button>
-              </span>
-              <span v-if="relationsFormData.synonym.length === 0" class="text-sm text-gray-400">暂无关系</span>
-            </div>
-          </div>
-
-          <!-- 反义词 -->
-          <div>
-            <div class="flex items-center justify-between mb-2">
-              <label class="block text-sm font-medium text-gray-700">
-                反义词 (Antonym)
-                <span class="text-xs text-gray-500 ml-1">意义相反</span>
-              </label>
-              <button
-                @click="openAddRelationDialog('antonym')"
-                class="px-3 py-1 text-xs bg-red-500 text-white rounded hover:bg-red-600"
-              >
-                + 新增
-              </button>
-            </div>
-            <div class="flex flex-wrap gap-2 min-h-[40px] p-3 border border-gray-200 rounded-md bg-gray-50">
-              <span
-                v-for="wordId in relationsFormData.antonym"
-                :key="wordId"
-                class="inline-flex items-center gap-1 px-3 py-1 bg-red-100 text-red-800 rounded-full text-sm"
-              >
-                {{ getWordLabel(wordId) }}
-                <button
-                  @click="removeRelation('antonym', wordId)"
-                  class="hover:text-red-900"
-                >
-                  ×
-                </button>
-              </span>
-              <span v-if="relationsFormData.antonym.length === 0" class="text-sm text-gray-400">暂无关系</span>
-            </div>
-          </div>
-
-          <!-- 整体词 -->
-          <div>
-            <div class="flex items-center justify-between mb-2">
-              <label class="block text-sm font-medium text-gray-700">
-                整体词 (Holonym)
-                <span class="text-xs text-gray-500 ml-1">当前词是其一部分</span>
-              </label>
-              <button
-                @click="openAddRelationDialog('holonym')"
-                class="px-3 py-1 text-xs bg-orange-500 text-white rounded hover:bg-orange-600"
-              >
-                + 新增
-              </button>
-            </div>
-            <div class="flex flex-wrap gap-2 min-h-[40px] p-3 border border-gray-200 rounded-md bg-gray-50">
-              <span
-                v-for="wordId in relationsFormData.holonym"
-                :key="wordId"
-                class="inline-flex items-center gap-1 px-3 py-1 bg-orange-100 text-orange-800 rounded-full text-sm"
-              >
-                {{ getWordLabel(wordId) }}
-                <button
-                  @click="removeRelation('holonym', wordId)"
-                  class="hover:text-orange-900"
-                >
-                  ×
-                </button>
-              </span>
-              <span v-if="relationsFormData.holonym.length === 0" class="text-sm text-gray-400">暂无关系</span>
-            </div>
-          </div>
-
-          <!-- 部分词 -->
-          <div>
-            <div class="flex items-center justify-between mb-2">
-              <label class="block text-sm font-medium text-gray-700">
-                部分词 (Meronym)
-                <span class="text-xs text-gray-500 ml-1">当前词的组成部分</span>
-              </label>
-              <button
-                @click="openAddRelationDialog('meronym')"
-                class="px-3 py-1 text-xs bg-yellow-500 text-white rounded hover:bg-yellow-600"
-              >
-                + 新增
-              </button>
-            </div>
-            <div class="flex flex-wrap gap-2 min-h-[40px] p-3 border border-gray-200 rounded-md bg-gray-50">
-              <span
-                v-for="wordId in relationsFormData.meronym"
-                :key="wordId"
-                class="inline-flex items-center gap-1 px-3 py-1 bg-yellow-100 text-yellow-800 rounded-full text-sm"
-              >
-                {{ getWordLabel(wordId) }}
-                <button
-                  @click="removeRelation('meronym', wordId)"
-                  class="hover:text-yellow-900"
-                >
-                  ×
-                </button>
-              </span>
-              <span v-if="relationsFormData.meronym.length === 0" class="text-sm text-gray-400">暂无关系</span>
+              <span v-if="!relationsFormData[relationType.key] || relationsFormData[relationType.key].length === 0" class="text-sm text-gray-400">暂无关系</span>
             </div>
           </div>
         </div>
@@ -471,7 +264,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { useAdminStore } from '@/stores/adminStore'
 import type { StoredWord } from '@/services/storageService'
-import type { PartOfSpeech, RelationType } from '@/types/wordnet'
+import type { PartOfSpeech } from '@/types/wordnet'
 
 const adminStore = useAdminStore()
 
@@ -488,18 +281,11 @@ const wordFormData = ref({
 
 // 关系编辑相关
 const editingRelationsWord = ref<StoredWord | null>(null)
-const relationsFormData = ref({
-  hypernym: [] as string[],
-  hyponym: [] as string[],
-  synonym: [] as string[],
-  antonym: [] as string[],
-  holonym: [] as string[],
-  meronym: [] as string[],
-})
+const relationsFormData = ref<Record<string, string[]>>({})
 
 // 添加关系对话框相关
 const showAddRelationDialog = ref(false)
-const currentRelationType = ref<RelationType | null>(null)
+const currentRelationType = ref<string | null>(null)
 const wordSearchQuery = ref('')
 
 const availableWords = computed(() => {
@@ -531,7 +317,7 @@ function getWordLabel(id: string): string {
   return word?.label || id
 }
 
-function getRelatedWords(wordId: string, relationType: RelationType): string[] {
+function getRelatedWords(wordId: string, relationType: string): string[] {
   return adminStore.connections
     .filter((c) => c.source === wordId && c.relation === relationType)
     .map((c) => c.target)
@@ -589,26 +375,18 @@ function saveWord() {
 // 关系编辑函数
 function editRelations(word: StoredWord) {
   editingRelationsWord.value = word
-  relationsFormData.value = {
-    hypernym: getRelatedWords(word.id, 'hypernym'),
-    hyponym: getRelatedWords(word.id, 'hyponym'),
-    synonym: getRelatedWords(word.id, 'synonym'),
-    antonym: getRelatedWords(word.id, 'antonym'),
-    holonym: getRelatedWords(word.id, 'holonym'),
-    meronym: getRelatedWords(word.id, 'meronym'),
-  }
+
+  // 动态构建关系表单数据
+  const formData: Record<string, string[]> = {}
+  adminStore.relationTypes.forEach(rt => {
+    formData[rt.key] = getRelatedWords(word.id, rt.key)
+  })
+  relationsFormData.value = formData
 }
 
 function closeRelationsDialog() {
   editingRelationsWord.value = null
-  relationsFormData.value = {
-    hypernym: [],
-    hyponym: [],
-    synonym: [],
-    antonym: [],
-    holonym: [],
-    meronym: [],
-  }
+  relationsFormData.value = {}
 }
 
 function saveRelations() {
@@ -618,7 +396,8 @@ function saveRelations() {
   closeRelationsDialog()
 }
 
-function removeRelation(relationType: RelationType, wordId: string) {
+function removeRelation(relationType: string, wordId: string) {
+  if (!relationsFormData.value[relationType]) return
   const index = relationsFormData.value[relationType].indexOf(wordId)
   if (index > -1) {
     relationsFormData.value[relationType].splice(index, 1)
@@ -626,7 +405,7 @@ function removeRelation(relationType: RelationType, wordId: string) {
 }
 
 // 添加关系对话框函数
-function openAddRelationDialog(relationType: RelationType) {
+function openAddRelationDialog(relationType: string) {
   currentRelationType.value = relationType
   showAddRelationDialog.value = true
   wordSearchQuery.value = ''
@@ -639,10 +418,41 @@ function closeAddRelationDialog() {
 }
 
 function addRelationToList(wordId: string) {
-  if (currentRelationType.value && !relationsFormData.value[currentRelationType.value].includes(wordId)) {
-    relationsFormData.value[currentRelationType.value].push(wordId)
+  if (currentRelationType.value) {
+    if (!relationsFormData.value[currentRelationType.value]) {
+      relationsFormData.value[currentRelationType.value] = []
+    }
+    if (!relationsFormData.value[currentRelationType.value].includes(wordId)) {
+      relationsFormData.value[currentRelationType.value].push(wordId)
+    }
   }
   closeAddRelationDialog()
+}
+
+// 获取关系类型的颜色类（用于UI显示）
+function getRelationColorClass(key: string): string {
+  const colorMap: Record<string, string> = {
+    hypernym: 'bg-blue-100 text-blue-800',
+    hyponym: 'bg-green-100 text-green-800',
+    synonym: 'bg-purple-100 text-purple-800',
+    antonym: 'bg-red-100 text-red-800',
+    holonym: 'bg-orange-100 text-orange-800',
+    meronym: 'bg-yellow-100 text-yellow-800',
+  }
+  return colorMap[key] || 'bg-gray-100 text-gray-800'
+}
+
+// 获取关系类型的按钮颜色
+function getRelationButtonClass(key: string): string {
+  const colorMap: Record<string, string> = {
+    hypernym: 'bg-blue-500 hover:bg-blue-600',
+    hyponym: 'bg-green-500 hover:bg-green-600',
+    synonym: 'bg-purple-500 hover:bg-purple-600',
+    antonym: 'bg-red-500 hover:bg-red-600',
+    holonym: 'bg-orange-500 hover:bg-orange-600',
+    meronym: 'bg-yellow-500 hover:bg-yellow-600',
+  }
+  return colorMap[key] || 'bg-gray-500 hover:bg-gray-600'
 }
 
 function deleteWord(id: string) {

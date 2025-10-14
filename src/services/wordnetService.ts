@@ -109,6 +109,21 @@ export const mockGraphData: GraphData = {
 }
 
 export class WordNetService {
+  // 获取对称关系类型（自己配对自己的关系）
+  private static getSymmetricRelationTypes(): Set<string> {
+    const relationTypes = storageService.getRelationTypes()
+    const symmetricTypes = new Set<string>()
+
+    relationTypes.forEach(rt => {
+      // 如果关系配对到自己，则是对称关系
+      if (rt.pairWith === rt.key) {
+        symmetricTypes.add(rt.key)
+      }
+    })
+
+    return symmetricTypes
+  }
+
   // Fetch word graph from LocalStorage
   static async fetchWordGraph(word: string): Promise<GraphData> {
     return new Promise((resolve) => {
@@ -116,6 +131,7 @@ export class WordNetService {
         // Get all words and connections from storage
         const allWords = storageService.getWords()
         const allConnections = storageService.getConnections()
+        const symmetricTypes = this.getSymmetricRelationTypes()
 
         // If word is empty or "*", return all data
         if (!word || word.trim() === '' || word === '*') {
@@ -129,10 +145,10 @@ export class WordNetService {
             },
           }))
 
-          // 过滤同义词和反义词，只显示单向关系
+          // 过滤对称关系，只显示单向关系
           const filteredEdges = allConnections.filter((c) => {
-            // 对于同义词和反义词，只保留源ID < 目标ID的边，避免显示双向箭头
-            if (c.relation === 'synonym' || c.relation === 'antonym') {
+            // 对于对称关系（自己配对自己），只保留源ID < 目标ID的边，避免显示双向箭头
+            if (symmetricTypes.has(c.relation)) {
               return c.source < c.target
             }
             return true
@@ -211,12 +227,12 @@ export class WordNetService {
             },
           }))
 
-        // 过滤同义词和反义词，只显示单向关系
+        // 过滤对称关系，只显示单向关系
         const filteredEdges = allConnections.filter((c) => {
           if (!edgesToInclude.has(c.id)) return false
 
-          // 对于同义词和反义词，只保留源ID < 目标ID的边，避免显示双向箭头
-          if (c.relation === 'synonym' || c.relation === 'antonym') {
+          // 对于对称关系（自己配对自己），只保留源ID < 目标ID的边，避免显示双向箭头
+          if (symmetricTypes.has(c.relation)) {
             return c.source < c.target
           }
           return true

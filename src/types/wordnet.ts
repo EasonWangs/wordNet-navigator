@@ -21,7 +21,7 @@ export interface WordNode {
 export interface WordEdge {
   source: string
   target: string
-  relation: RelationType
+  relation: string  // 改为 string 以支持自定义关系类型
 }
 
 export interface GraphData {

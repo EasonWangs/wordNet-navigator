@@ -50,59 +50,72 @@ export const useAdminStore = defineStore('admin', () => {
   }
 
   // Relation Types
-  function addRelationType(type: Omit<StoredRelationType, 'key'>) {
+  function addRelationType(type: StoredRelationType) {
     const newType = storageService.addRelationType(type)
     relationTypes.value.push(newType)
     return newType
   }
 
   function updateRelationType(key: string, updates: Partial<StoredRelationType>) {
-    storageService.updateRelationType(key as any, updates)
+    storageService.updateRelationType(key, updates)
     const index = relationTypes.value.findIndex((t) => t.key === key)
     if (index !== -1) {
       relationTypes.value[index] = { ...relationTypes.value[index], ...updates }
     }
   }
 
+  // 更新关系类型的键（同时迁移所有历史连接）
+  function updateRelationTypeKey(oldKey: string, newKey: string, updates: Partial<StoredRelationType>) {
+    // 1. 更新所有使用旧关系键的连接
+    const affectedConnections = connections.value.filter(c => c.relation === oldKey)
+    affectedConnections.forEach(conn => {
+      storageService.updateConnection(conn.id, { relation: newKey })
+      conn.relation = newKey
+    })
+
+    // 2. 更新其他关系类型的配对关系引用
+    relationTypes.value.forEach(rt => {
+      if (rt.pairWith === oldKey) {
+        storageService.updateRelationType(rt.key, { pairWith: newKey })
+        rt.pairWith = newKey
+      }
+    })
+
+    // 3. 更新关系类型本身
+    const fullUpdates = { ...updates, key: newKey }
+    storageService.updateRelationType(oldKey, fullUpdates)
+    const index = relationTypes.value.findIndex((t) => t.key === oldKey)
+    if (index !== -1) {
+      relationTypes.value[index] = { ...relationTypes.value[index], ...fullUpdates }
+    }
+  }
+
   function deleteRelationType(key: string) {
-    storageService.deleteRelationType(key as any)
+    storageService.deleteRelationType(key)
     relationTypes.value = relationTypes.value.filter((t) => t.key !== key)
   }
 
   // Update word relations (批量更新一个词汇的所有关系)
   function updateWordRelations(
     wordId: string,
-    relations: {
-      hypernym: string[]
-      hyponym: string[]
-      synonym: string[]
-      antonym: string[]
-      holonym: string[]
-      meronym: string[]
-    }
+    relations: Record<string, string[]>
   ) {
-    // 定义关系映射：添加某种关系时，需要在目标词汇添加的反向关系
-    const relationMapping: Record<string, string | null> = {
-      hypernym: 'hyponym',    // 上位词 -> 下位词
-      hyponym: 'hypernym',    // 下位词 -> 上位词
-      synonym: 'synonym',     // 同义词 -> 同义词
-      antonym: 'antonym',     // 反义词 -> 反义词
-      holonym: 'meronym',     // 整体词 -> 部分词
-      meronym: 'holonym',     // 部分词 -> 整体词
-    }
+    // 从关系类型配置中动态构建关系映射
+    const relationMapping: Record<string, string | null> = {}
+    relationTypes.value.forEach(rt => {
+      if (rt.pairWith) {
+        relationMapping[rt.key] = rt.pairWith
+      }
+    })
 
     // 1. 删除该词汇的所有现有关系（只删除源为当前词的关系）
     const existingConnections = connections.value.filter((c) => c.source === wordId)
 
-    // 记录旧的关系，用于删除反向关系
-    const oldRelations: Record<string, Set<string>> = {
-      hypernym: new Set(),
-      hyponym: new Set(),
-      synonym: new Set(),
-      antonym: new Set(),
-      holonym: new Set(),
-      meronym: new Set(),
-    }
+    // 记录旧的关系，用于删除反向关系 - 动态创建
+    const oldRelations: Record<string, Set<string>> = {}
+    Object.keys(relations).forEach(key => {
+      oldRelations[key] = new Set()
+    })
 
     existingConnections.forEach((conn) => {
       if (oldRelations[conn.relation]) {
@@ -187,6 +200,7 @@ export const useAdminStore = defineStore('admin', () => {
     deleteConnection,
     addRelationType,
     updateRelationType,
+    updateRelationTypeKey,
     deleteRelationType,
     updateWordRelations,
     exportData,

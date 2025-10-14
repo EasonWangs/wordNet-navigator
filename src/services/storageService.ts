@@ -18,12 +18,16 @@ export interface StoredConnection extends WordEdge {
   createdAt: string
 }
 
+export type ArrowStyle = 'filled' | 'hollow' | 'line' | 'none'
+
 export interface StoredRelationType {
-  key: RelationType
+  key: string  // 改为 string 以支持自定义关系键
   label: string
   color: string
   lineStyle: 'solid' | 'dashed' | 'dotted'
+  arrowStyle: ArrowStyle  // 箭头样式：实心、空心、线条、无箭头
   description?: string
+  pairWith?: string  // 配对关系键：可以是其他关系键、自己的键、或不配对（undefined）
 }
 
 class StorageService {
@@ -33,13 +37,37 @@ class StorageService {
     if (stored) {
       return JSON.parse(stored)
     }
-    // 初始化默认关系类型
-    const defaults: StoredRelationType[] = Object.entries(relationConfig).map(([key, config]) => ({
-      key: key as RelationType,
-      label: config.label,
-      color: config.color,
-      lineStyle: config.lineStyle,
-    }))
+    // 初始化默认关系类型（包含配对关系和箭头样式）
+    const defaults: StoredRelationType[] = Object.entries(relationConfig).map(([key, config]) => {
+      // 默认配对关系映射
+      const defaultPairMap: Record<string, string> = {
+        hypernym: 'hyponym',
+        hyponym: 'hypernym',
+        synonym: 'synonym',
+        antonym: 'antonym',
+        holonym: 'meronym',
+        meronym: 'holonym',
+      }
+
+      // 默认箭头样式映射
+      const defaultArrowMap: Record<string, ArrowStyle> = {
+        hypernym: 'filled',
+        hyponym: 'filled',
+        synonym: 'line',
+        antonym: 'line',
+        holonym: 'hollow',
+        meronym: 'hollow',
+      }
+
+      return {
+        key: key as RelationType,
+        label: config.label,
+        color: config.color,
+        lineStyle: config.lineStyle,
+        arrowStyle: defaultArrowMap[key] || 'filled',
+        pairWith: defaultPairMap[key],
+      }
+    })
     this.saveRelationTypes(defaults)
     return defaults
   }
@@ -48,16 +76,14 @@ class StorageService {
     localStorage.setItem(STORAGE_KEYS.RELATION_TYPES, JSON.stringify(types))
   }
 
-  addRelationType(type: Omit<StoredRelationType, 'key'>): StoredRelationType {
+  addRelationType(type: StoredRelationType): StoredRelationType {
     const types = this.getRelationTypes()
-    const key = type.label.toLowerCase().replace(/\s+/g, '_') as RelationType
-    const newType: StoredRelationType = { ...type, key }
-    types.push(newType)
+    types.push(type)
     this.saveRelationTypes(types)
-    return newType
+    return type
   }
 
-  updateRelationType(key: RelationType, updates: Partial<StoredRelationType>): void {
+  updateRelationType(key: string, updates: Partial<StoredRelationType>): void {
     const types = this.getRelationTypes()
     const index = types.findIndex((t) => t.key === key)
     if (index !== -1) {
@@ -66,7 +92,7 @@ class StorageService {
     }
   }
 
-  deleteRelationType(key: RelationType): void {
+  deleteRelationType(key: string): void {
     const types = this.getRelationTypes()
     const filtered = types.filter((t) => t.key !== key)
     this.saveRelationTypes(filtered)
@@ -153,6 +179,18 @@ class StorageService {
     const connections = this.getConnections()
     const filtered = connections.filter((c) => c.source !== wordId && c.target !== wordId)
     this.saveConnections(filtered)
+  }
+
+  updateConnection(id: string, updates: Partial<StoredConnection>): void {
+    const connections = this.getConnections()
+    const index = connections.findIndex((c) => c.id === id)
+    if (index !== -1) {
+      connections[index] = {
+        ...connections[index],
+        ...updates,
+      }
+      this.saveConnections(connections)
+    }
   }
 
   // 导出/导入数据
