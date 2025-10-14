@@ -5,6 +5,7 @@ const STORAGE_KEYS = {
   WORDS: 'wordnet_words',
   CONNECTIONS: 'wordnet_connections',
   RELATION_TYPES: 'wordnet_relation_types',
+  POS_TYPES: 'wordnet_pos_types',
 }
 
 export interface StoredWord extends WordNode {
@@ -28,6 +29,12 @@ export interface StoredRelationType {
   arrowStyle: ArrowStyle  // 箭头样式：实心、空心、线条、无箭头
   description?: string
   pairWith?: string  // 配对关系键：可以是其他关系键、自己的键、或不配对（undefined）
+}
+
+export interface StoredPosType {
+  key: string  // 词性键，如 noun, verb, adj 等
+  label: string  // 中文名称，如"名词"、"动词"等
+  description?: string  // 说明
 }
 
 class StorageService {
@@ -96,6 +103,70 @@ class StorageService {
     const types = this.getRelationTypes()
     const filtered = types.filter((t) => t.key !== key)
     this.saveRelationTypes(filtered)
+  }
+
+  // 词性类型管理
+  getPosTypes(): StoredPosType[] {
+    const stored = localStorage.getItem(STORAGE_KEYS.POS_TYPES)
+    if (stored) {
+      return JSON.parse(stored)
+    }
+    // 初始化默认词性类型
+    const defaults: StoredPosType[] = [
+      { key: 'noun', label: '名词', description: '表示人、事物、地点或抽象概念' },
+      { key: 'verb', label: '动词', description: '表示动作或状态' },
+      { key: 'adjective', label: '形容词', description: '描述或修饰名词' },
+      { key: 'adverb', label: '副词', description: '修饰动词、形容词或其他副词' },
+    ]
+    this.savePosTypes(defaults)
+    return defaults
+  }
+
+  savePosTypes(types: StoredPosType[]): void {
+    localStorage.setItem(STORAGE_KEYS.POS_TYPES, JSON.stringify(types))
+  }
+
+  addPosType(type: StoredPosType): StoredPosType {
+    const types = this.getPosTypes()
+    types.push(type)
+    this.savePosTypes(types)
+    return type
+  }
+
+  updatePosType(key: string, updates: Partial<StoredPosType>): void {
+    const types = this.getPosTypes()
+    const index = types.findIndex((t) => t.key === key)
+    if (index !== -1) {
+      types[index] = { ...types[index], ...updates }
+      this.savePosTypes(types)
+    }
+  }
+
+  // 更新词性类型的键（同时迁移所有词汇）
+  updatePosTypeKey(oldKey: string, newKey: string, updates: Partial<StoredPosType>): void {
+    const types = this.getPosTypes()
+    const words = this.getWords()
+
+    // 更新所有使用旧词性键的词汇
+    words.forEach(word => {
+      if (word.pos === oldKey) {
+        word.pos = newKey
+      }
+    })
+    this.saveWords(words)
+
+    // 更新词性类型本身
+    const index = types.findIndex((t) => t.key === oldKey)
+    if (index !== -1) {
+      types[index] = { ...types[index], ...updates, key: newKey }
+      this.savePosTypes(types)
+    }
+  }
+
+  deletePosType(key: string): void {
+    const types = this.getPosTypes()
+    const filtered = types.filter((t) => t.key !== key)
+    this.savePosTypes(filtered)
   }
 
   // 词汇管理
@@ -199,6 +270,7 @@ class StorageService {
       words: this.getWords(),
       connections: this.getConnections(),
       relationTypes: this.getRelationTypes(),
+      posTypes: this.getPosTypes(),
       exportedAt: new Date().toISOString(),
     }
   }
@@ -207,10 +279,14 @@ class StorageService {
     words: StoredWord[]
     connections: StoredConnection[]
     relationTypes: StoredRelationType[]
+    posTypes?: StoredPosType[]
   }): void {
     this.saveWords(data.words)
     this.saveConnections(data.connections)
     this.saveRelationTypes(data.relationTypes)
+    if (data.posTypes) {
+      this.savePosTypes(data.posTypes)
+    }
   }
 
   clearAll(): void {

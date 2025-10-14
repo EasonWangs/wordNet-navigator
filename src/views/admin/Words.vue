@@ -30,7 +30,7 @@
         <tbody class="bg-white divide-y divide-gray-200">
           <tr v-for="word in adminStore.words" :key="word.id" class="hover:bg-gray-50">
             <td class="px-4 py-4 whitespace-nowrap text-sm font-medium text-gray-900 sticky left-0 bg-white z-10">{{ word.label }}</td>
-            <td class="px-4 py-4 whitespace-nowrap text-sm text-gray-500">{{ word.pos }}</td>
+            <td class="px-4 py-4 whitespace-nowrap text-sm text-gray-500">{{ getPosLabel(word.pos) }}</td>
             <td
               v-for="relationType in adminStore.relationTypes"
               :key="relationType.key"
@@ -97,10 +97,9 @@
                 v-model="wordFormData.pos"
                 class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary-500"
               >
-                <option value="noun">名词 (noun)</option>
-                <option value="verb">动词 (verb)</option>
-                <option value="adjective">形容词 (adjective)</option>
-                <option value="adverb">副词 (adverb)</option>
+                <option v-for="pos in adminStore.posTypes" :key="pos.key" :value="pos.key">
+                  {{ pos.label }} ({{ pos.key }})
+                </option>
               </select>
             </div>
           </div>
@@ -243,7 +242,7 @@
               class="w-full text-left px-4 py-2 hover:bg-gray-100 rounded-md transition-colors"
             >
               <span class="font-medium">{{ word.label }}</span>
-              <span class="text-sm text-gray-500 ml-2">({{ word.pos }})</span>
+              <span class="text-sm text-gray-500 ml-2">({{ getPosLabel(word.pos) }})</span>
             </button>
           </div>
         </div>
@@ -315,6 +314,11 @@ onMounted(() => {
 function getWordLabel(id: string): string {
   const word = adminStore.words.find((w) => w.id === id)
   return word?.label || id
+}
+
+function getPosLabel(posKey: string): string {
+  const pos = adminStore.posTypes.find((p) => p.key === posKey)
+  return pos ? `${pos.label} (${posKey})` : posKey
 }
 
 function getRelatedWords(wordId: string, relationType: string): string[] {

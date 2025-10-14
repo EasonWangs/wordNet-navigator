@@ -40,5 +40,6 @@
 const navItems = [
   { path: '/admin/words', label: '词汇与关系' },
   { path: '/admin/relations', label: '关系类型' },
+  { path: '/admin/pos-types', label: '词性管理' },
 ]
 </script>

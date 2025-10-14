@@ -1,19 +1,21 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import { storageService } from '@/services/storageService'
-import type { StoredWord, StoredConnection, StoredRelationType } from '@/services/storageService'
+import type { StoredWord, StoredConnection, StoredRelationType, StoredPosType } from '@/services/storageService'
 
 export const useAdminStore = defineStore('admin', () => {
   // State
   const words = ref<StoredWord[]>([])
   const connections = ref<StoredConnection[]>([])
   const relationTypes = ref<StoredRelationType[]>([])
+  const posTypes = ref<StoredPosType[]>([])
 
   // Actions
   function loadData() {
     words.value = storageService.getWords()
     connections.value = storageService.getConnections()
     relationTypes.value = storageService.getRelationTypes()
+    posTypes.value = storageService.getPosTypes()
   }
 
   // Words
@@ -135,13 +137,29 @@ export const useAdminStore = defineStore('admin', () => {
           )
           if (reverseConn) {
             storageService.deleteConnection(reverseConn.id)
-            connections.value = connections.value.filter((c) => c.id !== reverseConn.id)
           }
         })
       }
     })
 
-    // 3. 添加新的关系
+    // 3. 更新本地状态 - 先移除所有旧的连接（包括源和目标）
+    connections.value = connections.value.filter((c) => {
+      // 移除源为当前词的连接
+      if (c.source === wordId) return false
+      // 移除目标为当前词且是反向关系的连接
+      if (c.target === wordId) {
+        // 检查是否是某个关系类型的反向关系
+        for (const [relationType, _] of Object.entries(oldRelations)) {
+          const reverseRelation = relationMapping[relationType]
+          if (reverseRelation && c.relation === reverseRelation) {
+            return false
+          }
+        }
+      }
+      return true
+    })
+
+    // 4. 添加新的关系
     const newConnections: StoredConnection[] = []
     Object.entries(relations).forEach(([relationType, targetIds]) => {
       targetIds.forEach((targetId) => {
@@ -156,25 +174,17 @@ export const useAdminStore = defineStore('admin', () => {
         // 添加反向关系
         const reverseRelation = relationMapping[relationType]
         if (reverseRelation) {
-          // 检查反向关系是否已存在，避免重复
-          const existingReverse = connections.value.find(
-            (c) => c.source === targetId && c.target === wordId && c.relation === reverseRelation
-          )
-
-          if (!existingReverse) {
-            const reverseConn = storageService.addConnection({
-              source: targetId,
-              target: wordId,
-              relation: reverseRelation as any,
-            })
-            newConnections.push(reverseConn)
-          }
+          const reverseConn = storageService.addConnection({
+            source: targetId,
+            target: wordId,
+            relation: reverseRelation as any,
+          })
+          newConnections.push(reverseConn)
         }
       })
     })
 
-    // 4. 更新本地状态
-    connections.value = connections.value.filter((c) => c.source !== wordId)
+    // 5. 添加新连接到本地状态
     connections.value.push(...newConnections)
   }
 
@@ -188,10 +198,41 @@ export const useAdminStore = defineStore('admin', () => {
     loadData()
   }
 
+  // Pos Types
+  function addPosType(type: StoredPosType) {
+    const newType = storageService.addPosType(type)
+    posTypes.value.push(newType)
+    return newType
+  }
+
+  function updatePosType(key: string, updates: Partial<StoredPosType>) {
+    storageService.updatePosType(key, updates)
+    const index = posTypes.value.findIndex((t) => t.key === key)
+    if (index !== -1) {
+      posTypes.value[index] = { ...posTypes.value[index], ...updates }
+    }
+  }
+
+  function updatePosTypeKey(oldKey: string, newKey: string, updates: Partial<StoredPosType>) {
+    storageService.updatePosTypeKey(oldKey, newKey, updates)
+    const index = posTypes.value.findIndex((t) => t.key === oldKey)
+    if (index !== -1) {
+      posTypes.value[index] = { ...posTypes.value[index], ...updates, key: newKey }
+    }
+    // 重新加载词汇以反映词性变化
+    words.value = storageService.getWords()
+  }
+
+  function deletePosType(key: string) {
+    storageService.deletePosType(key)
+    posTypes.value = posTypes.value.filter((t) => t.key !== key)
+  }
+
   return {
     words,
     connections,
     relationTypes,
+    posTypes,
     loadData,
     addWord,
     updateWord,
@@ -203,6 +244,10 @@ export const useAdminStore = defineStore('admin', () => {
     updateRelationTypeKey,
     deleteRelationType,
     updateWordRelations,
+    addPosType,
+    updatePosType,
+    updatePosTypeKey,
+    deletePosType,
     exportData,
     importData,
   }

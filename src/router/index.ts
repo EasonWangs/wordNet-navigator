@@ -27,6 +27,12 @@ const routes: RouteRecordRaw[] = [
         component: () => import('@/views/admin/RelationTypes.vue'),
         meta: { title: '关系类型管理' },
       },
+      {
+        path: 'pos-types',
+        name: 'AdminPosTypes',
+        component: () => import('@/views/admin/PosTypes.vue'),
+        meta: { title: '词性管理' },
+      },
     ],
   },
 ]
