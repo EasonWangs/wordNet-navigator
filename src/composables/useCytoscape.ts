@@ -236,6 +236,71 @@ export function useCytoscape(options: UseCytoscapeOptions) {
       }
     })
 
+    // Edge hover tooltip - show relation information
+    let edgeTooltipDiv: HTMLDivElement | null = null
+
+    cy.on('mouseover', 'edge', (e: any) => {
+      const edge = e.target
+      const edgeData = edge.data()
+
+      // 获取源节点和目标节点的 label
+      const sourceNode = cy.getElementById(edgeData.source)
+      const targetNode = cy.getElementById(edgeData.target)
+      const sourceLabel = sourceNode.data('label')
+      const targetLabel = targetNode.data('label')
+
+      // 获取关系类型信息
+      const relationTypes = storageService.getRelationTypes()
+      const relationType = relationTypes.find(rt => rt.key === edgeData.relation)
+      const relationLabel = relationType ? relationType.label : edgeData.relation
+
+      // 创建提示文本：目标词 是 源词 的 关系类型
+      // 例如：边 dog->animal，关系是hypernym（上位词），显示"animal 是 dog 的上位词"
+      const tooltipText = `${targetLabel} 是 ${sourceLabel} 的${relationLabel}`
+
+      // 创建或更新 tooltip 元素
+      if (!edgeTooltipDiv) {
+        edgeTooltipDiv = document.createElement('div')
+        edgeTooltipDiv.style.position = 'absolute'
+        edgeTooltipDiv.style.backgroundColor = 'rgba(0, 0, 0, 0.85)'
+        edgeTooltipDiv.style.color = 'white'
+        edgeTooltipDiv.style.padding = '8px 12px'
+        edgeTooltipDiv.style.borderRadius = '6px'
+        edgeTooltipDiv.style.fontSize = '13px'
+        edgeTooltipDiv.style.maxWidth = '300px'
+        edgeTooltipDiv.style.zIndex = '1000'
+        edgeTooltipDiv.style.pointerEvents = 'none'
+        edgeTooltipDiv.style.boxShadow = '0 2px 8px rgba(0,0,0,0.2)'
+        edgeTooltipDiv.style.backdropFilter = 'blur(4px)'
+        containerRef.value?.appendChild(edgeTooltipDiv)
+      }
+
+      edgeTooltipDiv.textContent = tooltipText
+      edgeTooltipDiv.style.display = 'block'
+
+      // 定位 tooltip 跟随鼠标
+      const updateEdgeTooltipPosition = (evt: any) => {
+        if (edgeTooltipDiv && containerRef.value) {
+          const containerRect = containerRef.value.getBoundingClientRect()
+          edgeTooltipDiv.style.left = `${evt.clientX - containerRect.left + 15}px`
+          edgeTooltipDiv.style.top = `${evt.clientY - containerRect.top + 15}px`
+        }
+      }
+
+      updateEdgeTooltipPosition(e.originalEvent)
+      cy.on('mousemove', updateEdgeTooltipPosition)
+
+      edge.on('mouseout', () => {
+        cy.off('mousemove', updateEdgeTooltipPosition)
+      })
+    })
+
+    cy.on('mouseout', 'edge', () => {
+      if (edgeTooltipDiv) {
+        edgeTooltipDiv.style.display = 'none'
+      }
+    })
+
     cyInstance.value = cy
   }
 
