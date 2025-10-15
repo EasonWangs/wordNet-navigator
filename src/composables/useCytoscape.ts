@@ -9,6 +9,7 @@ interface UseCytoscapeOptions {
   layout: LayoutType
   onNodeClick?: (nodeData: any) => void
   onBackgroundDblClick?: () => void
+  onSelectionChange?: (selectedNodes: any[]) => void
 }
 
 export function useCytoscape(options: UseCytoscapeOptions) {
@@ -100,23 +101,30 @@ export function useCytoscape(options: UseCytoscapeOptions) {
       maxZoom: 3,
     })
 
+    // 记录节点点击顺序
+    let clickedNodesOrder: string[] = []
+
     // Node click handler
     cy.on('tap', 'node', (e: any) => {
       const node = e.target as NodeSingular
+      const nodeId = node.data().id
+
+      // 如果是多选模式（按住 Ctrl/Cmd 或者 Shift）
+      if (e.originalEvent.ctrlKey || e.originalEvent.metaKey || e.originalEvent.shiftKey) {
+        // 添加到点击顺序
+        if (!clickedNodesOrder.includes(nodeId)) {
+          clickedNodesOrder.push(nodeId)
+        }
+      } else {
+        // 单选模式，重置顺序
+        clickedNodesOrder = [nodeId]
+      }
+
       if (options.onNodeClick) {
         options.onNodeClick(node.data())
       }
     })
 
-    // Background click handler - close node detail when clicking empty space
-    cy.on('tap', (e: any) => {
-      // 如果点击的不是节点（即点击了背景），则关闭详情面板
-      if (e.target === cy) {
-        if (options.onNodeClick) {
-          options.onNodeClick(null)
-        }
-      }
-    })
 
     // Background double-click handler - add new word
     cy.on('dbltap', (e: any) => {
@@ -124,6 +132,35 @@ export function useCytoscape(options: UseCytoscapeOptions) {
       if (e.target === cy) {
         if (options.onBackgroundDblClick) {
           options.onBackgroundDblClick()
+        }
+      }
+    })
+
+    // Selection change handler - notify when selection changes
+    cy.on('select unselect', 'node', () => {
+      if (options.onSelectionChange) {
+        const selectedNodesSet = cy.nodes(':selected')
+
+        // 清理已取消选择的节点
+        const selectedIds = selectedNodesSet.map((node: any) => node.data().id)
+        clickedNodesOrder = clickedNodesOrder.filter(id => selectedIds.includes(id))
+
+        // 按点击顺序排序选中的节点
+        const sortedNodes = clickedNodesOrder
+          .map(id => selectedNodesSet.filter((node: any) => node.data().id === id)[0])
+          .filter(node => node)
+          .map((node: any) => node.data())
+
+        options.onSelectionChange(sortedNodes)
+      }
+    })
+
+    // Background click handler - clear click order and close detail when clicking background
+    cy.on('tap', (e: any) => {
+      if (e.target === cy) {
+        clickedNodesOrder = []
+        if (options.onNodeClick) {
+          options.onNodeClick(null)
         }
       }
     })

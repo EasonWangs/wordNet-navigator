@@ -61,8 +61,9 @@
     <div class="flex-1 overflow-hidden relative">
       <GraphCanvas ref="graphCanvasRef" />
       <!-- 提示文字 -->
-      <div class="absolute bottom-4 right-4 bg-gray-800/80 text-white text-xs px-3 py-2 rounded-lg backdrop-blur-sm">
-        💡 双击空白区域可快速添加词汇
+      <div class="absolute bottom-4 right-4 bg-gray-800/80 text-white text-xs px-3 py-2 rounded-lg backdrop-blur-sm space-y-1">
+        <div>💡 双击空白区域：快速添加词汇</div>
+        <div>🔗 选中两个节点：创建词汇关系</div>
       </div>
     </div>
   </div>
