@@ -7,6 +7,7 @@ interface UseCytoscapeOptions {
   graphData: GraphData
   activeRelations: string[]
   layout: LayoutType
+  showDefinitionInNode: boolean
   onNodeClick?: (nodeData: any) => void
   onBackgroundDblClick?: () => void
   onNodeDblClick?: (nodeData: any) => void
@@ -68,17 +69,23 @@ export function useCytoscape(options: UseCytoscapeOptions) {
           style: {
             'background-color': '#3498db',
             label: 'data(label)',
+            shape: 'ellipse',
             color: '#2c3e50',
             'text-valign': 'center',
             'text-halign': 'center',
             'font-size': '16px',
             'font-weight': 'bold',
-            width: '70px',
-            height: '70px',
+            'min-width': '60px',
+            'min-height': '60px',
+            width: 'label',
+            height: 'label',
+            'padding': '12px',
             'border-width': 2,
             'border-color': '#2980b9',
             'text-outline-width': 2,
             'text-outline-color': '#fff',
+            'text-wrap': 'wrap',
+            'text-max-width': '150px',
           },
         },
         {
@@ -315,6 +322,9 @@ export function useCytoscape(options: UseCytoscapeOptions) {
     // 设置边的初始可见性
     updateEdgeVisibility()
 
+    // 更新节点标签显示
+    updateNodeLabels()
+
     // 选中中心词并触发详情显示
     const centerNodes = cyInstance.value.nodes().filter((node: any) => node.data('isCenter') === true)
     if (centerNodes.length > 0) {
@@ -432,6 +442,41 @@ export function useCytoscape(options: UseCytoscapeOptions) {
       })
     }
   }
+
+  // 更新节点标签显示（是否包含定义）
+  const updateNodeLabels = () => {
+    if (!cyInstance.value) return
+
+    cyInstance.value.nodes().forEach((node: any) => {
+      const data = node.data()
+      if (options.showDefinitionInNode && data.definition) {
+        // 显示：词汇\n定义（限制长度）
+        const truncatedDef = data.definition.length > 50
+          ? data.definition.substring(0, 50) + '...'
+          : data.definition
+        node.style('label', `${data.label}\n${truncatedDef}`)
+        node.style('font-size', '11px')
+        node.style('text-max-width', '180px')
+        node.style('min-width', '80px')
+        node.style('min-height', '80px')
+      } else {
+        // 只显示词汇
+        node.style('label', data.label)
+        node.style('font-size', '14px')
+        node.style('text-max-width', '150px')
+        node.style('min-width', '60px')
+        node.style('min-height', '60px')
+      }
+    })
+  }
+
+  // Watch showDefinitionInNode changes
+  watch(
+    () => options.showDefinitionInNode,
+    () => {
+      updateNodeLabels()
+    }
+  )
 
   return {
     containerRef,

@@ -38,6 +38,16 @@
           >
             导出PNG
           </button>
+          <button
+            class="px-3 py-1.5 rounded text-sm transition-colors"
+            :class="graphStore.showDefinitionInNode
+              ? 'bg-blue-500 text-white hover:bg-blue-600'
+              : 'bg-gray-100 text-gray-700 hover:bg-gray-200'"
+            @click="graphStore.toggleShowDefinitionInNode()"
+            title="在节点内显示定义"
+          >
+            {{ graphStore.showDefinitionInNode ? '隐藏定义' : '显示定义' }}
+          </button>
           <select
             v-model="graphStore.layout"
             class="px-3 py-1.5 border border-gray-300 rounded text-sm bg-white cursor-pointer hover:border-gray-400 transition-colors"

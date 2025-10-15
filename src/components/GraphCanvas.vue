@@ -616,6 +616,7 @@ async function saveRelation() {
 const graphDataRef = toRef(graphStore, 'graphData')
 const activeRelationsRef = toRef(graphStore, 'activeRelations')
 const layoutRef = toRef(graphStore, 'layout')
+const showDefinitionInNodeRef = toRef(graphStore, 'showDefinitionInNode')
 
 const { containerRef, fitView, exportPNG, updateNodeData } = useCytoscape({
   get graphData() {
@@ -626,6 +627,9 @@ const { containerRef, fitView, exportPNG, updateNodeData } = useCytoscape({
   },
   get layout() {
     return layoutRef.value
+  },
+  get showDefinitionInNode() {
+    return showDefinitionInNodeRef.value
   },
   onNodeClick: (nodeData) => graphStore.setSelectedNode(nodeData),
   onBackgroundDblClick: () => openAddWordDialog(),

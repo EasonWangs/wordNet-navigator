@@ -10,6 +10,7 @@ export const useGraphStore = defineStore('graph', () => {
   const searchQuery = ref<string>('*')
   const loading = ref<boolean>(false)
   const layout = ref<LayoutType>('cose')
+  const showDefinitionInNode = ref<boolean>(false) // 是否在节点内显示定义
 
   // 动态从 LocalStorage 加载默认激活的关系类型
   const getDefaultActiveRelations = (): string[] => {
@@ -46,6 +47,10 @@ export const useGraphStore = defineStore('graph', () => {
     layout.value = newLayout
   }
 
+  function toggleShowDefinitionInNode() {
+    showDefinitionInNode.value = !showDefinitionInNode.value
+  }
+
   function toggleRelation(relation: string) {
     const index = activeRelations.value.indexOf(relation)
     if (index > -1) {
@@ -72,6 +77,7 @@ export const useGraphStore = defineStore('graph', () => {
     loading,
     layout,
     activeRelations,
+    showDefinitionInNode,
     // Computed
     hasGraphData,
     // Actions
@@ -80,6 +86,7 @@ export const useGraphStore = defineStore('graph', () => {
     setSearchQuery,
     setLoading,
     setLayout,
+    toggleShowDefinitionInNode,
     toggleRelation,
     setActiveRelations,
     reloadActiveRelations,
