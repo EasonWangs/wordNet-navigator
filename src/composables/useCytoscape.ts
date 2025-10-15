@@ -10,6 +10,7 @@ interface UseCytoscapeOptions {
   onNodeClick?: (nodeData: any) => void
   onBackgroundDblClick?: () => void
   onNodeDblClick?: (nodeData: any) => void
+  onEdgeDblClick?: (edgeData: any) => void
   onSelectionChange?: (selectedNodes: any[]) => void
 }
 
@@ -140,6 +141,14 @@ export function useCytoscape(options: UseCytoscapeOptions) {
           const node = e.target as NodeSingular
           options.onNodeDblClick(node.data())
           // 阻止显示词汇详情
+          e.stopPropagation()
+          return false
+        }
+      } else if (e.target.isEdge && e.target.isEdge()) {
+        // 双击边 - 编辑关系
+        if (options.onEdgeDblClick) {
+          const edge = e.target
+          options.onEdgeDblClick(edge.data())
           e.stopPropagation()
           return false
         }

@@ -405,6 +405,31 @@ function openCreateRelationDialog() {
   adminStore.loadData()
 }
 
+// 双击边打开编辑关系对话框
+function openEditRelationFromEdge(edgeData: any) {
+  // 从边的数据中获取源和目标节点
+  adminStore.loadData()
+
+  const sourceNode = adminStore.words.find(w => w.id === edgeData.source)
+  const targetNode = adminStore.words.find(w => w.id === edgeData.target)
+
+  if (sourceNode && targetNode) {
+    // 设置选中的节点（模拟双选节点的状态）
+    selectedNodes.value = [
+      { id: sourceNode.id, label: sourceNode.label },
+      { id: targetNode.id, label: targetNode.label }
+    ]
+
+    // 查找这两个节点之间的所有关系
+    existingRelations.value = adminStore.connections.filter(
+      c => c.source === edgeData.source && c.target === edgeData.target
+    )
+
+    // 打开对话框
+    showCreateRelationDialog.value = true
+  }
+}
+
 function closeCreateRelationDialog() {
   showCreateRelationDialog.value = false
   newRelationForm.value = {
@@ -553,6 +578,7 @@ const { containerRef, fitView, exportPNG, updateNodeData } = useCytoscape({
   onNodeClick: (nodeData) => graphStore.setSelectedNode(nodeData),
   onBackgroundDblClick: () => openAddWordDialog(),
   onNodeDblClick: (nodeData) => openEditWordDialog(nodeData),
+  onEdgeDblClick: (edgeData) => openEditRelationFromEdge(edgeData),
   onSelectionChange: (nodes) => handleSelectionChange(nodes),
 })
 
