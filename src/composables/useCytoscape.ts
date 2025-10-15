@@ -8,6 +8,7 @@ interface UseCytoscapeOptions {
   activeRelations: string[]
   layout: LayoutType
   onNodeClick?: (nodeData: any) => void
+  onBackgroundDblClick?: () => void
 }
 
 export function useCytoscape(options: UseCytoscapeOptions) {
@@ -113,6 +114,16 @@ export function useCytoscape(options: UseCytoscapeOptions) {
       if (e.target === cy) {
         if (options.onNodeClick) {
           options.onNodeClick(null)
+        }
+      }
+    })
+
+    // Background double-click handler - add new word
+    cy.on('dbltap', (e: any) => {
+      // 如果双击的是背景（不是节点）
+      if (e.target === cy) {
+        if (options.onBackgroundDblClick) {
+          options.onBackgroundDblClick()
         }
       }
     })
