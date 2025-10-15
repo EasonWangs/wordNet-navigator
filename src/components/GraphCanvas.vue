@@ -45,19 +45,19 @@
       </button>
     </div>
 
-    <!-- 快速添加词汇对话框 -->
+    <!-- 快速添加/编辑词汇对话框 -->
     <div
-      v-if="showAddWordDialog"
+      v-if="showAddWordDialog || showEditWordDialog"
       class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
-      @click.self="closeAddWordDialog"
+      @click.self="closeWordDialog"
     >
       <div class="bg-white rounded-lg p-6 w-full max-w-md">
-        <h3 class="text-lg font-semibold mb-4">快速添加词汇</h3>
+        <h3 class="text-lg font-semibold mb-4">{{ showEditWordDialog ? '编辑词汇' : '快速添加词汇' }}</h3>
         <div class="space-y-4">
           <div>
             <label class="block text-sm font-medium text-gray-700 mb-1">词汇 <span class="text-red-500">*</span></label>
             <input
-              v-model="newWordForm.label"
+              v-model="wordForm.label"
               type="text"
               class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary-500"
               placeholder="例如: dog"
@@ -67,7 +67,7 @@
           <div>
             <label class="block text-sm font-medium text-gray-700 mb-1">词性 <span class="text-red-500">*</span></label>
             <select
-              v-model="newWordForm.pos"
+              v-model="wordForm.pos"
               class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary-500"
             >
               <option v-for="pos in adminStore.posTypes" :key="pos.key" :value="pos.key">
@@ -78,24 +78,47 @@
           <div>
             <label class="block text-sm font-medium text-gray-700 mb-1">定义</label>
             <textarea
-              v-model="newWordForm.definition"
+              v-model="wordForm.definition"
               rows="3"
               class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary-500"
               placeholder="词汇的定义"
             />
           </div>
+          <div v-if="showEditWordDialog">
+            <label class="block text-sm font-medium text-gray-700 mb-1">例句</label>
+            <div v-for="(example, index) in wordForm.examples" :key="index" class="flex mb-2">
+              <input
+                v-model="wordForm.examples[index]"
+                type="text"
+                class="flex-1 px-3 py-2 border border-gray-300 rounded-l-md focus:ring-2 focus:ring-primary-500"
+                placeholder="输入例句"
+              />
+              <button
+                @click="removeExample(index)"
+                class="px-3 py-2 bg-red-500 text-white rounded-r-md hover:bg-red-600"
+              >
+                删除
+              </button>
+            </div>
+            <button
+              @click="addExample"
+              class="mt-2 text-sm text-primary-600 hover:text-primary-800"
+            >
+              + 添加例句
+            </button>
+          </div>
         </div>
         <div class="mt-6 flex justify-end space-x-3">
           <button
-            @click="closeAddWordDialog"
+            @click="closeWordDialog"
             class="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-md transition-colors"
           >
             取消
           </button>
           <button
-            @click="saveNewWord"
+            @click="saveWord"
             class="px-4 py-2 bg-primary-500 text-white rounded-md hover:bg-primary-600 transition-colors"
-            :disabled="!newWordForm.label.trim()"
+            :disabled="!wordForm.label.trim()"
           >
             保存
           </button>
@@ -219,12 +242,15 @@ const selectedNodes = ref<any[]>([])
 // 已存在的关系
 const existingRelations = ref<any[]>([])
 
-// 快速添加词汇对话框
+// 添加/编辑词汇对话框
 const showAddWordDialog = ref(false)
-const newWordForm = ref({
+const showEditWordDialog = ref(false)
+const editingWordId = ref<string | null>(null)
+const wordForm = ref({
   label: '',
   pos: 'noun',
   definition: '',
+  examples: [] as string[],
 })
 
 // 创建关系对话框
@@ -235,44 +261,112 @@ const newRelationForm = ref({
 
 function openAddWordDialog() {
   showAddWordDialog.value = true
+  showEditWordDialog.value = false
+  editingWordId.value = null
+  wordForm.value = {
+    label: '',
+    pos: 'noun',
+    definition: '',
+    examples: [],
+  }
   // 确保 adminStore 已加载数据
   adminStore.loadData()
 }
 
-function closeAddWordDialog() {
+function openEditWordDialog(nodeData: any) {
+  showEditWordDialog.value = true
   showAddWordDialog.value = false
-  newWordForm.value = {
-    label: '',
-    pos: 'noun',
-    definition: '',
+  editingWordId.value = nodeData.id
+
+  // 关闭词汇详情面板
+  graphStore.setSelectedNode(null)
+
+  // 从 adminStore 获取完整的词汇数据
+  adminStore.loadData()
+  const word = adminStore.words.find(w => w.id === nodeData.id)
+
+  if (word) {
+    wordForm.value = {
+      label: word.label,
+      pos: word.pos,
+      definition: word.definition || '',
+      examples: word.examples ? [...word.examples] : [],
+    }
   }
 }
 
-async function saveNewWord() {
-  if (!newWordForm.value.label.trim()) {
+function closeWordDialog() {
+  showAddWordDialog.value = false
+  showEditWordDialog.value = false
+  editingWordId.value = null
+  wordForm.value = {
+    label: '',
+    pos: 'noun',
+    definition: '',
+    examples: [],
+  }
+}
+
+function addExample() {
+  wordForm.value.examples.push('')
+}
+
+function removeExample(index: number) {
+  wordForm.value.examples.splice(index, 1)
+}
+
+async function saveWord() {
+  if (!wordForm.value.label.trim()) {
     alert('请输入词汇')
     return
   }
 
   try {
-    // 添加词汇到数据库
-    adminStore.addWord({
-      id: `word_${Date.now()}`,
-      label: newWordForm.value.label.trim(),
-      pos: newWordForm.value.pos as any,
-      definition: newWordForm.value.definition.trim() || undefined,
-      examples: [],
-    })
+    if (showEditWordDialog.value && editingWordId.value) {
+      // 编辑模式 - 只更新本地数据，不重新加载图表
+      const updatedData = {
+        label: wordForm.value.label.trim(),
+        pos: wordForm.value.pos as any,
+        definition: wordForm.value.definition.trim() || undefined,
+        examples: wordForm.value.examples.filter(e => e.trim()),
+      }
+
+      // 更新 LocalStorage
+      adminStore.updateWord(editingWordId.value, updatedData)
+
+      // 直接更新 Cytoscape 节点数据，不触发重新渲染
+      if (updateNodeData) {
+        updateNodeData(editingWordId.value, updatedData)
+      }
+
+      // 更新 graphStore 中的数据（用于其他地方可能需要读取）
+      const nodeIndex = graphStore.graphData.nodes.findIndex(n => n.data.id === editingWordId.value)
+      if (nodeIndex !== -1) {
+        graphStore.graphData.nodes[nodeIndex].data = {
+          ...graphStore.graphData.nodes[nodeIndex].data,
+          ...updatedData
+        }
+      }
+    } else {
+      // 添加模式 - 需要重新加载图表
+      adminStore.addWord({
+        id: `word_${Date.now()}`,
+        label: wordForm.value.label.trim(),
+        pos: wordForm.value.pos as any,
+        definition: wordForm.value.definition.trim() || undefined,
+        examples: wordForm.value.examples.filter(e => e.trim()),
+      })
+
+      // 刷新图表数据
+      const data = await WordNetService.fetchWordGraph(graphStore.searchQuery || '*')
+      graphStore.setGraphData(data)
+    }
 
     // 关闭对话框
-    closeAddWordDialog()
-
-    // 刷新图表数据
-    const data = await WordNetService.fetchWordGraph(graphStore.searchQuery || '*')
-    graphStore.setGraphData(data)
+    closeWordDialog()
   } catch (error) {
-    console.error('Failed to add word:', error)
-    alert('添加词汇失败')
+    console.error('Failed to save word:', error)
+    alert('保存词汇失败')
   }
 }
 
@@ -446,7 +540,7 @@ const graphDataRef = toRef(graphStore, 'graphData')
 const activeRelationsRef = toRef(graphStore, 'activeRelations')
 const layoutRef = toRef(graphStore, 'layout')
 
-const { containerRef, fitView, exportPNG } = useCytoscape({
+const { containerRef, fitView, exportPNG, updateNodeData } = useCytoscape({
   get graphData() {
     return graphDataRef.value
   },
@@ -458,6 +552,7 @@ const { containerRef, fitView, exportPNG } = useCytoscape({
   },
   onNodeClick: (nodeData) => graphStore.setSelectedNode(nodeData),
   onBackgroundDblClick: () => openAddWordDialog(),
+  onNodeDblClick: (nodeData) => openEditWordDialog(nodeData),
   onSelectionChange: (nodes) => handleSelectionChange(nodes),
 })
 

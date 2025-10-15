@@ -9,6 +9,7 @@ interface UseCytoscapeOptions {
   layout: LayoutType
   onNodeClick?: (nodeData: any) => void
   onBackgroundDblClick?: () => void
+  onNodeDblClick?: (nodeData: any) => void
   onSelectionChange?: (selectedNodes: any[]) => void
 }
 
@@ -126,12 +127,21 @@ export function useCytoscape(options: UseCytoscapeOptions) {
     })
 
 
-    // Background double-click handler - add new word
+    // Double-click handlers
     cy.on('dbltap', (e: any) => {
-      // 如果双击的是背景（不是节点）
       if (e.target === cy) {
+        // 双击背景 - 添加新词汇
         if (options.onBackgroundDblClick) {
           options.onBackgroundDblClick()
+        }
+      } else if (e.target.isNode && e.target.isNode()) {
+        // 双击节点 - 编辑词汇（不触发单击事件）
+        if (options.onNodeDblClick) {
+          const node = e.target as NodeSingular
+          options.onNodeDblClick(node.data())
+          // 阻止显示词汇详情
+          e.stopPropagation()
+          return false
         }
       }
     })
@@ -337,10 +347,23 @@ export function useCytoscape(options: UseCytoscapeOptions) {
     }
   )
 
+  const updateNodeData = (nodeId: string, newData: any) => {
+    if (!cyInstance.value) return
+
+    const node = cyInstance.value.getElementById(nodeId)
+    if (node && node.isNode()) {
+      // 更新节点的数据
+      Object.keys(newData).forEach(key => {
+        node.data(key, newData[key])
+      })
+    }
+  }
+
   return {
     containerRef,
     cyInstance,
     fitView,
     exportPNG,
+    updateNodeData,
   }
 }
