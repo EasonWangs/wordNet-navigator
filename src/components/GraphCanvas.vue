@@ -108,20 +108,34 @@
             </button>
           </div>
         </div>
-        <div class="mt-6 flex justify-end space-x-3">
+        <div class="mt-6 flex items-center justify-between">
+          <!-- 左侧删除按钮（仅在编辑模式且无关系时显示） -->
           <button
-            @click="closeWordDialog"
-            class="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-md transition-colors"
+            v-if="showEditWordDialog && isIsolatedWord"
+            @click="deleteWord"
+            class="px-4 py-2 text-red-600 hover:bg-red-50 rounded-md transition-colors border border-red-300"
+            title="删除独立节点"
           >
-            取消
+            删除词汇
           </button>
-          <button
-            @click="saveWord"
-            class="px-4 py-2 bg-primary-500 text-white rounded-md hover:bg-primary-600 transition-colors"
-            :disabled="!wordForm.label.trim()"
-          >
-            保存
-          </button>
+          <div v-else></div>
+
+          <!-- 右侧操作按钮 -->
+          <div class="flex space-x-3">
+            <button
+              @click="closeWordDialog"
+              class="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-md transition-colors"
+            >
+              取消
+            </button>
+            <button
+              @click="saveWord"
+              class="px-4 py-2 bg-primary-500 text-white rounded-md hover:bg-primary-600 transition-colors"
+              :disabled="!wordForm.label.trim()"
+            >
+              保存
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -304,6 +318,44 @@ function closeWordDialog() {
     pos: 'noun',
     definition: '',
     examples: [],
+  }
+}
+
+// 检查当前编辑的词汇是否是独立节点（无任何关系）
+const isIsolatedWord = computed(() => {
+  if (!showEditWordDialog.value || !editingWordId.value) return false
+
+  const wordId = editingWordId.value
+  const hasConnections = adminStore.connections.some(
+    c => c.source === wordId || c.target === wordId
+  )
+
+  return !hasConnections
+})
+
+// 删除词汇
+async function deleteWord() {
+  if (!editingWordId.value) return
+
+  if (!confirm('确定要删除这个词汇吗？此操作无法撤销。')) {
+    return
+  }
+
+  try {
+    const wordId = editingWordId.value
+
+    // 从 adminStore 删除词汇
+    adminStore.deleteWord(wordId)
+
+    // 关闭对话框
+    closeWordDialog()
+
+    // 刷新图表数据
+    const data = await WordNetService.fetchWordGraph(graphStore.searchQuery || '*')
+    graphStore.setGraphData(data)
+  } catch (error) {
+    console.error('Failed to delete word:', error)
+    alert('删除词汇失败')
   }
 }
 
