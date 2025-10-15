@@ -63,6 +63,7 @@ export function useCytoscape(options: UseCytoscapeOptions) {
 
     const cy = cytoscape({
       container: containerRef.value,
+      wheelSensitivity: 0.1,  // 降低滚轮灵敏度，使缩放更平滑（默认1）
       style: [
         {
           selector: 'node',
