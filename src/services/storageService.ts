@@ -120,6 +120,12 @@ class StorageService {
       { key: 'verb', label: '动词', abbreviation: 'v.', description: '表示动作或状态' },
       { key: 'adjective', label: '形容词', abbreviation: 'adj.', description: '描述或修饰名词' },
       { key: 'adverb', label: '副词', abbreviation: 'adv.', description: '修饰动词、形容词或其他副词' },
+      { key: 'conjunction', label: '连词', abbreviation: 'conj.', description: '连接词、短语或句子' },
+      { key: 'preposition', label: '介词', abbreviation: 'prep.', description: '表示名词与其他词的关系' },
+      { key: 'pronoun', label: '代词', abbreviation: 'pron.', description: '代替名词或名词短语' },
+      { key: 'interjection', label: '感叹词', abbreviation: 'int.', description: '表达情感或感叹' },
+      { key: 'verb_transitive', label: '及物动词', abbreviation: 'vt.', description: '需要宾语的动词' },
+      { key: 'verb_intransitive', label: '不及物动词', abbreviation: 'vi.', description: '不需要宾语的动词' },
     ]
     this.savePosTypes(defaults)
     return defaults
