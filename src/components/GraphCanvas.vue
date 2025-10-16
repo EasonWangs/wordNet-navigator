@@ -54,7 +54,28 @@
       <div class="bg-white rounded-lg p-6 w-full max-w-md">
         <h3 class="text-lg font-semibold mb-4">{{ showEditWordDialog ? '编辑词汇' : '快速添加词汇' }}</h3>
         <div class="space-y-4">
-          <div>
+          <div v-if="showEditWordDialog" class="grid grid-cols-2 gap-4">
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">词汇 <span class="text-red-500">*</span></label>
+              <input
+                v-model="wordForm.label"
+                type="text"
+                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary-500"
+                placeholder="例如: dog"
+                autofocus
+              />
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">音标</label>
+              <input
+                v-model="wordForm.phonetic"
+                type="text"
+                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary-500"
+                placeholder="例如: /dɒg/ 或 /dɔːg/"
+              />
+            </div>
+          </div>
+          <div v-else>
             <label class="block text-sm font-medium text-gray-700 mb-1">词汇 <span class="text-red-500">*</span></label>
             <input
               v-model="wordForm.label"
@@ -277,6 +298,7 @@ const editingWordId = ref<string | null>(null)
 const wordForm = ref({
   label: '',
   pos: [] as string[],  // 改为数组支持多选
+  phonetic: '',
   definition: '',
   examples: [] as string[],
 })
@@ -294,6 +316,7 @@ function openAddWordDialog() {
   wordForm.value = {
     label: '',
     pos: [],  // 默认不选中任何词性
+    phonetic: '',
     definition: '',
     examples: [],
   }
@@ -317,6 +340,7 @@ function openEditWordDialog(nodeData: any) {
     wordForm.value = {
       label: word.label,
       pos: Array.isArray(word.pos) ? [...word.pos] : (word.pos ? [word.pos] : []),  // 兼容单个、数组或未定义
+      phonetic: (word as any).phonetic || '',
       definition: word.definition || '',
       examples: word.examples ? [...word.examples] : [],
     }
@@ -330,6 +354,7 @@ function closeWordDialog() {
   wordForm.value = {
     label: '',
     pos: [],
+    phonetic: '',
     definition: '',
     examples: [],
   }
@@ -407,6 +432,7 @@ async function saveWord() {
       const updatedData = {
         label: wordForm.value.label.trim(),
         pos: posValue,
+        phonetic: wordForm.value.phonetic.trim() || undefined,
         definition: wordForm.value.definition.trim() || undefined,
         examples: wordForm.value.examples.filter(e => e.trim()),
       }
@@ -433,6 +459,7 @@ async function saveWord() {
         id: `word_${Date.now()}`,
         label: wordForm.value.label.trim(),
         pos: posValue as any,
+        phonetic: wordForm.value.phonetic.trim() || undefined,
         definition: wordForm.value.definition.trim() || undefined,
         examples: wordForm.value.examples.filter(e => e.trim()),
       })

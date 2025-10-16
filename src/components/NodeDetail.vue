@@ -22,6 +22,11 @@
         <div class="text-2xl font-bold text-gray-800 mb-2">
           {{ graphStore.selectedNode.label }}
         </div>
+        <!-- 音标 -->
+        <div v-if="graphStore.selectedNode.phonetic" class="text-sm text-gray-600 mb-2 italic">
+          {{ graphStore.selectedNode.phonetic }}
+        </div>
+        <!-- 词性 -->
         <div class="flex flex-wrap gap-2">
           <span
             v-for="(posItem, idx) in getPosArray(graphStore.selectedNode.pos)"

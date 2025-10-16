@@ -33,6 +33,12 @@ const routes: RouteRecordRaw[] = [
         component: () => import('@/views/admin/PosTypes.vue'),
         meta: { title: '词性管理' },
       },
+      {
+        path: 'data',
+        name: 'AdminData',
+        component: () => import('@/views/admin/DataManagement.vue'),
+        meta: { title: '数据管理' },
+      },
     ],
   },
 ]

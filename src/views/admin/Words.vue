@@ -12,60 +12,62 @@
 
     <!-- 词汇列表 -->
     <div class="bg-white rounded-lg shadow overflow-x-auto">
-      <table class="min-w-full divide-y divide-gray-200">
+      <table class="min-w-full divide-y divide-gray-200 text-sm">
         <thead class="bg-gray-50">
           <tr>
-            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase sticky left-0 bg-gray-50 z-10">词汇</th>
-            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">词性</th>
+            <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase sticky left-0 bg-gray-50 z-10 w-32">词汇</th>
+            <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase w-28">词性</th>
             <th
               v-for="relationType in adminStore.relationTypes"
               :key="relationType.key"
-              class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase"
+              class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase min-w-[120px]"
             >
               {{ relationType.label }}
             </th>
-            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase sticky right-0 bg-gray-50 z-10">操作</th>
+            <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase sticky right-0 bg-gray-50 z-10 w-44">操作</th>
           </tr>
         </thead>
         <tbody class="bg-white divide-y divide-gray-200">
           <tr v-for="word in adminStore.words" :key="word.id" class="hover:bg-gray-50">
-            <td class="px-4 py-4 whitespace-nowrap text-sm font-medium text-gray-900 sticky left-0 bg-white z-10">{{ word.label }}</td>
-            <td class="px-4 py-4 whitespace-nowrap text-sm text-gray-500">{{ getPosLabel(word.pos) }}</td>
+            <td class="px-3 py-2 whitespace-nowrap font-medium text-gray-900 sticky left-0 bg-white z-10">{{ word.label }}</td>
+            <td class="px-3 py-2 whitespace-nowrap text-gray-600 text-xs">{{ getPosLabel(word.pos) }}</td>
             <td
               v-for="relationType in adminStore.relationTypes"
               :key="relationType.key"
-              class="px-4 py-3"
+              class="px-3 py-2"
             >
               <div class="flex flex-wrap gap-1">
                 <span
                   v-for="rel in getRelatedWords(word.id, relationType.key)"
                   :key="rel"
-                  class="px-2 py-1 text-xs rounded"
+                  class="px-1.5 py-0.5 text-xs rounded"
                   :class="getRelationColorClass(relationType.key)"
                 >
                   {{ getWordLabel(rel) }}
                 </span>
               </div>
             </td>
-            <td class="px-4 py-4 whitespace-nowrap text-sm font-medium space-x-2 sticky right-0 bg-white z-10">
-              <button
-                @click="editWord(word)"
-                class="text-primary-600 hover:text-primary-900"
-              >
-                编辑词汇
-              </button>
-              <button
-                @click="editRelations(word)"
-                class="text-purple-600 hover:text-purple-900"
-              >
-                编辑关系
-              </button>
-              <button
-                @click="deleteWord(word.id)"
-                class="text-red-600 hover:text-red-900"
-              >
-                删除
-              </button>
+            <td class="px-3 py-2 whitespace-nowrap text-xs font-medium sticky right-0 bg-white z-10">
+              <div class="flex gap-2">
+                <button
+                  @click="editWord(word)"
+                  class="text-primary-600 hover:text-primary-900"
+                >
+                  编辑
+                </button>
+                <button
+                  @click="editRelations(word)"
+                  class="text-purple-600 hover:text-purple-900"
+                >
+                  关系
+                </button>
+                <button
+                  @click="deleteWord(word.id)"
+                  class="text-red-600 hover:text-red-900"
+                >
+                  删除
+                </button>
+              </div>
             </td>
           </tr>
         </tbody>
@@ -81,14 +83,25 @@
       <div class="bg-white rounded-lg p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
         <h3 class="text-lg font-semibold mb-4">{{ editingWord ? '编辑词汇' : '添加词汇' }}</h3>
         <div class="space-y-4">
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">词汇 *</label>
-            <input
-              v-model="wordFormData.label"
-              type="text"
-              class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary-500"
-              placeholder="例如: dog"
-            />
+          <div class="grid grid-cols-2 gap-4">
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">词汇 *</label>
+              <input
+                v-model="wordFormData.label"
+                type="text"
+                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary-500"
+                placeholder="例如: dog"
+              />
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">音标</label>
+              <input
+                v-model="wordFormData.phonetic"
+                type="text"
+                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary-500"
+                placeholder="例如: /dɒg/ 或 /dɔːg/"
+              />
+            </div>
           </div>
 
           <div>
@@ -287,6 +300,7 @@ const wordFormData = ref({
   id: '',
   label: '',
   pos: [] as string[],  // 改为数组支持多选
+  phonetic: '',
   definition: '',
   examples: [] as string[],
 })
@@ -360,6 +374,7 @@ function editWord(word: StoredWord) {
     id: word.id,
     label: word.label,
     pos: Array.isArray(word.pos) ? [...word.pos] : (word.pos ? [word.pos] : []),  // 兼容单个或数组
+    phonetic: (word as any).phonetic || '',
     definition: word.definition || '',
     examples: word.examples ? [...word.examples] : [],
   }
@@ -372,6 +387,7 @@ function closeWordDialog() {
     id: '',
     label: '',
     pos: [],  // 重置为空数组
+    phonetic: '',
     definition: '',
     examples: [],
   }
@@ -405,6 +421,7 @@ function saveWord() {
     id: wordFormData.value.id || `word_${Date.now()}`,
     label: wordFormData.value.label,
     pos: posValue,
+    phonetic: wordFormData.value.phonetic.trim() || undefined,
     definition: wordFormData.value.definition,
     examples: wordFormData.value.examples.filter((e) => e.trim()),
   }

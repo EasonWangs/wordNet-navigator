@@ -14,6 +14,7 @@ export interface WordNode {
   id: string
   label: string
   pos: PartOfSpeech | PartOfSpeech[]  // 支持单个或多个词性
+  phonetic?: string  // 音标，如 /dɒg/ 或 /dɔːg/
   definition?: string
   examples?: string[]
 }
