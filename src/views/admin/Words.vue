@@ -2,12 +2,20 @@
   <div>
     <div class="flex items-center justify-between mb-6">
       <h2 class="text-2xl font-bold text-gray-900">词汇与关系管理</h2>
-      <button
-        @click="showAddDialog = true"
-        class="px-4 py-2 bg-primary-500 text-white rounded-md hover:bg-primary-600 transition-colors"
-      >
-        + 添加词汇
-      </button>
+      <div class="flex gap-3">
+        <button
+          @click="showAddDialog = true"
+          class="px-4 py-2 bg-primary-500 text-white rounded-md hover:bg-primary-600 transition-colors"
+        >
+          + 添加词汇
+        </button>
+        <button
+          @click="showBulkImportDialog = true"
+          class="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors"
+        >
+          📤 批量导入
+        </button>
+      </div>
     </div>
 
     <!-- 词汇列表 -->
@@ -282,6 +290,187 @@
         </div>
       </div>
     </div>
+
+    <!-- 批量导入对话框 -->
+    <div
+      v-if="showBulkImportDialog"
+      class="fixed inset-0 bg-black/50 flex items-center justify-center z-[60] p-4"
+      @click.self="closeBulkImportDialog"
+    >
+      <div class="bg-white rounded-lg p-6 w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+        <div class="flex items-center justify-between mb-4">
+          <h3 class="text-lg font-semibold">批量导入词汇</h3>
+          <button
+            @click="downloadTemplate"
+            class="px-3 py-1.5 text-sm bg-green-500 text-white rounded-md hover:bg-green-600 transition-colors flex items-center gap-1"
+          >
+            📥 下载导入模板
+          </button>
+        </div>
+
+        <!-- 步骤指示器 -->
+        <div class="flex items-center justify-center mb-6">
+          <div class="flex items-center gap-2">
+            <div :class="['w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold', importStep >= 1 ? 'bg-primary-500 text-white' : 'bg-gray-200 text-gray-600']">1</div>
+            <div class="w-16 h-1" :class="importStep >= 2 ? 'bg-primary-500' : 'bg-gray-200'"></div>
+            <div :class="['w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold', importStep >= 2 ? 'bg-primary-500 text-white' : 'bg-gray-200 text-gray-600']">2</div>
+            <div class="w-16 h-1" :class="importStep >= 3 ? 'bg-primary-500' : 'bg-gray-200'"></div>
+            <div :class="['w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold', importStep >= 3 ? 'bg-primary-500 text-white' : 'bg-gray-200 text-gray-600']">3</div>
+          </div>
+        </div>
+
+        <!-- 步骤1: 上传文件 -->
+        <div v-if="importStep === 1" class="space-y-4">
+          <div class="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center">
+            <input
+              ref="fileInputRef"
+              type="file"
+              accept=".xlsx,.xls,.csv"
+              @change="handleFileUpload"
+              class="hidden"
+            />
+            <div v-if="!importFile">
+              <div class="text-4xl mb-3">📁</div>
+              <p class="text-gray-600 mb-3">支持 Excel (.xlsx, .xls) 和 CSV (.csv) 格式</p>
+              <button
+                @click="fileInputRef?.click()"
+                class="px-4 py-2 bg-primary-500 text-white rounded-md hover:bg-primary-600 transition-colors"
+              >
+                选择文件
+              </button>
+            </div>
+            <div v-else>
+              <div class="text-4xl mb-3">✅</div>
+              <p class="text-gray-800 font-medium mb-2">{{ importFile.name }}</p>
+              <p class="text-sm text-gray-500 mb-3">{{ (importFile.size / 1024).toFixed(2) }} KB</p>
+              <button
+                @click="importFile = null; importPreviewData = []"
+                class="text-sm text-red-600 hover:text-red-800"
+              >
+                重新选择
+              </button>
+            </div>
+          </div>
+          <div class="bg-blue-50 border border-blue-200 rounded-md p-4">
+            <h4 class="text-sm font-semibold text-blue-800 mb-2">📋 表格格式说明</h4>
+            <ul class="text-sm text-blue-700 space-y-1">
+              <li>• <strong>词汇</strong>（必填）：单词或短语</li>
+              <li>• <strong>词性</strong>（可选）：支持多个词性，用逗号分隔（如：noun,verb）</li>
+              <li>• <strong>音标</strong>（可选）：发音标注</li>
+              <li>• <strong>定义</strong>（可选）：词汇解释</li>
+              <li>• <strong>例句1, 例句2, 例句3...</strong>（可选）：使用示例</li>
+            </ul>
+          </div>
+        </div>
+
+        <!-- 步骤2: 数据预览 -->
+        <div v-if="importStep === 2" class="space-y-4">
+          <div class="flex items-center justify-between mb-4">
+            <h4 class="font-semibold text-gray-800">数据预览（共 {{ importPreviewData.length }} 条）</h4>
+            <div class="flex items-center gap-4">
+              <label class="flex items-center gap-2 text-sm">
+                <input
+                  type="radio"
+                  value="append"
+                  v-model="importMode"
+                  class="text-primary-500"
+                />
+                <span>追加模式</span>
+              </label>
+              <label class="flex items-center gap-2 text-sm">
+                <input
+                  type="radio"
+                  value="overwrite"
+                  v-model="importMode"
+                  class="text-primary-500"
+                />
+                <span>覆盖重复</span>
+              </label>
+            </div>
+          </div>
+          <div class="border border-gray-200 rounded-md overflow-hidden max-h-[400px] overflow-y-auto">
+            <table class="min-w-full divide-y divide-gray-200 text-sm">
+              <thead class="bg-gray-50 sticky top-0">
+                <tr>
+                  <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">状态</th>
+                  <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">词汇</th>
+                  <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">词性</th>
+                  <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">音标</th>
+                  <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">定义</th>
+                  <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">例句数</th>
+                </tr>
+              </thead>
+              <tbody class="bg-white divide-y divide-gray-200">
+                <tr v-for="(item, index) in importPreviewData" :key="index" :class="item.error ? 'bg-red-50' : item.isDuplicate ? 'bg-yellow-50' : ''">
+                  <td class="px-3 py-2 whitespace-nowrap">
+                    <span v-if="item.error" class="text-xs text-red-600" :title="item.error">❌</span>
+                    <span v-else-if="item.isDuplicate" class="text-xs text-yellow-600" title="重复词汇">⚠️</span>
+                    <span v-else class="text-xs text-green-600">✅</span>
+                  </td>
+                  <td class="px-3 py-2 whitespace-nowrap font-medium">{{ item.label || '-' }}</td>
+                  <td class="px-3 py-2 whitespace-nowrap text-xs">{{ formatPosPreview(item.pos) }}</td>
+                  <td class="px-3 py-2 whitespace-nowrap text-xs">{{ item.phonetic || '-' }}</td>
+                  <td class="px-3 py-2 max-w-xs truncate text-xs">{{ item.definition || '-' }}</td>
+                  <td class="px-3 py-2 whitespace-nowrap text-xs text-center">{{ item.examples?.length || 0 }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="flex items-center gap-4 text-sm">
+            <span class="text-green-600">✅ 有效: {{ validImportCount }}</span>
+            <span class="text-yellow-600">⚠️ 重复: {{ duplicateImportCount }}</span>
+            <span class="text-red-600">❌ 错误: {{ errorImportCount }}</span>
+          </div>
+        </div>
+
+        <!-- 步骤3: 导入结果 -->
+        <div v-if="importStep === 3" class="space-y-4">
+          <div class="text-center py-8">
+            <div class="text-6xl mb-4">🎉</div>
+            <h4 class="text-xl font-semibold text-gray-800 mb-2">导入完成</h4>
+            <div class="space-y-2 text-sm text-gray-600">
+              <p>成功导入 <span class="font-semibold text-green-600">{{ importResult.success }}</span> 条词汇</p>
+              <p v-if="importResult.skipped > 0">跳过 <span class="font-semibold text-yellow-600">{{ importResult.skipped }}</span> 条重复/错误数据</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- 底部按钮 -->
+        <div class="mt-6 flex justify-between">
+          <button
+            v-if="importStep > 1 && importStep < 3"
+            @click="importStep--"
+            class="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-md transition-colors"
+          >
+            上一步
+          </button>
+          <div v-else></div>
+
+          <div class="flex gap-3">
+            <button
+              @click="closeBulkImportDialog"
+              class="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-md transition-colors"
+            >
+              {{ importStep === 3 ? '关闭' : '取消' }}
+            </button>
+            <button
+              v-if="importStep === 1 && importFile"
+              @click="parseImportFile"
+              class="px-4 py-2 bg-primary-500 text-white rounded-md hover:bg-primary-600 transition-colors"
+            >
+              下一步
+            </button>
+            <button
+              v-if="importStep === 2 && validImportCount > 0"
+              @click="executeImport"
+              class="px-4 py-2 bg-primary-500 text-white rounded-md hover:bg-primary-600 transition-colors"
+            >
+              导入 {{ validImportCount }} 条数据
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -290,6 +479,7 @@ import { ref, computed, onMounted } from 'vue'
 import { useAdminStore } from '@/stores/adminStore'
 import type { StoredWord } from '@/services/storageService'
 import type { PartOfSpeech } from '@/types/wordnet'
+import * as XLSX from 'xlsx'
 
 const adminStore = useAdminStore()
 
@@ -521,5 +711,266 @@ function deleteWord(id: string) {
   if (confirm('确定要删除这个词汇吗？相关的连接也会被删除。')) {
     adminStore.deleteWord(id)
   }
+}
+
+// ===== 批量导入相关 =====
+
+// 批量导入对话框状态
+const showBulkImportDialog = ref(false)
+const importStep = ref(1)
+const importFile = ref<File | null>(null)
+const fileInputRef = ref<HTMLInputElement | null>(null)
+const importMode = ref<'append' | 'overwrite'>('append')
+
+// 导入数据
+interface ImportWordData {
+  label: string
+  pos?: string | string[]
+  phonetic?: string
+  definition?: string
+  examples?: string[]
+  error?: string
+  isDuplicate?: boolean
+}
+
+const importPreviewData = ref<ImportWordData[]>([])
+const importResult = ref({
+  success: 0,
+  skipped: 0,
+})
+
+// 计算属性：统计导入数据
+const validImportCount = computed(() => {
+  return importPreviewData.value.filter(item => !item.error && (!item.isDuplicate || importMode.value === 'overwrite')).length
+})
+
+const duplicateImportCount = computed(() => {
+  return importPreviewData.value.filter(item => item.isDuplicate && !item.error).length
+})
+
+const errorImportCount = computed(() => {
+  return importPreviewData.value.filter(item => item.error).length
+})
+
+// 下载导入模板
+function downloadTemplate() {
+  // 创建模板数据
+  const templateData = [
+    {
+      '词汇': 'dog',
+      '词性': 'noun',
+      '音标': '/dɒg/',
+      '定义': '狗，犬科动物',
+      '例句1': 'I have a dog.',
+      '例句2': 'Dogs are loyal animals.',
+      '例句3': '',
+    },
+    {
+      '词汇': 'run',
+      '词性': 'verb,noun',
+      '音标': '/rʌn/',
+      '定义': '跑；奔跑',
+      '例句1': 'I run every morning.',
+      '例句2': 'He went for a run.',
+      '例句3': '',
+    },
+    {
+      '词汇': 'beautiful',
+      '词性': 'adjective',
+      '音标': '/ˈbjuːtɪfl/',
+      '定义': '美丽的；漂亮的',
+      '例句1': 'She is beautiful.',
+      '例句2': '',
+      '例句3': '',
+    },
+  ]
+
+  // 创建工作簿
+  const ws = XLSX.utils.json_to_sheet(templateData)
+  const wb = XLSX.utils.book_new()
+  XLSX.utils.book_append_sheet(wb, ws, '词汇模板')
+
+  // 设置列宽
+  ws['!cols'] = [
+    { wch: 15 }, // 词汇
+    { wch: 20 }, // 词性
+    { wch: 15 }, // 音标
+    { wch: 30 }, // 定义
+    { wch: 30 }, // 例句1
+    { wch: 30 }, // 例句2
+    { wch: 30 }, // 例句3
+  ]
+
+  // 导出文件
+  XLSX.writeFile(wb, `wordnet-import-template-${new Date().toISOString().split('T')[0]}.xlsx`)
+}
+
+// 处理文件上传
+function handleFileUpload(event: Event) {
+  const target = event.target as HTMLInputElement
+  const file = target.files?.[0]
+  if (file) {
+    importFile.value = file
+  }
+}
+
+// 解析导入文件
+function parseImportFile() {
+  if (!importFile.value) return
+
+  const reader = new FileReader()
+  reader.onload = (e) => {
+    try {
+      const data = new Uint8Array(e.target?.result as ArrayBuffer)
+      const workbook = XLSX.read(data, { type: 'array' })
+
+      // 读取第一个工作表
+      const firstSheetName = workbook.SheetNames[0]
+      const worksheet = workbook.Sheets[firstSheetName]
+
+      // 转换为 JSON
+      const jsonData = XLSX.utils.sheet_to_json(worksheet, { defval: '' }) as any[]
+
+      // 解析并验证数据
+      const parsedData: ImportWordData[] = jsonData.map((row, index) => {
+        const item: ImportWordData = {
+          label: String(row['词汇'] || '').trim(),
+          pos: undefined,
+          phonetic: String(row['音标'] || '').trim() || undefined,
+          definition: String(row['定义'] || '').trim() || undefined,
+          examples: [],
+        }
+
+        // 解析词性（支持逗号分隔）
+        const posStr = String(row['词性'] || '').trim()
+        if (posStr) {
+          const posArray = posStr.split(',').map(p => p.trim()).filter(p => p)
+          if (posArray.length > 0) {
+            // 验证词性是否合法
+            const validPos = posArray.filter(p => {
+              return adminStore.posTypes.some(pt => pt.key === p || pt.label === p)
+            })
+
+            if (validPos.length !== posArray.length) {
+              const invalidPos = posArray.filter(p => !adminStore.posTypes.some(pt => pt.key === p || pt.label === p))
+              item.error = `无效的词性: ${invalidPos.join(', ')}`
+            } else {
+              // 转换为 key 格式
+              const posKeys = validPos.map(p => {
+                const posType = adminStore.posTypes.find(pt => pt.key === p || pt.label === p)
+                return posType?.key || p
+              })
+              item.pos = posKeys.length === 1 ? posKeys[0] : posKeys
+            }
+          }
+        }
+
+        // 解析例句
+        const examples: string[] = []
+        for (let i = 1; i <= 10; i++) {
+          const example = String(row[`例句${i}`] || '').trim()
+          if (example) {
+            examples.push(example)
+          }
+        }
+        item.examples = examples
+
+        // 验证必填字段
+        if (!item.label) {
+          item.error = '词汇不能为空'
+        }
+
+        // 检查是否重复
+        const existingWord = adminStore.words.find(w => w.label.toLowerCase() === item.label.toLowerCase())
+        if (existingWord) {
+          item.isDuplicate = true
+        }
+
+        return item
+      })
+
+      importPreviewData.value = parsedData
+      importStep.value = 2
+    } catch (error) {
+      console.error('Failed to parse file:', error)
+      alert('文件解析失败，请检查文件格式是否正确')
+    }
+  }
+
+  reader.readAsArrayBuffer(importFile.value)
+}
+
+// 执行导入
+function executeImport() {
+  let successCount = 0
+  let skippedCount = 0
+
+  importPreviewData.value.forEach(item => {
+    // 跳过错误数据
+    if (item.error) {
+      skippedCount++
+      return
+    }
+
+    // 根据模式处理重复数据
+    if (item.isDuplicate) {
+      if (importMode.value === 'append') {
+        skippedCount++
+        return
+      } else {
+        // 覆盖模式：找到并更新现有词汇
+        const existingWord = adminStore.words.find(w => w.label.toLowerCase() === item.label.toLowerCase())
+        if (existingWord) {
+          adminStore.updateWord(existingWord.id, {
+            label: item.label,
+            pos: item.pos as any,
+            phonetic: item.phonetic,
+            definition: item.definition,
+            examples: item.examples,
+          })
+          successCount++
+          return
+        }
+      }
+    }
+
+    // 添加新词汇
+    adminStore.addWord({
+      id: `word_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      label: item.label,
+      pos: item.pos as any,
+      phonetic: item.phonetic,
+      definition: item.definition,
+      examples: item.examples,
+    })
+    successCount++
+  })
+
+  importResult.value = {
+    success: successCount,
+    skipped: skippedCount,
+  }
+
+  importStep.value = 3
+}
+
+// 关闭批量导入对话框
+function closeBulkImportDialog() {
+  showBulkImportDialog.value = false
+  importStep.value = 1
+  importFile.value = null
+  importPreviewData.value = []
+  importMode.value = 'append'
+  importResult.value = { success: 0, skipped: 0 }
+}
+
+// 格式化词性预览
+function formatPosPreview(pos: string | string[] | undefined): string {
+  if (!pos) return '-'
+  const posArray = Array.isArray(pos) ? pos : [pos]
+  return posArray.map(p => {
+    const posType = adminStore.posTypes.find(pt => pt.key === p)
+    return posType?.abbreviation || posType?.label || p
+  }).join(', ')
 }
 </script>

@@ -17,7 +17,8 @@
     "cytoscape": "^3.28.1",
     "pinia": "^2.1.7",
     "vue": "^3.4.21",
-    "vue-router": "^4.5.1"
+    "vue-router": "^4.5.1",
+    "xlsx": "^0.18.5"
   },
   "devDependencies": {
     "@types/cytoscape": "^3.21.4",
