@@ -34,6 +34,7 @@ export interface StoredRelationType {
 export interface StoredPosType {
   key: string  // 词性键，如 noun, verb, adj 等
   label: string  // 中文名称，如"名词"、"动词"等
+  abbreviation?: string  // 缩写，如 n., v., adj. 等
   description?: string  // 说明
 }
 
@@ -113,10 +114,10 @@ class StorageService {
     }
     // 初始化默认词性类型
     const defaults: StoredPosType[] = [
-      { key: 'noun', label: '名词', description: '表示人、事物、地点或抽象概念' },
-      { key: 'verb', label: '动词', description: '表示动作或状态' },
-      { key: 'adjective', label: '形容词', description: '描述或修饰名词' },
-      { key: 'adverb', label: '副词', description: '修饰动词、形容词或其他副词' },
+      { key: 'noun', label: '名词', abbreviation: 'n.', description: '表示人、事物、地点或抽象概念' },
+      { key: 'verb', label: '动词', abbreviation: 'v.', description: '表示动作或状态' },
+      { key: 'adjective', label: '形容词', abbreviation: 'adj.', description: '描述或修饰名词' },
+      { key: 'adverb', label: '副词', abbreviation: 'adv.', description: '修饰动词、形容词或其他副词' },
     ]
     this.savePosTypes(defaults)
     return defaults

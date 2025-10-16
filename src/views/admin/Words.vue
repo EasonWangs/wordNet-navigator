@@ -109,7 +109,10 @@
                   v-model="wordFormData.pos"
                   class="mr-2"
                 />
-                <span class="text-sm">{{ pos.label }}</span>
+                <span class="text-sm">
+                  {{ pos.label }}
+                  <span v-if="pos.abbreviation" class="text-gray-500 ml-1">({{ pos.abbreviation }})</span>
+                </span>
               </label>
             </div>
           </div>
@@ -333,7 +336,10 @@ function getPosLabel(pos: string | string[]): string {
   const posArray = Array.isArray(pos) ? pos : [pos]
   return posArray.map(p => {
     const posType = adminStore.posTypes.find((pt) => pt.key === p)
-    return posType ? posType.label : p
+    if (posType) {
+      return posType.abbreviation ? `${posType.label} (${posType.abbreviation})` : posType.label
+    }
+    return p
   }).join(', ')
 }
 

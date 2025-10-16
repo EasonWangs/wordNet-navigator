@@ -17,6 +17,7 @@
           <tr>
             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">词性键</th>
             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">名称</th>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">缩写</th>
             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">说明</th>
             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">使用数量</th>
             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">操作</th>
@@ -26,6 +27,7 @@
           <tr v-for="type in adminStore.posTypes" :key="type.key">
             <td class="px-6 py-4 whitespace-nowrap text-sm font-mono text-gray-900">{{ type.key }}</td>
             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ type.label }}</td>
+            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600 font-medium">{{ type.abbreviation || '-' }}</td>
             <td class="px-6 py-4 text-sm text-gray-500">{{ type.description || '-' }}</td>
             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
               {{ getWordCount(type.key) }} 个词汇
@@ -84,6 +86,16 @@
             />
           </div>
           <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">缩写</label>
+            <input
+              v-model="formData.abbreviation"
+              type="text"
+              class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+              placeholder="例如: n., v., adj."
+            />
+            <p class="text-xs text-gray-500 mt-1">用于简洁显示词性</p>
+          </div>
+          <div>
             <label class="block text-sm font-medium text-gray-700 mb-1">说明</label>
             <textarea
               v-model="formData.description"
@@ -123,6 +135,7 @@ const editingType = ref<StoredPosType | null>(null)
 const formData = ref({
   key: '',
   label: '',
+  abbreviation: '',
   description: '',
 })
 
@@ -135,6 +148,7 @@ function editType(type: StoredPosType) {
   formData.value = {
     key: type.key,
     label: type.label,
+    abbreviation: type.abbreviation || '',
     description: type.description || '',
   }
 }
@@ -145,6 +159,7 @@ function closeDialog() {
   formData.value = {
     key: '',
     label: '',
+    abbreviation: '',
     description: '',
   }
 }

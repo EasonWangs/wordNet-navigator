@@ -26,9 +26,10 @@
           <span
             v-for="(posItem, idx) in getPosArray(graphStore.selectedNode.pos)"
             :key="idx"
-            class="inline-block px-2.5 py-1 bg-blue-100/80 text-blue-700 rounded-full text-xs font-semibold uppercase"
+            class="inline-block px-2.5 py-1 bg-blue-100/80 text-blue-700 rounded-full text-xs font-semibold"
+            :title="posItem"
           >
-            {{ posItem }}
+            {{ getPosLabel(posItem) }}
           </span>
         </div>
       </div>
@@ -58,8 +59,10 @@
 
 <script setup lang="ts">
 import { useGraphStore } from '@/stores/graphStore'
+import { useAdminStore } from '@/stores/adminStore'
 
 const graphStore = useGraphStore()
+const adminStore = useAdminStore()
 
 // 将 pos 转换为数组（兼容单个和多个词性）
 function getPosArray(pos: any): string[] {
@@ -67,5 +70,14 @@ function getPosArray(pos: any): string[] {
     return pos
   }
   return [pos]
+}
+
+// 获取词性显示标签（带缩写）
+function getPosLabel(posKey: string): string {
+  const posType = adminStore.posTypes.find(pt => pt.key === posKey)
+  if (posType) {
+    return posType.abbreviation ? posType.abbreviation : posType.label
+  }
+  return posKey
 }
 </script>
