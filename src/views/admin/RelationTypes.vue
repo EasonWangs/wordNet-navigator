@@ -1,27 +1,13 @@
 <template>
   <div>
-    <div class="mb-6">
-      <div class="flex items-center justify-between mb-4">
-        <h2 class="text-2xl font-bold text-gray-900">关系类型管理</h2>
-        <button
-          @click="showAddDialog = true"
-          class="px-4 py-2 bg-primary-500 text-white rounded-md hover:bg-primary-600 transition-colors"
-        >
-          + 添加关系类型
-        </button>
-      </div>
-
-      <!-- 关系配对说明 -->
-      <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
-        <h3 class="text-sm font-semibold text-blue-900 mb-2">💡 关系配对说明</h3>
-        <div class="text-sm text-blue-800 space-y-1">
-          <p>• <strong>配对关系</strong>：可以为关系类型配置配对关系，添加关系时会自动在目标词汇添加配对关系</p>
-          <p>• <strong>互逆关系</strong>：如 上位词 ↔ 下位词，添加上位词会自动添加对方的下位词</p>
-          <p>• <strong>对称关系</strong>：如 同义词 ↔ 同义词，自动双向添加相同关系</p>
-          <p>• <strong>不配对</strong>：选择"不配对"则该关系类型不会自动创建反向关系</p>
-          <p class="text-xs text-blue-600 mt-2">⚠️ 修改配对关系后，只影响新创建的关系，已有关系不会自动更新</p>
-        </div>
-      </div>
+    <div class="flex items-center justify-between mb-6">
+      <h2 class="text-2xl font-bold text-gray-900">关系类型管理</h2>
+      <button
+        @click="showAddDialog = true"
+        class="px-4 py-2 bg-primary-500 text-white rounded-md hover:bg-primary-600 transition-colors"
+      >
+        + 添加关系类型
+      </button>
     </div>
 
     <!-- 关系类型列表 -->
