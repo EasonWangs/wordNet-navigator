@@ -18,6 +18,36 @@
       </div>
     </div>
 
+    <!-- 搜索和统计 -->
+    <div class="mb-4 flex items-center justify-between">
+      <div class="flex items-center gap-4">
+        <input
+          v-model="searchQuery"
+          @input="handleSearch"
+          type="text"
+          placeholder="搜索词汇或词性..."
+          class="px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary-500 w-80"
+        />
+        <span class="text-sm text-gray-600">
+          共 {{ filteredWords.length }} 个词汇
+          <span v-if="searchQuery">(已过滤)</span>
+        </span>
+      </div>
+      <div class="flex items-center gap-2">
+        <label class="text-sm text-gray-600">每页显示:</label>
+        <select
+          v-model.number="pageSize"
+          @change="currentPage = 1"
+          class="px-3 py-1 border border-gray-300 rounded-md text-sm"
+        >
+          <option :value="20">20</option>
+          <option :value="50">50</option>
+          <option :value="100">100</option>
+          <option :value="200">200</option>
+        </select>
+      </div>
+    </div>
+
     <!-- 词汇列表 -->
     <div class="bg-white rounded-lg shadow overflow-x-auto">
       <table class="min-w-full divide-y divide-gray-200 text-sm">
@@ -36,7 +66,7 @@
           </tr>
         </thead>
         <tbody class="bg-white divide-y divide-gray-200">
-          <tr v-for="word in adminStore.words" :key="word.id" class="hover:bg-gray-50">
+          <tr v-for="word in paginatedWords" :key="word.id" class="hover:bg-gray-50">
             <td class="px-3 py-2 whitespace-nowrap font-medium text-gray-900 sticky left-0 bg-white z-10">{{ word.label }}</td>
             <td class="px-3 py-2 whitespace-nowrap text-gray-600 text-xs">{{ getPosLabel(word) }}</td>
             <td
@@ -80,6 +110,63 @@
           </tr>
         </tbody>
       </table>
+    </div>
+
+    <!-- 分页控件 -->
+    <div v-if="totalPages > 1" class="mt-4 flex items-center justify-between">
+      <div class="text-sm text-gray-600">
+        显示第 {{ (currentPage - 1) * pageSize + 1 }} - {{ Math.min(currentPage * pageSize, filteredWords.length) }} 条，共 {{ filteredWords.length }} 条
+      </div>
+      <div class="flex items-center gap-2">
+        <button
+          @click="goToPage(1)"
+          :disabled="currentPage === 1"
+          class="px-3 py-1 border border-gray-300 rounded-md text-sm hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          首页
+        </button>
+        <button
+          @click="goToPage(currentPage - 1)"
+          :disabled="currentPage === 1"
+          class="px-3 py-1 border border-gray-300 rounded-md text-sm hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          上一页
+        </button>
+
+        <div class="flex items-center gap-1">
+          <button
+            v-for="page in visiblePages"
+            :key="page"
+            @click="typeof page === 'number' && goToPage(page)"
+            :disabled="page === '...'"
+            :class="[
+              'px-3 py-1 border rounded-md text-sm',
+              page === currentPage
+                ? 'bg-primary-500 text-white border-primary-500'
+                : page === '...'
+                ? 'border-transparent cursor-default'
+                : 'border-gray-300 hover:bg-gray-50'
+            ]"
+          >
+            {{ page }}
+          </button>
+        </div>
+
+        <button
+          @click="goToPage(currentPage + 1)"
+          :disabled="currentPage === totalPages"
+          class="px-3 py-1 border border-gray-300 rounded-md text-sm hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          下一页
+        </button>
+        <button
+          @click="goToPage(totalPages)"
+          :disabled="currentPage === totalPages"
+          class="px-3 py-1 border border-gray-300 rounded-md text-sm hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          末页
+        </button>
+      </div>
     </div>
 
     <!-- 添加/编辑词汇对话框 -->
@@ -508,6 +595,88 @@ const wordFormData = ref({
   phonetic: '',
   posDefinitions: [{ pos: '', definition: '' }] as PosDefinitionPair[],
   examples: [] as string[],
+})
+
+// 分页相关
+const currentPage = ref(1)
+const pageSize = ref(50)
+const searchQuery = ref('')
+
+// 过滤后的词汇列表
+const filteredWords = computed(() => {
+  if (!searchQuery.value.trim()) {
+    return adminStore.words
+  }
+  const query = searchQuery.value.toLowerCase()
+  return adminStore.words.filter(word => {
+    const posList = getWordPosList(word)
+    const posMatch = posList.some(p => p.toLowerCase().includes(query))
+    return word.label.toLowerCase().includes(query) || posMatch
+  })
+})
+
+// 分页后的词汇列表
+const paginatedWords = computed(() => {
+  const start = (currentPage.value - 1) * pageSize.value
+  const end = start + pageSize.value
+  return filteredWords.value.slice(start, end)
+})
+
+// 总页数
+const totalPages = computed(() => {
+  return Math.ceil(filteredWords.value.length / pageSize.value)
+})
+
+// 当搜索条件变化时，重置到第一页
+function handleSearch() {
+  currentPage.value = 1
+}
+
+// 切换页码
+function goToPage(page: number) {
+  if (page >= 1 && page <= totalPages.value) {
+    currentPage.value = page
+  }
+}
+
+// 显示的页码范围
+const visiblePages = computed(() => {
+  const total = totalPages.value
+  const current = currentPage.value
+  const delta = 2 // 当前页前后显示的页数
+
+  const pages: (number | string)[] = []
+
+  if (total <= 7) {
+    // 总页数少，显示全部
+    for (let i = 1; i <= total; i++) {
+      pages.push(i)
+    }
+  } else {
+    // 总页数多，显示部分
+    pages.push(1)
+
+    if (current > delta + 2) {
+      pages.push('...')
+    }
+
+    const start = Math.max(2, current - delta)
+    const end = Math.min(total - 1, current + delta)
+
+    for (let i = start; i <= end; i++) {
+      pages.push(i)
+    }
+
+    if (current < total - delta - 1) {
+      pages.push('...')
+    }
+
+    if (total > 1) {
+      pages.push(total)
+    }
+  }
+
+  return pages
 })
 
 // 关系编辑相关
