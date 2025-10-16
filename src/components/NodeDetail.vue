@@ -22,11 +22,15 @@
         <div class="text-2xl font-bold text-gray-800 mb-2">
           {{ graphStore.selectedNode.label }}
         </div>
-        <span
-          class="inline-block px-2.5 py-1 bg-blue-100/80 text-blue-700 rounded-full text-xs font-semibold uppercase"
-        >
-          {{ graphStore.selectedNode.pos }}
-        </span>
+        <div class="flex flex-wrap gap-2">
+          <span
+            v-for="(posItem, idx) in getPosArray(graphStore.selectedNode.pos)"
+            :key="idx"
+            class="inline-block px-2.5 py-1 bg-blue-100/80 text-blue-700 rounded-full text-xs font-semibold uppercase"
+          >
+            {{ posItem }}
+          </span>
+        </div>
       </div>
 
       <!-- Definition -->
@@ -56,4 +60,12 @@
 import { useGraphStore } from '@/stores/graphStore'
 
 const graphStore = useGraphStore()
+
+// 将 pos 转换为数组（兼容单个和多个词性）
+function getPosArray(pos: any): string[] {
+  if (Array.isArray(pos)) {
+    return pos
+  }
+  return [pos]
+}
 </script>

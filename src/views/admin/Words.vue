@@ -81,26 +81,36 @@
       <div class="bg-white rounded-lg p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
         <h3 class="text-lg font-semibold mb-4">{{ editingWord ? '编辑词汇' : '添加词汇' }}</h3>
         <div class="space-y-4">
-          <div class="grid grid-cols-2 gap-4">
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">词汇 *</label>
-              <input
-                v-model="wordFormData.label"
-                type="text"
-                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary-500"
-                placeholder="例如: dog"
-              />
-            </div>
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">词性 *</label>
-              <select
-                v-model="wordFormData.pos"
-                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary-500"
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">词汇 *</label>
+            <input
+              v-model="wordFormData.label"
+              type="text"
+              class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary-500"
+              placeholder="例如: dog"
+            />
+          </div>
+
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">词性（可多选）</label>
+            <div class="flex flex-wrap gap-2">
+              <label
+                v-for="pos in adminStore.posTypes"
+                :key="pos.key"
+                class="flex items-center px-3 py-2 border rounded-md cursor-pointer hover:bg-gray-50 transition-colors"
+                :class="{
+                  'border-primary-500 bg-primary-50': isPosSelected(pos.key),
+                  'border-gray-300': !isPosSelected(pos.key)
+                }"
               >
-                <option v-for="pos in adminStore.posTypes" :key="pos.key" :value="pos.key">
-                  {{ pos.label }} ({{ pos.key }})
-                </option>
-              </select>
+                <input
+                  type="checkbox"
+                  :value="pos.key"
+                  v-model="wordFormData.pos"
+                  class="mr-2"
+                />
+                <span class="text-sm">{{ pos.label }}</span>
+              </label>
             </div>
           </div>
 
@@ -273,7 +283,7 @@ const editingWord = ref<StoredWord | null>(null)
 const wordFormData = ref({
   id: '',
   label: '',
-  pos: 'noun' as PartOfSpeech,
+  pos: [] as string[],  // 改为数组支持多选
   definition: '',
   examples: [] as string[],
 })
@@ -302,9 +312,12 @@ const availableWords = computed(() => {
 const filteredAvailableWords = computed(() => {
   if (!wordSearchQuery.value.trim()) return availableWords.value
   const query = wordSearchQuery.value.toLowerCase()
-  return availableWords.value.filter((w) =>
-    w.label.toLowerCase().includes(query) || w.pos.toLowerCase().includes(query)
-  )
+  return availableWords.value.filter((w) => {
+    const posMatch = Array.isArray(w.pos)
+      ? w.pos.some(p => p.toLowerCase().includes(query))
+      : w.pos?.toLowerCase().includes(query)
+    return w.label.toLowerCase().includes(query) || posMatch
+  })
 })
 
 onMounted(() => {
@@ -316,9 +329,16 @@ function getWordLabel(id: string): string {
   return word?.label || id
 }
 
-function getPosLabel(posKey: string): string {
-  const pos = adminStore.posTypes.find((p) => p.key === posKey)
-  return pos ? `${pos.label} (${posKey})` : posKey
+function getPosLabel(pos: string | string[]): string {
+  const posArray = Array.isArray(pos) ? pos : [pos]
+  return posArray.map(p => {
+    const posType = adminStore.posTypes.find((pt) => pt.key === p)
+    return posType ? posType.label : p
+  }).join(', ')
+}
+
+function isPosSelected(posKey: string): boolean {
+  return Array.isArray(wordFormData.value.pos) && wordFormData.value.pos.includes(posKey)
 }
 
 function getRelatedWords(wordId: string, relationType: string): string[] {
@@ -333,7 +353,7 @@ function editWord(word: StoredWord) {
   wordFormData.value = {
     id: word.id,
     label: word.label,
-    pos: word.pos,
+    pos: Array.isArray(word.pos) ? [...word.pos] : (word.pos ? [word.pos] : []),  // 兼容单个或数组
     definition: word.definition || '',
     examples: word.examples ? [...word.examples] : [],
   }
@@ -345,7 +365,7 @@ function closeWordDialog() {
   wordFormData.value = {
     id: '',
     label: '',
-    pos: 'noun',
+    pos: [],  // 重置为空数组
     definition: '',
     examples: [],
   }
@@ -360,10 +380,25 @@ function removeExample(index: number) {
 }
 
 function saveWord() {
+  // 词汇名称必填
+  if (!wordFormData.value.label.trim()) {
+    alert('请输入词汇名称')
+    return
+  }
+
+  // 词性改为可选，但如果填写了则需要至少选择一个
+  let posValue: string | string[] | undefined
+  if (Array.isArray(wordFormData.value.pos) && wordFormData.value.pos.length > 0) {
+    // 单个词性保存为字符串，多个保存为数组（向后兼容）
+    posValue = wordFormData.value.pos.length === 1 ? wordFormData.value.pos[0] : wordFormData.value.pos
+  } else {
+    posValue = undefined  // 未选择词性时设为 undefined
+  }
+
   const data = {
     id: wordFormData.value.id || `word_${Date.now()}`,
     label: wordFormData.value.label,
-    pos: wordFormData.value.pos,
+    pos: posValue,
     definition: wordFormData.value.definition,
     examples: wordFormData.value.examples.filter((e) => e.trim()),
   }

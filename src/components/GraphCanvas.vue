@@ -65,15 +65,26 @@
             />
           </div>
           <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">词性 <span class="text-red-500">*</span></label>
-            <select
-              v-model="wordForm.pos"
-              class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary-500"
-            >
-              <option v-for="pos in adminStore.posTypes" :key="pos.key" :value="pos.key">
-                {{ pos.label }} ({{ pos.key }})
-              </option>
-            </select>
+            <label class="block text-sm font-medium text-gray-700 mb-1">词性（可多选）</label>
+            <div class="flex flex-wrap gap-2">
+              <label
+                v-for="pos in adminStore.posTypes"
+                :key="pos.key"
+                class="flex items-center px-3 py-2 border rounded-md cursor-pointer hover:bg-gray-50 transition-colors"
+                :class="{
+                  'border-primary-500 bg-primary-50': isPosSelected(pos.key),
+                  'border-gray-300': !isPosSelected(pos.key)
+                }"
+              >
+                <input
+                  type="checkbox"
+                  :value="pos.key"
+                  v-model="wordForm.pos"
+                  class="mr-2"
+                />
+                <span class="text-sm">{{ pos.label }} ({{ pos.key }})</span>
+              </label>
+            </div>
           </div>
           <div>
             <label class="block text-sm font-medium text-gray-700 mb-1">定义</label>
@@ -262,7 +273,7 @@ const showEditWordDialog = ref(false)
 const editingWordId = ref<string | null>(null)
 const wordForm = ref({
   label: '',
-  pos: 'noun',
+  pos: [] as string[],  // 改为数组支持多选
   definition: '',
   examples: [] as string[],
 })
@@ -279,7 +290,7 @@ function openAddWordDialog() {
   editingWordId.value = null
   wordForm.value = {
     label: '',
-    pos: 'noun',
+    pos: [],  // 默认不选中任何词性
     definition: '',
     examples: [],
   }
@@ -302,7 +313,7 @@ function openEditWordDialog(nodeData: any) {
   if (word) {
     wordForm.value = {
       label: word.label,
-      pos: word.pos,
+      pos: Array.isArray(word.pos) ? [...word.pos] : (word.pos ? [word.pos] : []),  // 兼容单个、数组或未定义
       definition: word.definition || '',
       examples: word.examples ? [...word.examples] : [],
     }
@@ -315,10 +326,15 @@ function closeWordDialog() {
   editingWordId.value = null
   wordForm.value = {
     label: '',
-    pos: 'noun',
+    pos: [],
     definition: '',
     examples: [],
   }
+}
+
+// 检查词性是否被选中
+function isPosSelected(posKey: string): boolean {
+  return Array.isArray(wordForm.value.pos) && wordForm.value.pos.includes(posKey)
 }
 
 // 检查当前编辑的词汇是否是独立节点（无任何关系）
@@ -373,12 +389,21 @@ async function saveWord() {
     return
   }
 
+  // 词性改为可选，但如果填写了则需要至少选择一个
+  let posValue: string | string[] | undefined
+  if (Array.isArray(wordForm.value.pos) && wordForm.value.pos.length > 0) {
+    // 单个词性保存为字符串，多个保存为数组（向后兼容）
+    posValue = wordForm.value.pos.length === 1 ? wordForm.value.pos[0] : wordForm.value.pos
+  } else {
+    posValue = undefined  // 未选择词性时设为 undefined
+  }
+
   try {
     if (showEditWordDialog.value && editingWordId.value) {
       // 编辑模式 - 只更新本地数据，不重新加载图表
       const updatedData = {
         label: wordForm.value.label.trim(),
-        pos: wordForm.value.pos as any,
+        pos: posValue,
         definition: wordForm.value.definition.trim() || undefined,
         examples: wordForm.value.examples.filter(e => e.trim()),
       }
@@ -404,7 +429,7 @@ async function saveWord() {
       adminStore.addWord({
         id: `word_${Date.now()}`,
         label: wordForm.value.label.trim(),
-        pos: wordForm.value.pos as any,
+        pos: posValue as any,
         definition: wordForm.value.definition.trim() || undefined,
         examples: wordForm.value.examples.filter(e => e.trim()),
       })

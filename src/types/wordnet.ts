@@ -13,7 +13,7 @@ export type RelationType =
 export interface WordNode {
   id: string
   label: string
-  pos: PartOfSpeech
+  pos: PartOfSpeech | PartOfSpeech[]  // 支持单个或多个词性
   definition?: string
   examples?: string[]
 }
