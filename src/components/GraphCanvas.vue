@@ -86,42 +86,54 @@
             />
           </div>
           <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">词性（可多选）</label>
-            <div class="flex flex-wrap gap-2">
-              <label
-                v-for="pos in adminStore.posTypes"
-                :key="pos.key"
-                class="flex items-center px-3 py-2 border rounded-md cursor-pointer hover:bg-gray-50 transition-colors"
-                :class="{
-                  'border-primary-500 bg-primary-50': isPosSelected(pos.key),
-                  'border-gray-300': !isPosSelected(pos.key)
-                }"
+            <div class="flex items-center justify-between mb-2">
+              <label class="block text-sm font-medium text-gray-700">词性-定义对</label>
+              <button
+                @click="addPosDefinitionPair"
+                type="button"
+                class="text-sm text-primary-600 hover:text-primary-800"
               >
-                <input
-                  type="checkbox"
-                  :value="pos.key"
-                  v-model="wordForm.pos"
-                  class="mr-2"
-                />
-                <span class="text-sm">
-                  {{ pos.label }}
-                  <span v-if="pos.abbreviation" class="text-gray-500 ml-1">({{ pos.abbreviation }})</span>
-                </span>
-              </label>
+                + 添加
+              </button>
             </div>
-          </div>
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">定义</label>
-            <textarea
-              v-model="wordForm.definition"
-              rows="3"
-              class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary-500"
-              placeholder="词汇的定义"
-            />
+            <div class="space-y-2">
+              <div
+                v-for="(pair, index) in wordForm.posDefinitions"
+                :key="index"
+                class="border border-gray-200 rounded-md p-2 bg-gray-50"
+              >
+                <div class="flex gap-2 mb-2">
+                  <select
+                    v-model="pair.pos"
+                    class="flex-1 px-2 py-1.5 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary-500 text-sm"
+                  >
+                    <option value="">- 词性 -</option>
+                    <option v-for="posType in adminStore.posTypes" :key="posType.key" :value="posType.key">
+                      {{ posType.label }}<span v-if="posType.abbreviation"> ({{ posType.abbreviation }})</span>
+                    </option>
+                  </select>
+                  <button
+                    v-if="wordForm.posDefinitions.length > 1"
+                    @click="removePosDefinitionPair(index)"
+                    type="button"
+                    class="px-2 py-1 text-red-600 hover:bg-red-100 rounded transition-colors text-sm"
+                    title="删除"
+                  >
+                    ✕
+                  </button>
+                </div>
+                <textarea
+                  v-model="pair.definition"
+                  rows="2"
+                  class="w-full px-2 py-1.5 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary-500 text-sm"
+                  placeholder="该词性的定义"
+                />
+              </div>
+            </div>
           </div>
           <div v-if="showEditWordDialog">
             <label class="block text-sm font-medium text-gray-700 mb-1">例句</label>
-            <div v-for="(example, index) in wordForm.examples" :key="index" class="flex mb-2">
+            <div v-for="(_example, index) in wordForm.examples" :key="index" class="flex mb-2">
               <input
                 v-model="wordForm.examples[index]"
                 type="text"
@@ -279,6 +291,8 @@ import { useGraphStore } from '@/stores/graphStore'
 import { useAdminStore } from '@/stores/adminStore'
 import { useCytoscape } from '@/composables/useCytoscape'
 import { WordNetService } from '@/services/wordnetService'
+import { migrateWordData } from '@/utils/wordDataUtils'
+import type { PosDefinitionPair } from '@/types/wordnet'
 import Legend from './Legend.vue'
 import NodeDetail from './NodeDetail.vue'
 
@@ -297,9 +311,8 @@ const showEditWordDialog = ref(false)
 const editingWordId = ref<string | null>(null)
 const wordForm = ref({
   label: '',
-  pos: [] as string[],  // 改为数组支持多选
   phonetic: '',
-  definition: '',
+  posDefinitions: [{ pos: '', definition: '' }] as PosDefinitionPair[],
   examples: [] as string[],
 })
 
@@ -315,9 +328,8 @@ function openAddWordDialog() {
   editingWordId.value = null
   wordForm.value = {
     label: '',
-    pos: [],  // 默认不选中任何词性
     phonetic: '',
-    definition: '',
+    posDefinitions: [{ pos: '', definition: '' }],
     examples: [],
   }
   // 确保 adminStore 已加载数据
@@ -337,11 +349,15 @@ function openEditWordDialog(nodeData: any) {
   const word = adminStore.words.find(w => w.id === nodeData.id)
 
   if (word) {
+    // 迁移数据到新格式
+    const migratedWord = migrateWordData(word)
+
     wordForm.value = {
       label: word.label,
-      pos: Array.isArray(word.pos) ? [...word.pos] : (word.pos ? [word.pos] : []),  // 兼容单个、数组或未定义
       phonetic: (word as any).phonetic || '',
-      definition: word.definition || '',
+      posDefinitions: migratedWord.posDefinitions && migratedWord.posDefinitions.length > 0
+        ? migratedWord.posDefinitions.map(pd => ({ ...pd }))
+        : [{ pos: '', definition: '' }],
       examples: word.examples ? [...word.examples] : [],
     }
   }
@@ -353,17 +369,24 @@ function closeWordDialog() {
   editingWordId.value = null
   wordForm.value = {
     label: '',
-    pos: [],
     phonetic: '',
-    definition: '',
+    posDefinitions: [{ pos: '', definition: '' }],
     examples: [],
   }
 }
 
-// 检查词性是否被选中
-function isPosSelected(posKey: string): boolean {
-  return Array.isArray(wordForm.value.pos) && wordForm.value.pos.includes(posKey)
+// 添加词性-定义对
+function addPosDefinitionPair() {
+  wordForm.value.posDefinitions.push({ pos: '', definition: '' })
 }
+
+// 删除词性-定义对
+function removePosDefinitionPair(index: number) {
+  if (wordForm.value.posDefinitions.length > 1) {
+    wordForm.value.posDefinitions.splice(index, 1)
+  }
+}
+
 
 // 检查当前编辑的词汇是否是独立节点（无任何关系）
 const isIsolatedWord = computed(() => {
@@ -417,23 +440,25 @@ async function saveWord() {
     return
   }
 
-  // 词性改为可选，但如果填写了则需要至少选择一个
-  let posValue: string | string[] | undefined
-  if (Array.isArray(wordForm.value.pos) && wordForm.value.pos.length > 0) {
-    // 单个词性保存为字符串，多个保存为数组（向后兼容）
-    posValue = wordForm.value.pos.length === 1 ? wordForm.value.pos[0] : wordForm.value.pos
-  } else {
-    posValue = undefined  // 未选择词性时设为 undefined
-  }
+  // 过滤掉完全空的词性-定义对
+  const filteredPosDefinitions = wordForm.value.posDefinitions
+    .map(pd => ({
+      pos: pd.pos?.trim() || undefined,
+      definition: pd.definition?.trim() || undefined,
+    }))
+    .filter(pd => pd.pos || pd.definition)
+
+  const posDefinitions = filteredPosDefinitions.length > 0
+    ? filteredPosDefinitions
+    : [{ pos: undefined, definition: undefined }]
 
   try {
     if (showEditWordDialog.value && editingWordId.value) {
       // 编辑模式 - 只更新本地数据，不重新加载图表
       const updatedData = {
         label: wordForm.value.label.trim(),
-        pos: posValue,
         phonetic: wordForm.value.phonetic.trim() || undefined,
-        definition: wordForm.value.definition.trim() || undefined,
+        posDefinitions,
         examples: wordForm.value.examples.filter(e => e.trim()),
       }
 
@@ -458,9 +483,8 @@ async function saveWord() {
       adminStore.addWord({
         id: `word_${Date.now()}`,
         label: wordForm.value.label.trim(),
-        pos: posValue as any,
         phonetic: wordForm.value.phonetic.trim() || undefined,
-        definition: wordForm.value.definition.trim() || undefined,
+        posDefinitions,
         examples: wordForm.value.examples.filter(e => e.trim()),
       })
 

@@ -10,13 +10,26 @@ export type RelationType =
   | 'meronym'     // 部分词
   | 'holonym'     // 整体词
 
+// 词性-定义对：词性和定义成对出现（都是可选的）
+export interface PosDefinitionPair {
+  pos?: string  // 词性 key（可选）
+  definition?: string  // 该词性的定义（可选）
+}
+
 export interface WordNode {
   id: string
   label: string
-  pos: PartOfSpeech | PartOfSpeech[]  // 支持单个或多个词性
   phonetic?: string  // 音标，如 /dɒg/ 或 /dɔːg/
-  definition?: string
+
+  // 新结构：词性-定义对数组
+  posDefinitions?: PosDefinitionPair[]
+
+  // 例句独立存在，不绑定到特定词性
   examples?: string[]
+
+  // ===== 向后兼容旧结构（已废弃，仅用于数据迁移） =====
+  pos?: PartOfSpeech | PartOfSpeech[]
+  definition?: string
 }
 
 export interface WordEdge {

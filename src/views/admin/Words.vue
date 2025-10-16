@@ -38,7 +38,7 @@
         <tbody class="bg-white divide-y divide-gray-200">
           <tr v-for="word in adminStore.words" :key="word.id" class="hover:bg-gray-50">
             <td class="px-3 py-2 whitespace-nowrap font-medium text-gray-900 sticky left-0 bg-white z-10">{{ word.label }}</td>
-            <td class="px-3 py-2 whitespace-nowrap text-gray-600 text-xs">{{ getPosLabel(word.pos) }}</td>
+            <td class="px-3 py-2 whitespace-nowrap text-gray-600 text-xs">{{ getPosLabel(word) }}</td>
             <td
               v-for="relationType in adminStore.relationTypes"
               :key="relationType.key"
@@ -113,39 +113,57 @@
           </div>
 
           <div>
-            <label class="block text-sm font-medium text-gray-700 mb-2">词性（可多选）</label>
-            <div class="flex flex-wrap gap-2">
-              <label
-                v-for="pos in adminStore.posTypes"
-                :key="pos.key"
-                class="flex items-center px-3 py-2 border rounded-md cursor-pointer hover:bg-gray-50 transition-colors"
-                :class="{
-                  'border-primary-500 bg-primary-50': isPosSelected(pos.key),
-                  'border-gray-300': !isPosSelected(pos.key)
-                }"
+            <div class="flex items-center justify-between mb-2">
+              <label class="block text-sm font-medium text-gray-700">词性-定义对</label>
+              <button
+                @click="addPosDefinitionPair"
+                type="button"
+                class="text-sm text-primary-600 hover:text-primary-800"
               >
-                <input
-                  type="checkbox"
-                  :value="pos.key"
-                  v-model="wordFormData.pos"
-                  class="mr-2"
-                />
-                <span class="text-sm">
-                  {{ pos.label }}
-                  <span v-if="pos.abbreviation" class="text-gray-500 ml-1">({{ pos.abbreviation }})</span>
-                </span>
-              </label>
+                + 添加词性-定义对
+              </button>
             </div>
-          </div>
-
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">定义</label>
-            <textarea
-              v-model="wordFormData.definition"
-              rows="3"
-              class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary-500"
-              placeholder="词汇的定义"
-            />
+            <div class="space-y-3">
+              <div
+                v-for="(pair, index) in wordFormData.posDefinitions"
+                :key="index"
+                class="border border-gray-200 rounded-md p-3 bg-gray-50"
+              >
+                <div class="flex items-start gap-3">
+                  <div class="flex-1">
+                    <label class="block text-xs font-medium text-gray-600 mb-1">词性</label>
+                    <select
+                      v-model="pair.pos"
+                      class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary-500 text-sm"
+                    >
+                      <option value="">- 未选择 -</option>
+                      <option v-for="posType in adminStore.posTypes" :key="posType.key" :value="posType.key">
+                        {{ posType.label }}
+                        <span v-if="posType.abbreviation">({{ posType.abbreviation }})</span>
+                      </option>
+                    </select>
+                  </div>
+                  <div class="flex-[2]">
+                    <label class="block text-xs font-medium text-gray-600 mb-1">定义</label>
+                    <textarea
+                      v-model="pair.definition"
+                      rows="2"
+                      class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary-500 text-sm"
+                      placeholder="该词性的定义"
+                    />
+                  </div>
+                  <button
+                    v-if="wordFormData.posDefinitions.length > 1"
+                    @click="removePosDefinitionPair(index)"
+                    type="button"
+                    class="mt-6 px-2 py-1 text-red-600 hover:bg-red-50 rounded transition-colors text-sm"
+                    title="删除此对"
+                  >
+                    ✕
+                  </button>
+                </div>
+              </div>
+            </div>
           </div>
 
           <div>
@@ -276,7 +294,7 @@
               class="w-full text-left px-4 py-2 hover:bg-gray-100 rounded-md transition-colors"
             >
               <span class="font-medium">{{ word.label }}</span>
-              <span class="text-sm text-gray-500 ml-2">({{ getPosLabel(word.pos) }})</span>
+              <span class="text-sm text-gray-500 ml-2">({{ getPosLabel(word) }})</span>
             </button>
           </div>
         </div>
@@ -355,9 +373,8 @@
             <h4 class="text-sm font-semibold text-blue-800 mb-2">📋 表格格式说明</h4>
             <ul class="text-sm text-blue-700 space-y-1">
               <li>• <strong>词汇</strong>（必填）：单词或短语</li>
-              <li>• <strong>词性</strong>（可选）：支持多个词性，用逗号分隔（如：noun,verb）</li>
               <li>• <strong>音标</strong>（可选）：发音标注</li>
-              <li>• <strong>定义</strong>（可选）：词汇解释</li>
+              <li>• <strong>词性1, 定义1; 词性2, 定义2...</strong>（可选）：词性与对应的定义成对出现</li>
               <li>• <strong>例句1, 例句2, 例句3...</strong>（可选）：使用示例</li>
             </ul>
           </div>
@@ -394,9 +411,8 @@
                 <tr>
                   <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">状态</th>
                   <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">词汇</th>
-                  <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">词性</th>
                   <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">音标</th>
-                  <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">定义</th>
+                  <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">词性-定义对</th>
                   <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">例句数</th>
                 </tr>
               </thead>
@@ -408,9 +424,8 @@
                     <span v-else class="text-xs text-green-600">✅</span>
                   </td>
                   <td class="px-3 py-2 whitespace-nowrap font-medium">{{ item.label || '-' }}</td>
-                  <td class="px-3 py-2 whitespace-nowrap text-xs">{{ formatPosPreview(item.pos) }}</td>
                   <td class="px-3 py-2 whitespace-nowrap text-xs">{{ item.phonetic || '-' }}</td>
-                  <td class="px-3 py-2 max-w-xs truncate text-xs">{{ item.definition || '-' }}</td>
+                  <td class="px-3 py-2 max-w-md text-xs">{{ formatPosDefinitionsPreview(item.posDefinitions) }}</td>
                   <td class="px-3 py-2 whitespace-nowrap text-xs text-center">{{ item.examples?.length || 0 }}</td>
                 </tr>
               </tbody>
@@ -478,7 +493,8 @@
 import { ref, computed, onMounted } from 'vue'
 import { useAdminStore } from '@/stores/adminStore'
 import type { StoredWord } from '@/services/storageService'
-import type { PartOfSpeech } from '@/types/wordnet'
+import type { PosDefinitionPair } from '@/types/wordnet'
+import { migrateWordData, getWordPosList } from '@/utils/wordDataUtils'
 import * as XLSX from 'xlsx'
 
 const adminStore = useAdminStore()
@@ -489,9 +505,8 @@ const editingWord = ref<StoredWord | null>(null)
 const wordFormData = ref({
   id: '',
   label: '',
-  pos: [] as string[],  // 改为数组支持多选
   phonetic: '',
-  definition: '',
+  posDefinitions: [{ pos: '', definition: '' }] as PosDefinitionPair[],
   examples: [] as string[],
 })
 
@@ -520,9 +535,9 @@ const filteredAvailableWords = computed(() => {
   if (!wordSearchQuery.value.trim()) return availableWords.value
   const query = wordSearchQuery.value.toLowerCase()
   return availableWords.value.filter((w) => {
-    const posMatch = Array.isArray(w.pos)
-      ? w.pos.some(p => p.toLowerCase().includes(query))
-      : w.pos?.toLowerCase().includes(query)
+    // 使用工具函数获取词性列表
+    const posList = getWordPosList(w)
+    const posMatch = posList.some(p => p.toLowerCase().includes(query))
     return w.label.toLowerCase().includes(query) || posMatch
   })
 })
@@ -536,9 +551,12 @@ function getWordLabel(id: string): string {
   return word?.label || id
 }
 
-function getPosLabel(pos: string | string[]): string {
-  const posArray = Array.isArray(pos) ? pos : [pos]
-  return posArray.map(p => {
+function getPosLabel(word: any): string {
+  // 使用工具函数获取词性列表
+  const posList = getWordPosList(word)
+  if (posList.length === 0) return '-'
+
+  return posList.map(p => {
     const posType = adminStore.posTypes.find((pt) => pt.key === p)
     if (posType) {
       return posType.abbreviation ? `${posType.label} (${posType.abbreviation})` : posType.label
@@ -547,8 +565,16 @@ function getPosLabel(pos: string | string[]): string {
   }).join(', ')
 }
 
-function isPosSelected(posKey: string): boolean {
-  return Array.isArray(wordFormData.value.pos) && wordFormData.value.pos.includes(posKey)
+// 添加词性-定义对
+function addPosDefinitionPair() {
+  wordFormData.value.posDefinitions.push({ pos: '', definition: '' })
+}
+
+// 删除词性-定义对
+function removePosDefinitionPair(index: number) {
+  if (wordFormData.value.posDefinitions.length > 1) {
+    wordFormData.value.posDefinitions.splice(index, 1)
+  }
 }
 
 function getRelatedWords(wordId: string, relationType: string): string[] {
@@ -560,12 +586,17 @@ function getRelatedWords(wordId: string, relationType: string): string[] {
 // 词汇编辑函数
 function editWord(word: StoredWord) {
   editingWord.value = word
+
+  // 迁移旧数据到新格式
+  const migratedWord = migrateWordData(word)
+
   wordFormData.value = {
     id: word.id,
     label: word.label,
-    pos: Array.isArray(word.pos) ? [...word.pos] : (word.pos ? [word.pos] : []),  // 兼容单个或数组
     phonetic: (word as any).phonetic || '',
-    definition: word.definition || '',
+    posDefinitions: migratedWord.posDefinitions && migratedWord.posDefinitions.length > 0
+      ? migratedWord.posDefinitions.map(pd => ({ ...pd }))
+      : [{ pos: '', definition: '' }],
     examples: word.examples ? [...word.examples] : [],
   }
 }
@@ -576,9 +607,8 @@ function closeWordDialog() {
   wordFormData.value = {
     id: '',
     label: '',
-    pos: [],  // 重置为空数组
     phonetic: '',
-    definition: '',
+    posDefinitions: [{ pos: '', definition: '' }],
     examples: [],
   }
 }
@@ -598,21 +628,24 @@ function saveWord() {
     return
   }
 
-  // 词性改为可选，但如果填写了则需要至少选择一个
-  let posValue: string | string[] | undefined
-  if (Array.isArray(wordFormData.value.pos) && wordFormData.value.pos.length > 0) {
-    // 单个词性保存为字符串，多个保存为数组（向后兼容）
-    posValue = wordFormData.value.pos.length === 1 ? wordFormData.value.pos[0] : wordFormData.value.pos
-  } else {
-    posValue = undefined  // 未选择词性时设为 undefined
-  }
+  // 过滤掉完全空的词性-定义对
+  const filteredPosDefinitions = wordFormData.value.posDefinitions
+    .map(pd => ({
+      pos: pd.pos?.trim() || undefined,
+      definition: pd.definition?.trim() || undefined,
+    }))
+    .filter(pd => pd.pos || pd.definition) // 至少有一个不为空
+
+  // 如果没有任何词性-定义对，添加一个空对
+  const posDefinitions = filteredPosDefinitions.length > 0
+    ? filteredPosDefinitions
+    : [{ pos: undefined, definition: undefined }]
 
   const data = {
     id: wordFormData.value.id || `word_${Date.now()}`,
-    label: wordFormData.value.label,
-    pos: posValue,
+    label: wordFormData.value.label.trim(),
     phonetic: wordFormData.value.phonetic.trim() || undefined,
-    definition: wordFormData.value.definition,
+    posDefinitions,
     examples: wordFormData.value.examples.filter((e) => e.trim()),
   }
 
@@ -725,9 +758,8 @@ const importMode = ref<'append' | 'overwrite'>('append')
 // 导入数据
 interface ImportWordData {
   label: string
-  pos?: string | string[]
+  posDefinitions?: PosDefinitionPair[]
   phonetic?: string
-  definition?: string
   examples?: string[]
   error?: string
   isDuplicate?: boolean
@@ -758,27 +790,39 @@ function downloadTemplate() {
   const templateData = [
     {
       '词汇': 'dog',
-      '词性': 'noun',
       '音标': '/dɒg/',
-      '定义': '狗，犬科动物',
+      '词性1': 'noun',
+      '定义1': '狗，犬科动物',
+      '词性2': '',
+      '定义2': '',
+      '词性3': '',
+      '定义3': '',
       '例句1': 'I have a dog.',
       '例句2': 'Dogs are loyal animals.',
       '例句3': '',
     },
     {
       '词汇': 'run',
-      '词性': 'verb,noun',
       '音标': '/rʌn/',
-      '定义': '跑；奔跑',
+      '词性1': 'verb',
+      '定义1': '跑；奔跑',
+      '词性2': 'noun',
+      '定义2': '跑步；奔跑',
+      '词性3': '',
+      '定义3': '',
       '例句1': 'I run every morning.',
       '例句2': 'He went for a run.',
       '例句3': '',
     },
     {
       '词汇': 'beautiful',
-      '词性': 'adjective',
       '音标': '/ˈbjuːtɪfl/',
-      '定义': '美丽的；漂亮的',
+      '词性1': 'adjective',
+      '定义1': '美丽的；漂亮的',
+      '词性2': '',
+      '定义2': '',
+      '词性3': '',
+      '定义3': '',
       '例句1': 'She is beautiful.',
       '例句2': '',
       '例句3': '',
@@ -793,9 +837,13 @@ function downloadTemplate() {
   // 设置列宽
   ws['!cols'] = [
     { wch: 15 }, // 词汇
-    { wch: 20 }, // 词性
     { wch: 15 }, // 音标
-    { wch: 30 }, // 定义
+    { wch: 15 }, // 词性1
+    { wch: 30 }, // 定义1
+    { wch: 15 }, // 词性2
+    { wch: 30 }, // 定义2
+    { wch: 15 }, // 词性3
+    { wch: 30 }, // 定义3
     { wch: 30 }, // 例句1
     { wch: 30 }, // 例句2
     { wch: 30 }, // 例句3
@@ -832,38 +880,46 @@ function parseImportFile() {
       const jsonData = XLSX.utils.sheet_to_json(worksheet, { defval: '' }) as any[]
 
       // 解析并验证数据
-      const parsedData: ImportWordData[] = jsonData.map((row, index) => {
+      const parsedData: ImportWordData[] = jsonData.map((row) => {
         const item: ImportWordData = {
           label: String(row['词汇'] || '').trim(),
-          pos: undefined,
           phonetic: String(row['音标'] || '').trim() || undefined,
-          definition: String(row['定义'] || '').trim() || undefined,
+          posDefinitions: [],
           examples: [],
         }
 
-        // 解析词性（支持逗号分隔）
-        const posStr = String(row['词性'] || '').trim()
-        if (posStr) {
-          const posArray = posStr.split(',').map(p => p.trim()).filter(p => p)
-          if (posArray.length > 0) {
-            // 验证词性是否合法
-            const validPos = posArray.filter(p => {
-              return adminStore.posTypes.some(pt => pt.key === p || pt.label === p)
-            })
+        // 解析词性-定义对（支持最多10对）
+        const posDefinitions: PosDefinitionPair[] = []
+        for (let i = 1; i <= 10; i++) {
+          const posStr = String(row[`词性${i}`] || '').trim()
+          const defStr = String(row[`定义${i}`] || '').trim()
 
-            if (validPos.length !== posArray.length) {
-              const invalidPos = posArray.filter(p => !adminStore.posTypes.some(pt => pt.key === p || pt.label === p))
-              item.error = `无效的词性: ${invalidPos.join(', ')}`
-            } else {
-              // 转换为 key 格式
-              const posKeys = validPos.map(p => {
-                const posType = adminStore.posTypes.find(pt => pt.key === p || pt.label === p)
-                return posType?.key || p
-              })
-              item.pos = posKeys.length === 1 ? posKeys[0] : posKeys
+          // 如果词性或定义任一不为空，则添加这个对
+          if (posStr || defStr) {
+            let posKey: string | undefined = undefined
+
+            if (posStr) {
+              // 验证词性是否合法（支持 key、label 或 abbreviation 匹配）
+              const posType = adminStore.posTypes.find(pt =>
+                pt.key === posStr ||
+                pt.label === posStr ||
+                pt.abbreviation === posStr
+              )
+              if (posType) {
+                posKey = posType.key
+              } else {
+                item.error = `无效的词性: ${posStr}`
+              }
             }
+
+            posDefinitions.push({
+              pos: posKey,
+              definition: defStr || undefined,
+            })
           }
         }
+
+        item.posDefinitions = posDefinitions.length > 0 ? posDefinitions : undefined
 
         // 解析例句
         const examples: string[] = []
@@ -923,9 +979,8 @@ function executeImport() {
         if (existingWord) {
           adminStore.updateWord(existingWord.id, {
             label: item.label,
-            pos: item.pos as any,
             phonetic: item.phonetic,
-            definition: item.definition,
+            posDefinitions: item.posDefinitions || [{ pos: undefined, definition: undefined }],
             examples: item.examples,
           })
           successCount++
@@ -938,9 +993,8 @@ function executeImport() {
     adminStore.addWord({
       id: `word_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
       label: item.label,
-      pos: item.pos as any,
       phonetic: item.phonetic,
-      definition: item.definition,
+      posDefinitions: item.posDefinitions || [{ pos: undefined, definition: undefined }],
       examples: item.examples,
     })
     successCount++
@@ -964,13 +1018,25 @@ function closeBulkImportDialog() {
   importResult.value = { success: 0, skipped: 0 }
 }
 
-// 格式化词性预览
-function formatPosPreview(pos: string | string[] | undefined): string {
-  if (!pos) return '-'
-  const posArray = Array.isArray(pos) ? pos : [pos]
-  return posArray.map(p => {
-    const posType = adminStore.posTypes.find(pt => pt.key === p)
-    return posType?.abbreviation || posType?.label || p
-  }).join(', ')
+// 格式化词性-定义对预览
+function formatPosDefinitionsPreview(posDefinitions: PosDefinitionPair[] | undefined): string {
+  if (!posDefinitions || posDefinitions.length === 0) return '-'
+
+  return posDefinitions.map(pd => {
+    let parts: string[] = []
+
+    if (pd.pos) {
+      const posType = adminStore.posTypes.find(pt => pt.key === pd.pos)
+      const posLabel = posType?.abbreviation || posType?.label || pd.pos
+      parts.push(posLabel)
+    }
+
+    if (pd.definition) {
+      const shortDef = pd.definition.length > 20 ? pd.definition.substring(0, 20) + '...' : pd.definition
+      parts.push(shortDef)
+    }
+
+    return parts.length > 0 ? `[${parts.join(': ')}]` : ''
+  }).filter(s => s).join(' ')
 }
 </script>
