@@ -35,6 +35,7 @@
             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">颜色</th>
             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">线条样式</th>
             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">箭头样式</th>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">边长度</th>
             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">说明</th>
             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">操作</th>
           </tr>
@@ -63,6 +64,9 @@
             </td>
             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
               {{ getArrowStyleLabel(type.arrowStyle || 'filled') }}
+            </td>
+            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+              {{ type.edgeLength || 100 }}px
             </td>
             <td class="px-6 py-4 text-sm text-gray-500">{{ type.description || '-' }}</td>
             <td class="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
@@ -152,6 +156,28 @@
             </div>
           </div>
           <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">边长度（力导向布局）</label>
+            <div class="flex items-center gap-3">
+              <input
+                v-model.number="formData.edgeLength"
+                type="range"
+                min="50"
+                max="300"
+                step="10"
+                class="flex-1"
+              />
+              <input
+                v-model.number="formData.edgeLength"
+                type="number"
+                min="50"
+                max="300"
+                class="w-20 px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary-500"
+              />
+              <span class="text-sm text-gray-600">px</span>
+            </div>
+            <p class="text-xs text-gray-500 mt-1">控制力导向布局中此类型连接线的理想长度</p>
+          </div>
+          <div>
             <label class="block text-sm font-medium text-gray-700 mb-1">配对关系</label>
             <select
               v-model="formData.pairWith"
@@ -211,6 +237,7 @@ const formData = ref({
   color: '#3498db',
   lineStyle: 'solid' as 'solid' | 'dashed' | 'dotted',
   arrowStyle: 'filled' as 'filled' | 'hollow' | 'line' | 'none',
+  edgeLength: 100,
   description: '',
   pairWith: '' as string | undefined,
 })
@@ -248,6 +275,7 @@ function editType(type: StoredRelationType) {
     color: type.color,
     lineStyle: type.lineStyle,
     arrowStyle: type.arrowStyle || 'filled',
+    edgeLength: type.edgeLength || 100,
     description: type.description || '',
     pairWith: type.pairWith,
   }
@@ -262,6 +290,7 @@ function closeDialog() {
     color: '#3498db',
     lineStyle: 'solid',
     arrowStyle: 'filled',
+    edgeLength: 100,
     description: '',
     pairWith: undefined,
   }

@@ -27,6 +27,7 @@ export interface StoredRelationType {
   color: string
   lineStyle: 'solid' | 'dashed' | 'dotted'
   arrowStyle: ArrowStyle  // 箭头样式：实心、空心、线条、无箭头
+  edgeLength?: number  // 边长度（用于力导向布局），默认 100
   description?: string
   pairWith?: string  // 配对关系键：可以是其他关系键、自己的键、或不配对（undefined）
 }
@@ -73,6 +74,7 @@ class StorageService {
         color: config.color,
         lineStyle: config.lineStyle,
         arrowStyle: defaultArrowMap[key] || 'filled',
+        edgeLength: 100,  // 所有关系类型的默认边长度统一设置为 100
         pairWith: defaultPairMap[key],
       }
     })

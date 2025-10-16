@@ -363,9 +363,19 @@ export function useCytoscape(options: UseCytoscapeOptions) {
     }
 
     if (options.layout === 'cose') {
+      // 获取关系类型配置
+      const relationTypes = storageService.getRelationTypes()
+
+      // 创建边长度函数，根据关系类型返回不同的理想长度
+      const idealEdgeLengthFn = (edge: any) => {
+        const relation = edge.data('relation')
+        const relationType = relationTypes.find(rt => rt.key === relation)
+        return relationType?.edgeLength || 100
+      }
+
       Object.assign(layoutOptions, {
         nodeRepulsion: 8000,
-        idealEdgeLength: 100,
+        idealEdgeLength: idealEdgeLengthFn,  // 使用函数动态计算每条边的理想长度
         edgeElasticity: 100,
       })
     }
