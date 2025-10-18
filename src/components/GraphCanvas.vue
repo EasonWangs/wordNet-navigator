@@ -698,7 +698,7 @@ const layoutRef = toRef(graphStore, 'layout')
 const showDefinitionInNodeRef = toRef(graphStore, 'showDefinitionInNode')
 
 // 删除节点处理器
-async function handleNodeDelete(nodeData: any) {
+function handleNodeDelete(nodeData: any) {
   // 检查节点是否有关系
   adminStore.loadData()
   const hasConnections = adminStore.connections.some(
@@ -718,16 +718,25 @@ async function handleNodeDelete(nodeData: any) {
     // 从 adminStore 删除词汇
     adminStore.deleteWord(nodeData.id)
 
-    // 刷新图表数据
-    const data = await WordNetService.fetchWordGraph(graphStore.searchQuery || '*', graphStore.relationDepth)
-    graphStore.setGraphData(data)
+    // 从 Cytoscape 画布中移除节点（不触发重新渲染）
+    if (removeNode) {
+      removeNode(nodeData.id)
+    }
+
+    // 关闭节点详情面板（如果正在显示被删除的节点）
+    if (graphStore.selectedNode?.id === nodeData.id) {
+      graphStore.setSelectedNode(null)
+    }
+
+    // 注意：不修改 graphStore.graphData，避免触发 watch 重新渲染
+    // 下次搜索或刷新时会自动从 localStorage 获取最新数据
   } catch (error) {
     console.error('Failed to delete word:', error)
     alert('删除词汇失败')
   }
 }
 
-const { containerRef, fitView, exportPNG, updateNodeData } = useCytoscape({
+const { containerRef, fitView, exportPNG, updateNodeData, removeNode, removeNodes } = useCytoscape({
   get graphData() {
     return graphDataRef.value
   },

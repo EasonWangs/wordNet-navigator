@@ -592,11 +592,36 @@ export function useCytoscape(options: UseCytoscapeOptions) {
     }
   )
 
+  // 从图表中移除节点
+  const removeNode = (nodeId: string) => {
+    if (!cyInstance.value) return
+
+    const node = cyInstance.value.getElementById(nodeId)
+    if (node && node.isNode()) {
+      // 移除节点（会自动移除相关的边）
+      node.remove()
+    }
+  }
+
+  // 批量移除多个节点
+  const removeNodes = (nodeIds: string[]) => {
+    if (!cyInstance.value) return
+
+    nodeIds.forEach(nodeId => {
+      const node = cyInstance.value!.getElementById(nodeId)
+      if (node && node.isNode()) {
+        node.remove()
+      }
+    })
+  }
+
   return {
     containerRef,
     cyInstance,
     fitView,
     exportPNG,
     updateNodeData,
+    removeNode,
+    removeNodes,
   }
 }
