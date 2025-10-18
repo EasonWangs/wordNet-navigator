@@ -9,6 +9,8 @@ export type RelationType =
   | 'antonym'     // 反义词
   | 'meronym'     // 部分词
   | 'holonym'     // 整体词
+  | 'compound'    // 复合词
+  | 'graphonyms'  // 相似词
 
 // 词性-定义对：词性和定义成对出现（都是可选的）
 export interface PosDefinitionPair {

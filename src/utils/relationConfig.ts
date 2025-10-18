@@ -36,4 +36,9 @@ export const relationConfig: RelationConfigMap = {
     label: '复合词',
     lineStyle: 'dashed',
   },
+  graphonyms: {
+    color: '#34495e',
+    label: '相似词',
+    lineStyle: 'dotted',
+  },
 }

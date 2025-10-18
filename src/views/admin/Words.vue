@@ -914,6 +914,8 @@ function getRelationColorClass(key: string): string {
     antonym: 'bg-red-100 text-red-800',
     holonym: 'bg-orange-100 text-orange-800',
     meronym: 'bg-yellow-100 text-yellow-800',
+    compound: 'bg-amber-100 text-amber-800',
+    graphonyms: 'bg-slate-100 text-slate-800',
   }
   return colorMap[key] || 'bg-gray-100 text-gray-800'
 }
@@ -927,6 +929,8 @@ function getRelationButtonClass(key: string): string {
     antonym: 'bg-red-500 hover:bg-red-600',
     holonym: 'bg-orange-500 hover:bg-orange-600',
     meronym: 'bg-yellow-500 hover:bg-yellow-600',
+    compound: 'bg-amber-500 hover:bg-amber-600',
+    graphonyms: 'bg-slate-500 hover:bg-slate-600',
   }
   return colorMap[key] || 'bg-gray-500 hover:bg-gray-600'
 }

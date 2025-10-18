@@ -56,6 +56,8 @@ class StorageService {
         antonym: 'antonym',
         holonym: 'meronym',
         meronym: 'holonym',
+        // compound 不需要配对关系
+        graphonyms: 'graphonyms',
       }
 
       // 默认箭头样式映射
@@ -66,6 +68,8 @@ class StorageService {
         antonym: 'line',
         holonym: 'hollow',
         meronym: 'hollow',
+        compound: 'filled',
+        graphonyms: 'line',
       }
 
       return {

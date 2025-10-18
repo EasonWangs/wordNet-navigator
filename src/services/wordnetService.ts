@@ -121,6 +121,24 @@ export const mockGraphData: GraphData = {
         examples: ['Lions are felines.'],
       },
     },
+    {
+      data: {
+        id: 'bass_fish',
+        label: 'bass',
+        phonetic: '/bæs/',
+        posDefinitions: [{ pos: 'noun', definition: '鲈鱼（一种鱼类）' }],
+        examples: ['I caught a large bass in the lake.'],
+      },
+    },
+    {
+      data: {
+        id: 'bass_music',
+        label: 'bass',
+        phonetic: '/beɪs/',
+        posDefinitions: [{ pos: 'noun', definition: '低音；男低音' }],
+        examples: ['He plays the bass guitar.', 'The bass singer has a deep voice.'],
+      },
+    },
   ],
   edges: [
     // Hypernym (上位词)
@@ -147,6 +165,9 @@ export const mockGraphData: GraphData = {
 
     // Compound (复合词)
     { data: { source: 'watchdog', target: 'dog', relation: 'compound' } },
+
+    // Graphonyms (相似词)
+    { data: { source: 'bass_fish', target: 'bass_music', relation: 'graphonyms' } },
   ],
 }
 
