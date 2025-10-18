@@ -307,56 +307,56 @@
       class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
       @click.self="closeRelationsDialog"
     >
-      <div class="bg-white rounded-lg p-6 w-full max-w-4xl max-h-[90vh] overflow-y-auto">
-        <h3 class="text-lg font-semibold mb-4">
-          编辑词汇关系: <span class="text-primary-600">{{ editingRelationsWord.label }}</span>
+      <div class="bg-white rounded-lg p-4 w-full max-w-3xl max-h-[90vh] overflow-y-auto">
+        <h3 class="text-base font-semibold mb-3">
+          编辑关系: <span class="text-primary-600">{{ editingRelationsWord.label }}</span>
         </h3>
-        <div class="space-y-6">
+        <div class="space-y-3">
           <!-- 动态渲染所有关系类型 -->
           <div v-for="relationType in adminStore.relationTypes" :key="relationType.key">
-            <div class="flex items-center justify-between mb-2">
-              <label class="block text-sm font-medium text-gray-700">
-                {{ relationType.label }} ({{ relationType.key }})
-                <span v-if="relationType.description" class="text-xs text-gray-500 ml-1">{{ relationType.description }}</span>
+            <div class="flex items-center justify-between mb-1">
+              <label class="block text-xs font-medium text-gray-700">
+                {{ relationType.label }}
+                <span class="text-[10px] text-gray-400">({{ relationType.key }})</span>
               </label>
               <button
                 @click="openAddRelationDialog(relationType.key)"
-                class="px-3 py-1 text-xs text-white rounded"
+                class="px-2 py-0.5 text-[10px] text-white rounded"
                 :class="getRelationButtonClass(relationType.key)"
               >
-                + 新增
+                + 添加
               </button>
             </div>
-            <div class="flex flex-wrap gap-2 min-h-[40px] p-3 border border-gray-200 rounded-md bg-gray-50">
+            <div class="flex flex-wrap gap-1 min-h-[32px] p-2 border border-gray-200 rounded bg-gray-50">
               <span
                 v-for="wordId in (relationsFormData[relationType.key] || [])"
                 :key="wordId"
-                class="inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm"
+                class="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full text-xs"
                 :class="getRelationColorClass(relationType.key)"
               >
                 {{ getWordLabel(wordId) }}
                 <button
                   @click="removeRelation(relationType.key, wordId)"
-                  class="hover:opacity-75"
+                  class="hover:opacity-75 text-sm"
                 >
                   ×
                 </button>
               </span>
-              <span v-if="!relationsFormData[relationType.key] || relationsFormData[relationType.key].length === 0" class="text-sm text-gray-400">暂无关系</span>
+              <span v-if="!relationsFormData[relationType.key] || relationsFormData[relationType.key].length === 0" class="text-xs text-gray-400">无</span>
             </div>
           </div>
         </div>
 
-        <div class="mt-6 flex justify-end space-x-3">
+        <div class="mt-4 flex justify-end gap-2">
           <button
             @click="closeRelationsDialog"
-            class="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-md transition-colors"
+            class="px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-100 rounded transition-colors"
           >
             取消
           </button>
           <button
             @click="saveRelations"
-            class="px-4 py-2 bg-primary-500 text-white rounded-md hover:bg-primary-600 transition-colors"
+            class="px-3 py-1.5 text-sm bg-primary-500 text-white rounded hover:bg-primary-600 transition-colors"
           >
             保存
           </button>
