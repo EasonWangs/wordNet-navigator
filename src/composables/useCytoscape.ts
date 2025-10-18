@@ -14,6 +14,7 @@ interface UseCytoscapeOptions {
   onEdgeDblClick?: (edgeData: any) => void
   onSelectionChange?: (selectedNodes: any[]) => void
   onNodeDelete?: (nodeData: any) => void
+  onEdgeDelete?: (edgeData: any) => void
 }
 
 export function useCytoscape(options: UseCytoscapeOptions) {
@@ -26,12 +27,28 @@ export function useCytoscape(options: UseCytoscapeOptions) {
     // Mac: Backspace 键的 e.key 是 'Backspace'
     // Windows/Linux: Delete 键的 e.key 是 'Delete'
     if ((e.key === 'Delete' || e.key === 'Backspace') && cyInstance.value) {
+      // 检查是否有选中的边（关系）
+      const selectedEdges = cyInstance.value.edges(':selected')
+      if (selectedEdges.length > 0) {
+        // 阻止 Backspace 的默认行为（页面后退）
+        e.preventDefault()
+
+        // 删除选中的边（关系）
+        if (options.onEdgeDelete) {
+          selectedEdges.forEach((edge: any) => {
+            options.onEdgeDelete(edge.data())
+          })
+        }
+        return
+      }
+
+      // 检查是否有选中的节点
       const selectedNodes = cyInstance.value.nodes(':selected')
       if (selectedNodes.length > 0) {
         // 阻止 Backspace 的默认行为（页面后退）
         e.preventDefault()
 
-        // Call onNodeDelete callback if provided
+        // 删除选中的节点
         if (options.onNodeDelete) {
           selectedNodes.forEach((node: any) => {
             options.onNodeDelete(node.data())
@@ -126,6 +143,14 @@ export function useCytoscape(options: UseCytoscapeOptions) {
             'target-arrow-shape': 'triangle',
             'curve-style': 'bezier',
             'arrow-scale': 1.5,
+          },
+        },
+        {
+          selector: 'edge:selected',
+          style: {
+            width: 4,
+            'line-color': '#e74c3c',
+            'target-arrow-color': '#e74c3c',
           },
         },
         ...edgeStyles,
@@ -616,6 +641,17 @@ export function useCytoscape(options: UseCytoscapeOptions) {
     })
   }
 
+  // 移除边（关系）
+  const removeEdge = (source: string, target: string, relation: string) => {
+    if (!cyInstance.value) return
+
+    // 查找匹配的边并移除
+    const edges = cyInstance.value.edges(`[source="${source}"][target="${target}"][relation="${relation}"]`)
+    if (edges.length > 0) {
+      edges.remove()
+    }
+  }
+
   // 添加新节点到指定位置
   const addNode = (nodeData: any, position?: { x: number; y: number }) => {
     if (!cyInstance.value) return
@@ -653,6 +689,7 @@ export function useCytoscape(options: UseCytoscapeOptions) {
     updateNodeData,
     removeNode,
     removeNodes,
+    removeEdge,
     addNode,
   }
 }

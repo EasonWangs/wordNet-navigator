@@ -776,7 +776,59 @@ function handleNodeDelete(nodeData: any) {
   }
 }
 
-const { containerRef, fitView, exportPNG, updateNodeData, removeNode, removeNodes, addNode } = useCytoscape({
+// 删除边（关系）处理器
+function handleEdgeDelete(edgeData: any) {
+  if (!confirm(`确定要删除这个关系吗？如果有配对的反向关系，也会一并删除。`)) {
+    return
+  }
+
+  try {
+    adminStore.loadData()
+
+    // 查找这个连接（通过 source, target, relation 来查找）
+    const connection = adminStore.connections.find(
+      c => c.source === edgeData.source &&
+           c.target === edgeData.target &&
+           c.relation === edgeData.relation
+    )
+
+    if (!connection) {
+      console.warn('Connection not found in storage')
+      return
+    }
+
+    // 删除这个连接
+    adminStore.deleteConnection(connection.id)
+
+    // 查找并删除反向关系
+    const relationTypeConfig = adminStore.relationTypes.find(rt => rt.key === connection.relation)
+    if (relationTypeConfig?.pairWith) {
+      const reverseConnection = adminStore.connections.find(
+        c => c.source === connection.target &&
+             c.target === connection.source &&
+             c.relation === relationTypeConfig.pairWith
+      )
+      if (reverseConnection) {
+        adminStore.deleteConnection(reverseConnection.id)
+
+        // 从画布中移除反向边
+        if (removeEdge) {
+          removeEdge(reverseConnection.source, reverseConnection.target, reverseConnection.relation)
+        }
+      }
+    }
+
+    // 从 Cytoscape 画布中移除边（不触发重新渲染）
+    if (removeEdge) {
+      removeEdge(edgeData.source, edgeData.target, edgeData.relation)
+    }
+  } catch (error) {
+    console.error('Failed to delete edge:', error)
+    alert('删除关系失败')
+  }
+}
+
+const { containerRef, fitView, exportPNG, updateNodeData, removeNode, removeNodes, removeEdge, addNode } = useCytoscape({
   get graphData() {
     return graphDataRef.value
   },
@@ -795,6 +847,7 @@ const { containerRef, fitView, exportPNG, updateNodeData, removeNode, removeNode
   onEdgeDblClick: (edgeData) => openEditRelationFromEdge(edgeData),
   onSelectionChange: (nodes) => handleSelectionChange(nodes),
   onNodeDelete: (nodeData) => handleNodeDelete(nodeData),
+  onEdgeDelete: (edgeData) => handleEdgeDelete(edgeData),
 })
 
 // 导出方法供父组件调用
