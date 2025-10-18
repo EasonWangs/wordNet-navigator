@@ -97,6 +97,7 @@
         <div>✏️ 双击节点：编辑词汇信息</div>
         <div>🔗 选中两个节点：创建词汇关系</div>
         <div>⚡ 双击关系线：编辑关系</div>
+        <div>🗑️ 选中节点后按Delete/Backspace键：删除独立节点</div>
       </div>
     </div>
   </div>

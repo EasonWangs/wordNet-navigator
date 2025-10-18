@@ -697,6 +697,36 @@ const activeRelationsRef = toRef(graphStore, 'activeRelations')
 const layoutRef = toRef(graphStore, 'layout')
 const showDefinitionInNodeRef = toRef(graphStore, 'showDefinitionInNode')
 
+// 删除节点处理器
+async function handleNodeDelete(nodeData: any) {
+  // 检查节点是否有关系
+  adminStore.loadData()
+  const hasConnections = adminStore.connections.some(
+    c => c.source === nodeData.id || c.target === nodeData.id
+  )
+
+  if (hasConnections) {
+    alert('该词汇存在关系连接，无法删除。请先在管理界面删除其关系。')
+    return
+  }
+
+  if (!confirm(`确定要删除词汇"${nodeData.label}"吗？此操作无法撤销。`)) {
+    return
+  }
+
+  try {
+    // 从 adminStore 删除词汇
+    adminStore.deleteWord(nodeData.id)
+
+    // 刷新图表数据
+    const data = await WordNetService.fetchWordGraph(graphStore.searchQuery || '*', graphStore.relationDepth)
+    graphStore.setGraphData(data)
+  } catch (error) {
+    console.error('Failed to delete word:', error)
+    alert('删除词汇失败')
+  }
+}
+
 const { containerRef, fitView, exportPNG, updateNodeData } = useCytoscape({
   get graphData() {
     return graphDataRef.value
@@ -715,6 +745,7 @@ const { containerRef, fitView, exportPNG, updateNodeData } = useCytoscape({
   onNodeDblClick: (nodeData) => openEditWordDialog(nodeData),
   onEdgeDblClick: (edgeData) => openEditRelationFromEdge(edgeData),
   onSelectionChange: (nodes) => handleSelectionChange(nodes),
+  onNodeDelete: (nodeData) => handleNodeDelete(nodeData),
 })
 
 // 导出方法供父组件调用

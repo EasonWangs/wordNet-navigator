@@ -13,11 +13,33 @@ interface UseCytoscapeOptions {
   onNodeDblClick?: (nodeData: any) => void
   onEdgeDblClick?: (edgeData: any) => void
   onSelectionChange?: (selectedNodes: any[]) => void
+  onNodeDelete?: (nodeData: any) => void
 }
 
 export function useCytoscape(options: UseCytoscapeOptions) {
   const containerRef = ref<HTMLElement | null>(null)
   const cyInstance = ref<Core | null>(null)
+
+  // Keyboard event handler for Delete key
+  const handleKeyDown = (e: KeyboardEvent) => {
+    // 支持 Delete (Windows/Linux) 和 Backspace (Mac) 键
+    // Mac: Backspace 键的 e.key 是 'Backspace'
+    // Windows/Linux: Delete 键的 e.key 是 'Delete'
+    if ((e.key === 'Delete' || e.key === 'Backspace') && cyInstance.value) {
+      const selectedNodes = cyInstance.value.nodes(':selected')
+      if (selectedNodes.length > 0) {
+        // 阻止 Backspace 的默认行为（页面后退）
+        e.preventDefault()
+
+        // Call onNodeDelete callback if provided
+        if (options.onNodeDelete) {
+          selectedNodes.forEach((node: any) => {
+            options.onNodeDelete(node.data())
+          })
+        }
+      }
+    }
+  }
 
   const initCytoscape = () => {
     if (!containerRef.value) return
@@ -475,10 +497,14 @@ export function useCytoscape(options: UseCytoscapeOptions) {
   onMounted(() => {
     initCytoscape()
     updateGraph()
+    // Add keyboard event listener
+    window.addEventListener('keydown', handleKeyDown)
   })
 
   onBeforeUnmount(() => {
     cyInstance.value?.destroy()
+    // Remove keyboard event listener
+    window.removeEventListener('keydown', handleKeyDown)
   })
 
   // Watch for changes
