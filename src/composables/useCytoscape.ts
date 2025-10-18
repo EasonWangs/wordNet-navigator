@@ -9,7 +9,7 @@ interface UseCytoscapeOptions {
   layout: LayoutType
   showDefinitionInNode: boolean
   onNodeClick?: (nodeData: any) => void
-  onBackgroundDblClick?: () => void
+  onBackgroundDblClick?: (position: { x: number; y: number }) => void
   onNodeDblClick?: (nodeData: any) => void
   onEdgeDblClick?: (edgeData: any) => void
   onSelectionChange?: (selectedNodes: any[]) => void
@@ -162,9 +162,10 @@ export function useCytoscape(options: UseCytoscapeOptions) {
     // Double-click handlers
     cy.on('dbltap', (e: any) => {
       if (e.target === cy) {
-        // 双击背景 - 添加新词汇
+        // 双击背景 - 添加新词汇，传递点击位置
         if (options.onBackgroundDblClick) {
-          options.onBackgroundDblClick()
+          const position = e.position || e.cyPosition
+          options.onBackgroundDblClick(position)
         }
       } else if (e.target.isNode && e.target.isNode()) {
         // 双击节点 - 编辑词汇（不触发单击事件）
@@ -615,6 +616,35 @@ export function useCytoscape(options: UseCytoscapeOptions) {
     })
   }
 
+  // 添加新节点到指定位置
+  const addNode = (nodeData: any, position?: { x: number; y: number }) => {
+    if (!cyInstance.value) return
+
+    // 创建节点配置
+    const nodeConfig: any = {
+      group: 'nodes',
+      data: nodeData,
+    }
+
+    // 如果提供了位置，设置节点位置
+    if (position) {
+      nodeConfig.position = position
+    }
+
+    // 添加节点到图表
+    const newNode = cyInstance.value.add(nodeConfig)
+
+    // 更新节点标签显示
+    updateNodeLabels()
+
+    // 如果没有提供位置，运行布局算法
+    if (!position) {
+      runLayout()
+    }
+
+    return newNode
+  }
+
   return {
     containerRef,
     cyInstance,
@@ -623,5 +653,6 @@ export function useCytoscape(options: UseCytoscapeOptions) {
     updateNodeData,
     removeNode,
     removeNodes,
+    addNode,
   }
 }

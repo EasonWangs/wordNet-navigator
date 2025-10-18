@@ -50,6 +50,7 @@
       v-if="showAddWordDialog || showEditWordDialog"
       class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
       @click.self="closeWordDialog"
+      @keydown.enter="handleWordDialogEnter"
     >
       <div class="bg-white rounded-lg p-6 w-full max-w-md">
         <h3 class="text-lg font-semibold mb-4">{{ showEditWordDialog ? '编辑词汇' : '快速添加词汇' }}</h3>
@@ -58,11 +59,11 @@
             <div>
               <label class="block text-sm font-medium text-gray-700 mb-1">词汇 <span class="text-red-500">*</span></label>
               <input
+                ref="wordInputRef"
                 v-model="wordForm.label"
                 type="text"
                 class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary-500"
                 placeholder="例如: dog"
-                autofocus
               />
             </div>
             <div>
@@ -78,11 +79,11 @@
           <div v-else>
             <label class="block text-sm font-medium text-gray-700 mb-1">词汇 <span class="text-red-500">*</span></label>
             <input
+              ref="wordInputRef"
               v-model="wordForm.label"
               type="text"
               class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary-500"
               placeholder="例如: dog"
-              autofocus
             />
           </div>
           <div>
@@ -127,6 +128,7 @@
                   rows="2"
                   class="w-full px-2 py-1.5 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary-500 text-sm"
                   placeholder="该词性的定义"
+                  @keydown.enter.stop
                 />
               </div>
             </div>
@@ -286,7 +288,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, toRef, computed } from 'vue'
+import { ref, toRef, computed, nextTick } from 'vue'
 import { useGraphStore } from '@/stores/graphStore'
 import { useAdminStore } from '@/stores/adminStore'
 import { useCytoscape } from '@/composables/useCytoscape'
@@ -309,6 +311,8 @@ const existingRelations = ref<any[]>([])
 const showAddWordDialog = ref(false)
 const showEditWordDialog = ref(false)
 const editingWordId = ref<string | null>(null)
+const wordInputRef = ref<HTMLInputElement | null>(null)
+const clickPosition = ref<{ x: number; y: number } | null>(null)
 const wordForm = ref({
   label: '',
   phonetic: '',
@@ -322,10 +326,11 @@ const newRelationForm = ref({
   relationType: '',
 })
 
-function openAddWordDialog() {
+function openAddWordDialog(position?: { x: number; y: number }) {
   showAddWordDialog.value = true
   showEditWordDialog.value = false
   editingWordId.value = null
+  clickPosition.value = position || null
   wordForm.value = {
     label: '',
     phonetic: '',
@@ -334,6 +339,11 @@ function openAddWordDialog() {
   }
   // 确保 adminStore 已加载数据
   adminStore.loadData()
+
+  // 自动聚焦到词汇输入框
+  nextTick(() => {
+    wordInputRef.value?.focus()
+  })
 }
 
 function openEditWordDialog(nodeData: any) {
@@ -361,12 +371,18 @@ function openEditWordDialog(nodeData: any) {
       examples: word.examples ? [...word.examples] : [],
     }
   }
+
+  // 自动聚焦到词汇输入框
+  nextTick(() => {
+    wordInputRef.value?.focus()
+  })
 }
 
 function closeWordDialog() {
   showAddWordDialog.value = false
   showEditWordDialog.value = false
   editingWordId.value = null
+  clickPosition.value = null
   wordForm.value = {
     label: '',
     phonetic: '',
@@ -385,6 +401,25 @@ function removePosDefinitionPair(index: number) {
   if (wordForm.value.posDefinitions.length > 1) {
     wordForm.value.posDefinitions.splice(index, 1)
   }
+}
+
+// 处理词汇对话框的回车键
+function handleWordDialogEnter(e: KeyboardEvent) {
+  // 检查是否在中文输入法输入过程中（IME composition）
+  // isComposing 为 true 表示正在使用输入法输入，此时回车是用来确认输入的
+  if (e.isComposing || (e.target as any)?.isComposing) {
+    return // 输入法输入中，不触发提交
+  }
+
+  // 检查是否在 textarea 中（textarea 需要回车换行）
+  const target = e.target as HTMLElement
+  if (target.tagName === 'TEXTAREA') {
+    return // textarea 中的回车不触发提交
+  }
+
+  // 其他情况下回车提交表单
+  e.preventDefault()
+  saveWord()
 }
 
 
@@ -479,18 +514,23 @@ async function saveWord() {
         }
       }
     } else {
-      // 添加模式 - 需要重新加载图表
-      adminStore.addWord({
-        id: `word_${Date.now()}`,
+      // 添加模式 - 直接在画布添加节点，不刷新整个图表
+      const newWordId = `word_${Date.now()}`
+      const newWordData = {
+        id: newWordId,
         label: wordForm.value.label.trim(),
         phonetic: wordForm.value.phonetic.trim() || undefined,
         posDefinitions,
         examples: wordForm.value.examples.filter(e => e.trim()),
-      })
+      }
 
-      // 刷新图表数据
-      const data = await WordNetService.fetchWordGraph(graphStore.searchQuery || '*')
-      graphStore.setGraphData(data)
+      // 保存到 LocalStorage
+      adminStore.addWord(newWordData)
+
+      // 直接在 Cytoscape 画布添加节点
+      if (addNode) {
+        addNode(newWordData, clickPosition.value || undefined)
+      }
     }
 
     // 关闭对话框
@@ -736,7 +776,7 @@ function handleNodeDelete(nodeData: any) {
   }
 }
 
-const { containerRef, fitView, exportPNG, updateNodeData, removeNode, removeNodes } = useCytoscape({
+const { containerRef, fitView, exportPNG, updateNodeData, removeNode, removeNodes, addNode } = useCytoscape({
   get graphData() {
     return graphDataRef.value
   },
@@ -750,7 +790,7 @@ const { containerRef, fitView, exportPNG, updateNodeData, removeNode, removeNode
     return showDefinitionInNodeRef.value
   },
   onNodeClick: (nodeData) => graphStore.setSelectedNode(nodeData),
-  onBackgroundDblClick: () => openAddWordDialog(),
+  onBackgroundDblClick: (position) => openAddWordDialog(position),
   onNodeDblClick: (nodeData) => openEditWordDialog(nodeData),
   onEdgeDblClick: (edgeData) => openEditRelationFromEdge(edgeData),
   onSelectionChange: (nodes) => handleSelectionChange(nodes),
