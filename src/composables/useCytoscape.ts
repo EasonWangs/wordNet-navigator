@@ -74,8 +74,9 @@ export function useCytoscape(options: UseCytoscapeOptions) {
             color: '#2c3e50',
             'text-valign': 'center',
             'text-halign': 'center',
-            'font-size': '16px',
-            'font-weight': 'bold',
+            'font-family': '"SF Mono", "Monaco", "Inconsolata", "Fira Code", "Fira Mono", "Roboto Mono", "Source Code Pro", "Courier New", monospace',
+            'font-size': '15px',
+            'font-weight': '600',
             'min-width': '60px',
             'min-height': '60px',
             width: 'label',
@@ -525,20 +526,31 @@ export function useCytoscape(options: UseCytoscapeOptions) {
 
     cyInstance.value.nodes().forEach((node: any) => {
       const data = node.data()
-      if (options.showDefinitionInNode && data.definition) {
+
+      // 新数据结构使用 posDefinitions 数组
+      let definition = ''
+      if (data.posDefinitions && data.posDefinitions.length > 0) {
+        // 取第一个词性定义对的定义
+        const firstDef = data.posDefinitions[0].definition
+        if (firstDef) {
+          definition = firstDef
+        }
+      }
+
+      if (options.showDefinitionInNode && definition) {
         // 显示：词汇\n定义（限制长度）
-        const truncatedDef = data.definition.length > 50
-          ? data.definition.substring(0, 50) + '...'
-          : data.definition
+        const truncatedDef = definition.length > 40
+          ? definition.substring(0, 40) + '...'
+          : definition
         node.style('label', `${data.label}\n${truncatedDef}`)
-        node.style('font-size', '11px')
+        node.style('font-size', '12px')
         node.style('text-max-width', '180px')
         node.style('min-width', '80px')
         node.style('min-height', '80px')
       } else {
         // 只显示词汇
         node.style('label', data.label)
-        node.style('font-size', '14px')
+        node.style('font-size', '15px')
         node.style('text-max-width', '150px')
         node.style('min-width', '60px')
         node.style('min-height', '60px')
