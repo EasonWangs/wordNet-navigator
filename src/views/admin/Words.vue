@@ -53,26 +53,32 @@
       <table class="min-w-full divide-y divide-gray-200 text-sm">
         <thead class="bg-gray-50">
           <tr>
-            <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase sticky left-0 bg-gray-50 z-10 w-32">词汇</th>
-            <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase w-28">词性</th>
+            <th class="px-2 py-1.5 text-left text-xs font-medium text-gray-500 uppercase sticky left-0 bg-gray-50 z-10 w-24">词汇</th>
+            <th class="px-2 py-1.5 text-left text-xs font-medium text-gray-500 uppercase w-20">词性</th>
+            <th class="px-2 py-1.5 text-left text-xs font-medium text-gray-500 uppercase min-w-[180px] max-w-[250px]">定义</th>
             <th
               v-for="relationType in adminStore.relationTypes"
               :key="relationType.key"
-              class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase min-w-[120px]"
+              class="px-2 py-1.5 text-left text-xs font-medium text-gray-500 uppercase min-w-[100px]"
             >
               {{ relationType.label }}
             </th>
-            <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase sticky right-0 bg-gray-50 z-10 w-44">操作</th>
+            <th class="px-2 py-1.5 text-left text-xs font-medium text-gray-500 uppercase sticky right-0 bg-gray-50 z-10 w-36">操作</th>
           </tr>
         </thead>
         <tbody class="bg-white divide-y divide-gray-200">
           <tr v-for="word in paginatedWords" :key="word.id" class="hover:bg-gray-50">
-            <td class="px-3 py-2 whitespace-nowrap font-medium text-gray-900 sticky left-0 bg-white z-10">{{ word.label }}</td>
-            <td class="px-3 py-2 whitespace-nowrap text-gray-600 text-xs">{{ getPosLabel(word) }}</td>
+            <td class="px-2 py-1.5 whitespace-nowrap font-medium text-gray-900 sticky left-0 bg-white z-10">{{ word.label }}</td>
+            <td class="px-2 py-1.5 whitespace-nowrap text-gray-600 text-xs">{{ getPosLabel(word) }}</td>
+            <td class="px-2 py-1.5 text-gray-600 text-xs max-w-[250px]">
+              <div class="line-clamp-2" :title="getDefinitionText(word)">
+                {{ getDefinitionText(word) }}
+              </div>
+            </td>
             <td
               v-for="relationType in adminStore.relationTypes"
               :key="relationType.key"
-              class="px-3 py-2"
+              class="px-2 py-1.5"
             >
               <div class="flex flex-wrap gap-1">
                 <span
@@ -85,8 +91,8 @@
                 </span>
               </div>
             </td>
-            <td class="px-3 py-2 whitespace-nowrap text-xs font-medium sticky right-0 bg-white z-10">
-              <div class="flex gap-2">
+            <td class="px-2 py-1.5 whitespace-nowrap text-xs font-medium sticky right-0 bg-white z-10">
+              <div class="flex gap-1.5">
                 <button
                   @click="editWord(word)"
                   class="text-primary-600 hover:text-primary-900"
@@ -732,6 +738,22 @@ function getPosLabel(word: any): string {
     }
     return p
   }).join(', ')
+}
+
+function getDefinitionText(word: any): string {
+  // 从新格式获取定义
+  if (word.posDefinitions && word.posDefinitions.length > 0) {
+    const definitions = word.posDefinitions
+      .filter((pd: any) => pd.definition)
+      .map((pd: any) => pd.definition)
+
+    if (definitions.length > 0) {
+      // 如果有多个定义，用分号分隔
+      return definitions.join('；')
+    }
+  }
+
+  return '-'
 }
 
 // 添加词性-定义对

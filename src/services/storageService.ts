@@ -319,13 +319,13 @@ class StorageService {
 
     const now = new Date().toISOString()
 
-    // 转换节点数据为 StoredWord 格式
+    // 转换节点数据为 StoredWord 格式（使用新格式）
     const words: StoredWord[] = mockData.nodes.map((node) => ({
       id: node.data.id,
       label: node.data.label,
-      pos: node.data.pos,
-      definition: node.data.definition,
-      examples: node.data.examples,
+      phonetic: (node.data as any).phonetic,
+      posDefinitions: (node.data as any).posDefinitions || [],
+      examples: node.data.examples || [],
       createdAt: now,
       updatedAt: now,
     }))

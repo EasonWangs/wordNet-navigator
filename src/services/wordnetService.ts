@@ -8,8 +8,8 @@ export const mockGraphData: GraphData = {
       data: {
         id: 'dog',
         label: 'dog',
-        pos: 'noun',
-        definition: '驯养的食肉哺乳动物',
+        phonetic: '/dɒg/',
+        posDefinitions: [{ pos: 'noun', definition: '驯养的食肉哺乳动物' }],
         examples: ['The dog barked loudly.', 'She walked her dog in the park.'],
       },
     },
@@ -17,17 +17,26 @@ export const mockGraphData: GraphData = {
       data: {
         id: 'canine',
         label: 'canine',
-        pos: 'noun',
-        definition: '犬科动物',
+        phonetic: '/ˈkeɪnaɪn/',
+        posDefinitions: [{ pos: 'noun', definition: '犬科动物' }],
         examples: ['Wolves are canines.'],
+      },
+    },
+    {
+      data: {
+        id: 'pooch',
+        label: 'pooch',
+        phonetic: '/puːtʃ/',
+        posDefinitions: [{ pos: 'noun', definition: '狗（非正式用法）' }],
+        examples: ['What a cute pooch!'],
       },
     },
     {
       data: {
         id: 'animal',
         label: 'animal',
-        pos: 'noun',
-        definition: '动物',
+        phonetic: '/ˈænɪməl/',
+        posDefinitions: [{ pos: 'noun', definition: '动物' }],
         examples: ['All dogs are animals.'],
       },
     },
@@ -35,8 +44,8 @@ export const mockGraphData: GraphData = {
       data: {
         id: 'mammal',
         label: 'mammal',
-        pos: 'noun',
-        definition: '哺乳动物',
+        phonetic: '/ˈmæməl/',
+        posDefinitions: [{ pos: 'noun', definition: '哺乳动物' }],
         examples: ['Mammals nurse their young.'],
       },
     },
@@ -44,8 +53,8 @@ export const mockGraphData: GraphData = {
       data: {
         id: 'puppy',
         label: 'puppy',
-        pos: 'noun',
-        definition: '幼犬',
+        phonetic: '/ˈpʌpi/',
+        posDefinitions: [{ pos: 'noun', definition: '幼犬' }],
         examples: ['The puppy is so cute!'],
       },
     },
@@ -53,8 +62,8 @@ export const mockGraphData: GraphData = {
       data: {
         id: 'hound',
         label: 'hound',
-        pos: 'noun',
-        definition: '猎犬',
+        phonetic: '/haʊnd/',
+        posDefinitions: [{ pos: 'noun', definition: '猎犬' }],
         examples: ['The hound tracked the scent.'],
       },
     },
@@ -62,17 +71,26 @@ export const mockGraphData: GraphData = {
       data: {
         id: 'bulldog',
         label: 'bulldog',
-        pos: 'noun',
-        definition: '斗牛犬',
+        phonetic: '/ˈbʊldɒg/',
+        posDefinitions: [{ pos: 'noun', definition: '斗牛犬' }],
         examples: ['Bulldogs have a distinctive appearance.'],
+      },
+    },
+    {
+      data: {
+        id: 'watchdog',
+        label: 'watchdog',
+        phonetic: '/ˈwɒtʃdɒg/',
+        posDefinitions: [{ pos: 'noun', definition: '看门狗；监督者' }],
+        examples: ['The watchdog barked at strangers.'],
       },
     },
     {
       data: {
         id: 'tail',
         label: 'tail',
-        pos: 'noun',
-        definition: '尾巴',
+        phonetic: '/teɪl/',
+        posDefinitions: [{ pos: 'noun', definition: '尾巴' }],
         examples: ['The dog wagged its tail.'],
       },
     },
@@ -80,8 +98,8 @@ export const mockGraphData: GraphData = {
       data: {
         id: 'paw',
         label: 'paw',
-        pos: 'noun',
-        definition: '爪子',
+        phonetic: '/pɔː/',
+        posDefinitions: [{ pos: 'noun', definition: '爪子' }],
         examples: ['The dog hurt its paw.'],
       },
     },
@@ -89,22 +107,46 @@ export const mockGraphData: GraphData = {
       data: {
         id: 'cat',
         label: 'cat',
-        pos: 'noun',
-        definition: '猫',
+        phonetic: '/kæt/',
+        posDefinitions: [{ pos: 'noun', definition: '猫' }],
         examples: ['The cat meowed.'],
+      },
+    },
+    {
+      data: {
+        id: 'feline',
+        label: 'feline',
+        phonetic: '/ˈfiːlaɪn/',
+        posDefinitions: [{ pos: 'noun', definition: '猫科动物' }],
+        examples: ['Lions are felines.'],
       },
     },
   ],
   edges: [
+    // Hypernym (上位词)
     { data: { source: 'dog', target: 'canine', relation: 'hypernym' } },
     { data: { source: 'canine', target: 'mammal', relation: 'hypernym' } },
     { data: { source: 'mammal', target: 'animal', relation: 'hypernym' } },
+    { data: { source: 'cat', target: 'feline', relation: 'hypernym' } },
+    { data: { source: 'feline', target: 'mammal', relation: 'hypernym' } },
+
+    // Hyponym (下位词)
     { data: { source: 'dog', target: 'puppy', relation: 'hyponym' } },
     { data: { source: 'dog', target: 'hound', relation: 'hyponym' } },
     { data: { source: 'dog', target: 'bulldog', relation: 'hyponym' } },
+
+    // Meronym (部分词)
     { data: { source: 'dog', target: 'tail', relation: 'meronym' } },
     { data: { source: 'dog', target: 'paw', relation: 'meronym' } },
-    { data: { source: 'cat', target: 'mammal', relation: 'hypernym' } },
+    { data: { source: 'cat', target: 'tail', relation: 'meronym' } },
+    { data: { source: 'cat', target: 'paw', relation: 'meronym' } },
+
+    // Synonym (近义词)
+    { data: { source: 'dog', target: 'pooch', relation: 'synonym' } },
+    { data: { source: 'canine', target: 'dog', relation: 'synonym' } },
+
+    // Compound (复合词)
+    { data: { source: 'watchdog', target: 'dog', relation: 'compound' } },
   ],
 }
 

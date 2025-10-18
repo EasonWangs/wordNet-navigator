@@ -31,4 +31,9 @@ export const relationConfig: RelationConfigMap = {
     label: '整体词',
     lineStyle: 'solid',
   },
+  compound: {
+    color: '#e67e22',
+    label: '复合词',
+    lineStyle: 'dashed',
+  },
 }
