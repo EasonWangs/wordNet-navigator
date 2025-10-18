@@ -156,26 +156,14 @@ class StorageService {
     const types = this.getPosTypes()
     const words = this.getWords()
 
-    // 更新所有使用旧词性键的词汇（支持新旧数据格式）
+    // 更新所有使用旧词性键的词汇
     words.forEach(word => {
-      // 更新新格式（posDefinitions）
       if (word.posDefinitions && word.posDefinitions.length > 0) {
         word.posDefinitions.forEach(pd => {
           if (pd.pos === oldKey) {
             pd.pos = newKey
           }
         })
-      }
-
-      // 向后兼容：更新旧格式（pos）
-      if (word.pos === oldKey) {
-        (word.pos as any) = newKey
-      } else if (Array.isArray(word.pos)) {
-        const posArray = word.pos as any[]
-        const index = posArray.indexOf(oldKey)
-        if (index !== -1) {
-          posArray[index] = newKey
-        }
       }
     })
     this.saveWords(words)

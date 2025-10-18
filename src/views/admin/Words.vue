@@ -1129,6 +1129,8 @@ function parseImportFile() {
 function executeImport() {
   let successCount = 0
   let skippedCount = 0
+  const baseTimestamp = Date.now() // 固定基准时间戳
+  let idCounter = 0 // 添加计数器确保ID唯一性
 
   importPreviewData.value.forEach(item => {
     // 跳过错误数据
@@ -1158,9 +1160,12 @@ function executeImport() {
       }
     }
 
-    // 添加新词汇
+    // 添加新词汇 - 使用基准时间戳 + 递增计数器确保ID唯一性
+    const wordId = `word_${baseTimestamp}_${idCounter.toString().padStart(6, '0')}`
+    idCounter++
+
     adminStore.addWord({
-      id: `word_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      id: wordId,
       label: item.label,
       phonetic: item.phonetic,
       posDefinitions: item.posDefinitions || [{ pos: undefined, definition: undefined }],

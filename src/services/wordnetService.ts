@@ -125,7 +125,7 @@ export class WordNetService {
   }
 
   // Fetch word graph from LocalStorage
-  static async fetchWordGraph(word: string): Promise<GraphData> {
+  static async fetchWordGraph(word: string, maxDepth: number = 2): Promise<GraphData> {
     return new Promise((resolve) => {
       setTimeout(() => {
         // Get all words and connections from storage
@@ -133,20 +133,49 @@ export class WordNetService {
         const allConnections = storageService.getConnections()
         const symmetricTypes = this.getSymmetricRelationTypes()
 
-        // If word is empty or "*", return all data
+        // If word is empty or "*", return limited data (智能分区)
         if (!word || word.trim() === '' || word === '*') {
-          const nodes = allWords.map((w) => ({
+          // 性能优化：显示全部时限制节点数量
+          const MAX_NODES_ALL = 500 // 最多显示500个节点
+
+          // 优先显示有连接的节点
+          const connectedNodeIds = new Set<string>()
+          allConnections.forEach(c => {
+            connectedNodeIds.add(c.source)
+            connectedNodeIds.add(c.target)
+          })
+
+          // 分类节点：有连接的节点 + 孤立节点
+          const connectedWords = allWords.filter(w => connectedNodeIds.has(w.id))
+          const isolatedWords = allWords.filter(w => !connectedNodeIds.has(w.id))
+
+          // 优先展示有连接的节点，不足时用孤立节点补全到1000个
+          const connectedToShow = Math.min(connectedWords.length, MAX_NODES_ALL)
+          const isolatedToShow = Math.min(isolatedWords.length, MAX_NODES_ALL - connectedToShow)
+
+          const limitedWords = [
+            ...connectedWords.slice(0, connectedToShow),
+            ...isolatedWords.slice(0, isolatedToShow)
+          ]
+
+          const limitedNodeIds = new Set(limitedWords.map(w => w.id))
+
+          const nodes = limitedWords.map((w) => ({
             data: {
               id: w.id,
               label: w.label,
-              pos: w.pos,
-              definition: w.definition,
+              phonetic: (w as any).phonetic,
+              posDefinitions: (w as any).posDefinitions,
               examples: w.examples,
             },
           }))
 
-          // 过滤对称关系，只显示单向关系
+          // 只显示限制节点之间的边
           const filteredEdges = allConnections.filter((c) => {
+            if (!limitedNodeIds.has(c.source) || !limitedNodeIds.has(c.target)) {
+              return false
+            }
+
             // 对于对称关系（自己配对自己），只保留源ID < 目标ID的边，避免显示双向箭头
             if (symmetricTypes.has(c.relation)) {
               return c.source < c.target
@@ -180,7 +209,7 @@ export class WordNetService {
         const nodesToInclude = new Set<string>()
         const edgesToInclude = new Set<string>()
 
-        // BFS to find all connected words (up to 3 levels)
+        // BFS to find all connected words (可配置深度)
         const queue: Array<{ id: string; level: number }> = [{ id: targetWord.id, level: 0 }]
         visitedWords.add(targetWord.id)
         nodesToInclude.add(targetWord.id)
@@ -188,7 +217,7 @@ export class WordNetService {
         while (queue.length > 0) {
           const { id, level } = queue.shift()!
 
-          if (level < 3) {
+          if (level < maxDepth) {
             // Find all connections from this word
             const outgoingConnections = allConnections.filter((c) => c.source === id)
             outgoingConnections.forEach((conn) => {
@@ -220,8 +249,8 @@ export class WordNetService {
             data: {
               id: w.id,
               label: w.label,
-              pos: w.pos,
-              definition: w.definition,
+              phonetic: (w as any).phonetic,
+              posDefinitions: (w as any).posDefinitions,
               examples: w.examples,
               isCenter: w.id === targetWord.id, // 标记中心词
             },

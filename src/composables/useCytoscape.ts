@@ -315,18 +315,74 @@ export function useCytoscape(options: UseCytoscapeOptions) {
   const updateGraph = () => {
     if (!cyInstance.value) return
 
-    // 添加所有节点和所有边（不过滤）
+    // 清除现有元素
     cyInstance.value.elements().remove()
-    cyInstance.value.add(options.graphData.nodes)
-    cyInstance.value.add(options.graphData.edges)
 
-    // 设置边的初始可见性
-    updateEdgeVisibility()
+    const nodes = options.graphData.nodes
+    const edges = options.graphData.edges
+    const BATCH_SIZE = 500 // 每批处理500个节点
 
-    // 更新节点标签显示
-    updateNodeLabels()
+    // 如果节点数量较少,直接添加
+    if (nodes.length <= BATCH_SIZE) {
+      cyInstance.value.add(nodes)
+      cyInstance.value.add(edges)
 
-    // 选中中心词并触发详情显示
+      // 设置边的初始可见性
+      updateEdgeVisibility()
+
+      // 更新节点标签显示
+      updateNodeLabels()
+
+      // 选中中心词并触发详情显示
+      selectCenterNode()
+
+      runLayout()
+      return
+    }
+
+    // 分批渲染大量节点
+    let currentBatch = 0
+    const totalBatches = Math.ceil(nodes.length / BATCH_SIZE)
+
+    const addBatch = () => {
+      const start = currentBatch * BATCH_SIZE
+      const end = Math.min(start + BATCH_SIZE, nodes.length)
+      const batchNodes = nodes.slice(start, end)
+
+      // 添加当前批次的节点
+      cyInstance.value?.add(batchNodes)
+
+      currentBatch++
+
+      if (currentBatch < totalBatches) {
+        // 使用 requestAnimationFrame 确保不阻塞UI
+        requestAnimationFrame(addBatch)
+      } else {
+        // 所有节点添加完成,添加边
+        cyInstance.value?.add(edges)
+
+        // 设置边的初始可见性
+        updateEdgeVisibility()
+
+        // 更新节点标签显示
+        updateNodeLabels()
+
+        // 选中中心词并触发详情显示
+        selectCenterNode()
+
+        // 运行布局
+        runLayout()
+      }
+    }
+
+    // 开始分批添加
+    addBatch()
+  }
+
+  // 选中中心词的辅助函数
+  const selectCenterNode = () => {
+    if (!cyInstance.value) return
+
     const centerNodes = cyInstance.value.nodes().filter((node: any) => node.data('isCenter') === true)
     if (centerNodes.length > 0) {
       const centerNode = centerNodes[0]
@@ -335,8 +391,6 @@ export function useCytoscape(options: UseCytoscapeOptions) {
         options.onNodeClick(centerNode.data())
       }
     }
-
-    runLayout()
   }
 
   const updateEdgeVisibility = () => {
@@ -373,10 +427,21 @@ export function useCytoscape(options: UseCytoscapeOptions) {
         return relationType?.edgeLength || 100
       }
 
+      // 性能优化：根据节点数量动态调整布局参数
+      const nodeCount = cyInstance.value?.nodes().length || 0
+      const edgeCount = cyInstance.value?.edges().length || 0
+
+      // 如果节点很多但边很少（孤立节点多），降低迭代次数和排斥力
+      const isLowConnectivity = nodeCount > 200 && edgeCount < 50
+
       Object.assign(layoutOptions, {
-        nodeRepulsion: 8000,
-        idealEdgeLength: idealEdgeLengthFn,  // 使用函数动态计算每条边的理想长度
+        nodeRepulsion: isLowConnectivity ? 4000 : 8000,  // 孤立节点多时降低排斥力
+        idealEdgeLength: idealEdgeLengthFn,
         edgeElasticity: 100,
+        numIter: isLowConnectivity ? 500 : 1000,  // 孤立节点多时减少迭代次数
+        gravity: isLowConnectivity ? 0.5 : 0.25,  // 孤立节点多时增加重力，让节点更紧凑
+        animate: !isLowConnectivity,  // 孤立节点多时关闭动画
+        animationDuration: isLowConnectivity ? 0 : 500,
       })
     }
 

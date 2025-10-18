@@ -57,6 +57,18 @@
             <option value="grid">网格</option>
             <option value="breadthfirst">层次</option>
           </select>
+          <select
+            v-model="graphStore.relationDepth"
+            @change="handleDepthChange"
+            class="px-3 py-1.5 border border-gray-300 rounded text-sm bg-white cursor-pointer hover:border-gray-400 transition-colors"
+            title="关系层级深度"
+          >
+            <option :value="1">1层关系</option>
+            <option :value="2">2层关系</option>
+            <option :value="3">3层关系</option>
+            <option :value="4">4层关系</option>
+            <option :value="5">5层关系</option>
+          </select>
           <router-link
             to="/admin"
             class="px-3 py-1.5 bg-gray-100 text-gray-700 rounded text-sm hover:bg-gray-200 transition-colors"
@@ -70,6 +82,15 @@
     <!-- 图表显示区域 -->
     <div class="flex-1 overflow-hidden relative">
       <GraphCanvas ref="graphCanvasRef" />
+
+      <!-- 性能统计信息 -->
+      <div v-if="graphStore.graphData.nodes.length > 0" class="absolute top-4 left-4 bg-blue-500/90 text-white text-xs px-3 py-2 rounded-lg backdrop-blur-sm">
+        <div class="font-semibold">📊 当前显示</div>
+        <div>节点: {{ graphStore.graphData.nodes.length }} 个</div>
+        <div>关系: {{ graphStore.graphData.edges.length }} 条</div>
+        <div>深度: {{ graphStore.relationDepth }} 层</div>
+      </div>
+
       <!-- 提示文字 -->
       <div class="absolute bottom-4 right-4 bg-gray-800/80 text-white text-xs px-3 py-2 rounded-lg backdrop-blur-sm space-y-1">
         <div>💡 双击空白区域：快速添加词汇</div>
@@ -82,7 +103,7 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
+import { onMounted, ref, watch } from 'vue'
 import { useGraphStore } from '@/stores/graphStore'
 import { WordNetService } from '@/services/wordnetService'
 import GraphCanvas from '@/components/GraphCanvas.vue'
@@ -90,10 +111,13 @@ import GraphCanvas from '@/components/GraphCanvas.vue'
 const graphStore = useGraphStore()
 const graphCanvasRef = ref<InstanceType<typeof GraphCanvas> | null>(null)
 
+// 防抖定时器
+let debounceTimer: ReturnType<typeof setTimeout> | null = null
+
 const handleLoadGraph = async () => {
   graphStore.setLoading(true)
   try {
-    const data = await WordNetService.fetchWordGraph(graphStore.searchQuery)
+    const data = await WordNetService.fetchWordGraph(graphStore.searchQuery, graphStore.relationDepth)
     graphStore.setGraphData(data)
   } catch (error) {
     console.error('Failed to load graph:', error)
@@ -116,11 +140,32 @@ const exportPNG = () => {
   }
 }
 
+const handleDepthChange = async () => {
+  // 深度变化时重新加载图谱
+  await handleLoadGraph()
+}
+
+// 搜索防抖：监听searchQuery变化，300ms后自动搜索
+watch(
+  () => graphStore.searchQuery,
+  () => {
+    // 清除之前的定时器
+    if (debounceTimer) {
+      clearTimeout(debounceTimer)
+    }
+
+    // 设置新的定时器
+    debounceTimer = setTimeout(() => {
+      handleLoadGraph()
+    }, 300)
+  }
+)
+
 onMounted(async () => {
   graphStore.setLoading(true)
   try {
     // Load all words initially (use '*' to show all)
-    const data = await WordNetService.fetchWordGraph('*')
+    const data = await WordNetService.fetchWordGraph('*', graphStore.relationDepth)
     graphStore.setGraphData(data)
   } catch (error) {
     console.error('Failed to load initial data:', error)
