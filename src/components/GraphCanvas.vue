@@ -17,34 +17,6 @@
     <Legend />
     <NodeDetail />
 
-    <!-- 快速创建/编辑关系按钮 (当选中2个节点时显示) -->
-    <div
-      v-if="selectedNodes.length === 2"
-      class="absolute top-4 left-1/2 -translate-x-1/2 bg-white rounded-lg shadow-lg p-3 flex items-center gap-3 border border-gray-200 z-40"
-    >
-      <div class="flex items-center gap-2 text-sm">
-        <span class="font-medium text-gray-700">{{ selectedNodes[0].label }}</span>
-        <span class="text-gray-400">→</span>
-        <span class="font-medium text-gray-700">{{ selectedNodes[1].label }}</span>
-        <span v-if="existingRelations.length > 0" class="text-xs text-green-600 ml-2">
-          (已有 {{ existingRelations.length }} 个关系)
-        </span>
-      </div>
-      <button
-        @click="openCreateRelationDialog"
-        class="px-4 py-1.5 bg-primary-500 text-white rounded text-sm hover:bg-primary-600 transition-colors"
-      >
-        {{ existingRelations.length > 0 ? '编辑关系' : '创建关系' }}
-      </button>
-      <button
-        @click="clearSelection"
-        class="px-2 py-1.5 text-gray-500 hover:text-gray-700 transition-colors"
-        title="清除选择"
-      >
-        ✕
-      </button>
-    </div>
-
     <!-- 快速添加/编辑词汇对话框 -->
     <div
       v-if="showAddWordDialog || showEditWordDialog"
@@ -545,7 +517,7 @@ async function saveWord() {
 function handleSelectionChange(nodes: any[]) {
   selectedNodes.value = nodes
 
-  // 检查是否存在关系
+  // 当选中2个节点时，自动打开关系对话框
   if (nodes.length === 2) {
     adminStore.loadData()
     const sourceId = nodes[0].id
@@ -555,8 +527,17 @@ function handleSelectionChange(nodes: any[]) {
     existingRelations.value = adminStore.connections.filter(
       c => c.source === sourceId && c.target === targetId
     )
+
+    // 自动打开创建/编辑关系对话框
+    nextTick(() => {
+      showCreateRelationDialog.value = true
+    })
   } else {
     existingRelations.value = []
+    // 关闭对话框（如果打开着）
+    if (showCreateRelationDialog.value) {
+      closeCreateRelationDialog()
+    }
   }
 }
 
@@ -606,6 +587,8 @@ function closeCreateRelationDialog() {
   newRelationForm.value = {
     relationType: '',
   }
+  // 同时清除节点选择
+  clearSelection()
 }
 
 function getRelationLabel(key: string): string {

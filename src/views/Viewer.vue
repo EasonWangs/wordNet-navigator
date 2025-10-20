@@ -95,9 +95,9 @@
       <div class="absolute bottom-4 right-4 bg-gray-800/80 text-white text-xs px-3 py-2 rounded-lg backdrop-blur-sm space-y-1">
         <div>💡 双击空白区域：快速添加词汇</div>
         <div>✏️ 双击节点：编辑词汇信息</div>
-        <div>🔗 选中两个节点：创建词汇关系</div>
+        <div>🔗 按Ctrl/Cmd选中两个节点：创建关系</div>
         <div>⚡ 双击关系线：编辑关系</div>
-        <div>🗑️ 选中节点/关系后按Delete键：删除节点或关系</div>
+        <div>🗑️ 选中节点/关系后按Delete键：删除</div>
       </div>
     </div>
   </div>
