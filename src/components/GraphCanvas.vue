@@ -167,89 +167,81 @@
       class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
       @click.self="closeCreateRelationDialog"
     >
-      <div class="bg-white rounded-lg p-6 w-full max-w-md">
-        <h3 class="text-lg font-semibold mb-4">
+      <div class="bg-white rounded-lg p-4 w-full max-w-md">
+        <h3 class="text-base font-semibold mb-3">
           {{ existingRelations.length > 0 ? '编辑词汇关系' : '创建词汇关系' }}
         </h3>
-        <div class="mb-4 p-3 bg-gray-50 rounded-md">
-          <div class="flex items-center gap-2 text-sm">
+        <div class="mb-3 p-2 bg-gray-50 rounded">
+          <div class="flex items-center flex-wrap gap-2 text-sm">
             <span class="font-medium text-gray-700">{{ selectedNodes[0]?.label }}</span>
-            <span class="text-gray-400">→</span>
+            <span class="text-gray-400">是</span>
             <span class="font-medium text-gray-700">{{ selectedNodes[1]?.label }}</span>
-          </div>
-        </div>
-
-        <!-- 已存在的关系 -->
-        <div v-if="existingRelations.length > 0" class="mb-4">
-          <label class="block text-sm font-medium text-gray-700 mb-2">已存在的关系</label>
-          <div class="space-y-2 p-3 bg-blue-50 border border-blue-200 rounded-md">
-            <div
-              v-for="relation in existingRelations"
-              :key="relation.id"
-              class="flex items-center justify-between p-2 bg-white rounded"
-            >
-              <div class="flex items-center gap-2">
-                <span class="text-sm font-medium">{{ getRelationLabel(relation.relation) }}</span>
-                <span class="text-xs text-gray-500">({{ relation.relation }})</span>
+            <!-- 已存在的关系 - 内联显示 -->
+            <template v-if="existingRelations.length > 0">
+              <span class="text-gray-400">的</span>
+              <div class="flex items-center flex-wrap gap-1.5">
+                <span
+                  v-for="(relation, index) in existingRelations"
+                  :key="relation.id"
+                  class="inline-flex items-center gap-1 px-2 py-0.5 bg-blue-100 text-blue-700 rounded text-xs"
+                >
+                  {{ getRelationLabel(relation.relation) }}
+                  <button
+                    @click="deleteRelation(relation.id)"
+                    class="hover:text-red-600 font-bold"
+                    title="删除此关系"
+                  >
+                    ×
+                  </button>
+                </span>
               </div>
-              <button
-                @click="deleteRelation(relation.id)"
-                class="text-xs text-red-600 hover:text-red-800"
-              >
-                删除
-              </button>
-            </div>
+            </template>
           </div>
         </div>
 
-        <div class="space-y-4">
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-2">
-              {{ existingRelations.length > 0 ? '添加新关系类型' : '选择关系类型' }}
-              <span class="text-red-500">*</span>
+        <div>
+          <label class="block text-xs font-medium text-gray-700 mb-1.5">
+            {{ existingRelations.length > 0 ? '添加新关系' : '选择关系类型' }}
+            <span class="text-red-500">*</span>
+          </label>
+          <div class="space-y-1.5 max-h-64 overflow-y-auto">
+            <label
+              v-for="relationType in availableRelationTypes"
+              :key="relationType.key"
+              class="flex items-center p-2 border rounded cursor-pointer hover:bg-gray-50 transition-colors"
+              :class="{
+                'border-primary-500 bg-primary-50': newRelationForm.relationType === relationType.key,
+                'opacity-50 cursor-not-allowed': isRelationExists(relationType.key)
+              }"
+            >
+              <input
+                type="radio"
+                :value="relationType.key"
+                v-model="newRelationForm.relationType"
+                class="mr-2"
+                :disabled="isRelationExists(relationType.key)"
+              />
+              <div class="flex-1 min-w-0 flex items-center flex-wrap gap-1">
+                <span class="text-sm font-medium">{{ relationType.label }}</span>
+                <span v-if="relationType.pairWith" class="text-xs text-green-600">
+                  (反向: {{ getRelationLabel(relationType.pairWith) }})
+                </span>
+                <span v-if="isRelationExists(relationType.key)" class="text-xs text-gray-500">(已存在)</span>
+              </div>
             </label>
-            <div class="space-y-2 max-h-64 overflow-y-auto">
-              <label
-                v-for="relationType in availableRelationTypes"
-                :key="relationType.key"
-                class="flex items-start p-3 border rounded-md cursor-pointer hover:bg-gray-50 transition-colors"
-                :class="{
-                  'border-primary-500 bg-primary-50': newRelationForm.relationType === relationType.key,
-                  'opacity-50 cursor-not-allowed': isRelationExists(relationType.key)
-                }"
-              >
-                <input
-                  type="radio"
-                  :value="relationType.key"
-                  v-model="newRelationForm.relationType"
-                  class="mt-1 mr-3"
-                  :disabled="isRelationExists(relationType.key)"
-                />
-                <div class="flex-1">
-                  <div class="font-medium text-sm">
-                    {{ relationType.label }}
-                    <span v-if="isRelationExists(relationType.key)" class="text-xs text-gray-500 ml-2">(已存在)</span>
-                  </div>
-                  <div v-if="relationType.description" class="text-xs text-gray-500 mt-0.5">{{ relationType.description }}</div>
-                  <div v-if="relationType.pairWith" class="text-xs text-green-600 mt-1">
-                    ↔ 将自动创建反向关系: {{ getRelationLabel(relationType.pairWith) }}
-                  </div>
-                </div>
-              </label>
-            </div>
           </div>
         </div>
-        <div class="mt-6 flex justify-end space-x-3">
+        <div class="mt-4 flex justify-end gap-2">
           <button
             @click="closeCreateRelationDialog"
-            class="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-md transition-colors"
+            class="px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-100 rounded transition-colors"
           >
             {{ existingRelations.length > 0 ? '完成' : '取消' }}
           </button>
           <button
             v-if="newRelationForm.relationType"
             @click="saveRelation"
-            class="px-4 py-2 bg-primary-500 text-white rounded-md hover:bg-primary-600 transition-colors"
+            class="px-3 py-1.5 text-sm bg-primary-500 text-white rounded hover:bg-primary-600 transition-colors"
           >
             {{ existingRelations.length > 0 ? '添加' : '创建' }}
           </button>
