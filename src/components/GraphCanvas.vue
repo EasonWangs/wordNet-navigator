@@ -173,9 +173,9 @@
         </h3>
         <div class="mb-3 p-2 bg-gray-50 rounded">
           <div class="flex items-center flex-wrap gap-2 text-sm">
-            <span class="font-medium text-gray-700">{{ selectedNodes[0]?.label }}</span>
-            <span class="text-gray-400">是</span>
             <span class="font-medium text-gray-700">{{ selectedNodes[1]?.label }}</span>
+            <span class="text-gray-400">是</span>
+            <span class="font-medium text-gray-700">{{ selectedNodes[0]?.label }}</span>
             <!-- 已存在的关系 - 内联显示 -->
             <template v-if="existingRelations.length > 0">
               <span class="text-gray-400">的</span>
