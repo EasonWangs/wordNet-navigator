@@ -128,6 +128,37 @@
               + 添加例句
             </button>
           </div>
+          <!-- 快速关联其他词汇 -->
+          <div v-if="showEditWordDialog" class="pt-4 border-t border-gray-200">
+            <label class="block text-sm font-medium text-gray-700 mb-2">🔗 快速关联词汇</label>
+            <div class="relative">
+              <input
+                v-model="quickLinkSearch"
+                type="text"
+                placeholder="搜索词汇..."
+                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary-500 text-sm"
+                @focus="showQuickLinkResults = true"
+                @blur="handleQuickLinkBlur"
+              />
+              <!-- 搜索结果下拉列表 -->
+              <div
+                v-if="showQuickLinkResults && filteredQuickLinkWords.length > 0"
+                class="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-48 overflow-y-auto"
+              >
+                <div
+                  v-for="word in filteredQuickLinkWords"
+                  :key="word.id"
+                  class="px-3 py-2 hover:bg-gray-100 cursor-pointer text-sm"
+                  @mousedown.prevent="selectQuickLinkWord(word)"
+                >
+                  <span class="font-medium">{{ word.label }}</span>
+                  <span v-if="word.posDefinitions && word.posDefinitions[0]?.definition" class="text-gray-500 ml-2 text-xs">
+                    - {{ word.posDefinitions[0].definition.substring(0, 30) }}{{ word.posDefinitions[0].definition.length > 30 ? '...' : '' }}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
         <div class="mt-6 flex items-center justify-between">
           <!-- 左侧删除按钮（仅在编辑模式且无关系时显示） -->
@@ -290,6 +321,10 @@ const newRelationForm = ref({
   relationType: '',
 })
 
+// 快速关联词汇
+const quickLinkSearch = ref('')
+const showQuickLinkResults = ref(false)
+
 function openAddWordDialog(position?: { x: number; y: number }) {
   showAddWordDialog.value = true
   showEditWordDialog.value = false
@@ -347,6 +382,8 @@ function closeWordDialog() {
   showEditWordDialog.value = false
   editingWordId.value = null
   clickPosition.value = null
+  quickLinkSearch.value = ''
+  showQuickLinkResults.value = false
   wordForm.value = {
     label: '',
     phonetic: '',
@@ -503,6 +540,56 @@ async function saveWord() {
     console.error('Failed to save word:', error)
     alert('保存词汇失败')
   }
+}
+
+// 快速关联词汇相关函数
+const filteredQuickLinkWords = computed(() => {
+  if (!quickLinkSearch.value.trim() || !editingWordId.value) {
+    return []
+  }
+
+  const searchTerm = quickLinkSearch.value.toLowerCase()
+  return adminStore.words
+    .filter(w =>
+      w.id !== editingWordId.value && // 排除当前编辑的词汇
+      w.label.toLowerCase().includes(searchTerm)
+    )
+    .slice(0, 10) // 最多显示10个结果
+})
+
+function handleQuickLinkBlur() {
+  // 延迟关闭，以便点击事件能够触发
+  setTimeout(() => {
+    showQuickLinkResults.value = false
+  }, 200)
+}
+
+function selectQuickLinkWord(targetWord: any) {
+  if (!editingWordId.value) return
+
+  // 关闭搜索结果
+  showQuickLinkResults.value = false
+  quickLinkSearch.value = ''
+
+  // 设置选中的节点
+  const currentWord = adminStore.words.find(w => w.id === editingWordId.value)
+  if (!currentWord) return
+
+  selectedNodes.value = [
+    { id: currentWord.id, label: currentWord.label },
+    { id: targetWord.id, label: targetWord.label }
+  ]
+
+  // 查找已存在的关系
+  adminStore.loadData()
+  existingRelations.value = adminStore.connections.filter(
+    c => c.source === currentWord.id && c.target === targetWord.id
+  )
+
+  // 打开关系对话框
+  nextTick(() => {
+    showCreateRelationDialog.value = true
+  })
 }
 
 // 创建关系相关函数
