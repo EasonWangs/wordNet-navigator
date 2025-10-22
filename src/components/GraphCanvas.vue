@@ -579,6 +579,30 @@ async function saveWord() {
   }
 }
 
+// 智能排序函数：词首匹配优先
+function sortByMatchPosition(words: any[], searchTerm: string) {
+  const lowerSearchTerm = searchTerm.toLowerCase()
+
+  return words.sort((a, b) => {
+    const aLabel = a.label.toLowerCase()
+    const bLabel = b.label.toLowerCase()
+    const aStartsWith = aLabel.startsWith(lowerSearchTerm)
+    const bStartsWith = bLabel.startsWith(lowerSearchTerm)
+
+    // 1. 词首匹配的优先
+    if (aStartsWith && !bStartsWith) return -1
+    if (!aStartsWith && bStartsWith) return 1
+
+    // 2. 都是词首匹配或都不是词首匹配时，按匹配位置排序
+    const aIndex = aLabel.indexOf(lowerSearchTerm)
+    const bIndex = bLabel.indexOf(lowerSearchTerm)
+    if (aIndex !== bIndex) return aIndex - bIndex
+
+    // 3. 匹配位置相同时，按字母顺序排序
+    return aLabel.localeCompare(bLabel)
+  })
+}
+
 // 添加词汇时检查是否已存在
 const existingWordMatches = computed(() => {
   if (!showAddWordDialog.value || !wordForm.value.label.trim()) {
@@ -586,9 +610,12 @@ const existingWordMatches = computed(() => {
   }
 
   const searchTerm = wordForm.value.label.toLowerCase()
-  return adminStore.words
+  const matches = adminStore.words
     .filter(w => w.label.toLowerCase().includes(searchTerm))
-    .slice(0, 5) // 最多显示5个结果
+
+  // 应用智能排序
+  const sorted = sortByMatchPosition([...matches], searchTerm)
+  return sorted.slice(0, 5) // 最多显示5个结果
 })
 
 function handleAddWordSearchBlur() {
@@ -613,12 +640,15 @@ const filteredQuickLinkWords = computed(() => {
   }
 
   const searchTerm = quickLinkSearch.value.toLowerCase()
-  return adminStore.words
+  const matches = adminStore.words
     .filter(w =>
       w.id !== editingWordId.value && // 排除当前编辑的词汇
       w.label.toLowerCase().includes(searchTerm)
     )
-    .slice(0, 10) // 最多显示10个结果
+
+  // 应用智能排序
+  const sorted = sortByMatchPosition([...matches], searchTerm)
+  return sorted.slice(0, 10) // 最多显示10个结果
 })
 
 function handleQuickLinkBlur() {
