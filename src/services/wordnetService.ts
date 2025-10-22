@@ -188,7 +188,7 @@ export class WordNetService {
   }
 
   // Fetch word graph from LocalStorage
-  static async fetchWordGraph(word: string, maxDepth: number = 2): Promise<GraphData> {
+  static async fetchWordGraph(word: string, maxDepth: number = 2, maxNodes: number = 50): Promise<GraphData> {
     return new Promise((resolve) => {
       setTimeout(() => {
         // Get all words and connections from storage
@@ -199,7 +199,7 @@ export class WordNetService {
         // If word is empty or "*", return limited data (智能分区)
         if (!word || word.trim() === '' || word === '*') {
           // 性能优化：显示全部时限制节点数量
-          const MAX_NODES_ALL = 500 // 最多显示500个节点
+          const MAX_NODES_ALL = maxNodes // 使用传入的最大节点数参数
 
           // 优先显示有连接的节点
           const connectedNodeIds = new Set<string>()

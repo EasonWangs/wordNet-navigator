@@ -23,6 +23,8 @@
       class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
       @click.self="closeWordDialog"
       @keydown.enter="handleWordDialogEnter"
+      @keydown.delete.stop
+      @keydown.backspace.stop
     >
       <div class="bg-white rounded-lg p-6 w-full max-w-md">
         <h3 class="text-lg font-semibold mb-4">{{ showEditWordDialog ? '编辑词汇' : '快速添加词汇' }}</h3>
@@ -50,13 +52,42 @@
           </div>
           <div v-else>
             <label class="block text-sm font-medium text-gray-700 mb-1">词汇 <span class="text-red-500">*</span></label>
-            <input
-              ref="wordInputRef"
-              v-model="wordForm.label"
-              type="text"
-              class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary-500"
-              placeholder="例如: dog"
-            />
+            <div class="relative">
+              <input
+                ref="wordInputRef"
+                v-model="wordForm.label"
+                type="text"
+                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary-500"
+                placeholder="例如: dog"
+                @focus="showAddWordSearchResults = true"
+                @blur="handleAddWordSearchBlur"
+              />
+              <!-- 搜索结果提示 -->
+              <div
+                v-if="showAddWordSearchResults && existingWordMatches.length > 0"
+                class="absolute z-10 w-full mt-1 bg-white border border-orange-300 rounded-md shadow-lg max-h-48 overflow-y-auto"
+              >
+                <div class="px-3 py-2 bg-orange-50 border-b border-orange-200 text-xs text-orange-700">
+                  ⚠️ 发现 {{ existingWordMatches.length }} 个相似词汇：
+                </div>
+                <div
+                  v-for="word in existingWordMatches"
+                  :key="word.id"
+                  class="px-3 py-2 hover:bg-gray-100 cursor-pointer text-sm border-b border-gray-100 last:border-b-0"
+                  @mousedown.prevent="selectExistingWord(word)"
+                >
+                  <div class="flex items-center justify-between">
+                    <div>
+                      <span class="font-medium">{{ word.label }}</span>
+                      <span v-if="word.posDefinitions && word.posDefinitions[0]?.definition" class="text-gray-500 ml-2 text-xs">
+                        - {{ word.posDefinitions[0].definition.substring(0, 30) }}{{ word.posDefinitions[0].definition.length > 30 ? '...' : '' }}
+                      </span>
+                    </div>
+                    <span class="text-xs text-blue-600">点击编辑</span>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
           <div>
             <div class="flex items-center justify-between mb-2">
@@ -197,6 +228,8 @@
       v-if="showCreateRelationDialog"
       class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
       @click.self="closeCreateRelationDialog"
+      @keydown.delete.stop
+      @keydown.backspace.stop
     >
       <div class="bg-white rounded-lg p-4 w-full max-w-md">
         <h3 class="text-base font-semibold mb-3">
@@ -325,6 +358,9 @@ const newRelationForm = ref({
 const quickLinkSearch = ref('')
 const showQuickLinkResults = ref(false)
 
+// 添加词汇时的搜索
+const showAddWordSearchResults = ref(false)
+
 function openAddWordDialog(position?: { x: number; y: number }) {
   showAddWordDialog.value = true
   showEditWordDialog.value = false
@@ -384,6 +420,7 @@ function closeWordDialog() {
   clickPosition.value = null
   quickLinkSearch.value = ''
   showQuickLinkResults.value = false
+  showAddWordSearchResults.value = false
   wordForm.value = {
     label: '',
     phonetic: '',
@@ -540,6 +577,33 @@ async function saveWord() {
     console.error('Failed to save word:', error)
     alert('保存词汇失败')
   }
+}
+
+// 添加词汇时检查是否已存在
+const existingWordMatches = computed(() => {
+  if (!showAddWordDialog.value || !wordForm.value.label.trim()) {
+    return []
+  }
+
+  const searchTerm = wordForm.value.label.toLowerCase()
+  return adminStore.words
+    .filter(w => w.label.toLowerCase().includes(searchTerm))
+    .slice(0, 5) // 最多显示5个结果
+})
+
+function handleAddWordSearchBlur() {
+  // 延迟关闭，以便点击事件能够触发
+  setTimeout(() => {
+    showAddWordSearchResults.value = false
+  }, 200)
+}
+
+function selectExistingWord(word: any) {
+  // 关闭添加对话框
+  closeWordDialog()
+
+  // 打开编辑对话框
+  openEditWordDialog(word)
 }
 
 // 快速关联词汇相关函数
