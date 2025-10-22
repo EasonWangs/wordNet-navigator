@@ -432,7 +432,15 @@
 
         <!-- 步骤1: 上传文件 -->
         <div v-if="importStep === 1" class="space-y-4">
-          <div class="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center">
+          <div
+            class="border-2 border-dashed rounded-lg p-8 text-center transition-all duration-200"
+            :class="isDragging
+              ? 'border-primary-500 bg-primary-50 scale-[1.02]'
+              : 'border-gray-300 hover:border-gray-400'"
+            @dragover="handleDragOver"
+            @dragleave="handleDragLeave"
+            @drop="handleDrop"
+          >
             <input
               ref="fileInputRef"
               type="file"
@@ -441,9 +449,15 @@
               class="hidden"
             />
             <div v-if="!importFile">
-              <div class="text-4xl mb-3">📁</div>
-              <p class="text-gray-600 mb-3">支持 Excel (.xlsx, .xls) 和 CSV (.csv) 格式</p>
+              <div class="text-6xl mb-4" :class="isDragging ? 'animate-bounce' : ''">
+                {{ isDragging ? '📥' : '📁' }}
+              </div>
+              <p class="text-gray-800 font-medium mb-2" :class="isDragging ? 'text-primary-600' : ''">
+                {{ isDragging ? '松开鼠标完成上传' : '拖拽文件到此处或点击选择' }}
+              </p>
+              <p class="text-sm text-gray-500 mb-4">支持 Excel (.xlsx, .xls) 和 CSV (.csv) 格式</p>
               <button
+                v-if="!isDragging"
                 @click="fileInputRef?.click()"
                 class="px-4 py-2 bg-primary-500 text-white rounded-md hover:bg-primary-600 transition-colors"
               >
@@ -451,7 +465,7 @@
               </button>
             </div>
             <div v-else>
-              <div class="text-4xl mb-3">✅</div>
+              <div class="text-6xl mb-4">✅</div>
               <p class="text-gray-800 font-medium mb-2">{{ importFile.name }}</p>
               <p class="text-sm text-gray-500 mb-3">{{ (importFile.size / 1024).toFixed(2) }} KB</p>
               <button
@@ -470,6 +484,25 @@
               <li>• <strong>词性1, 定义1; 词性2, 定义2...</strong>（可选）：词性与对应的定义成对出现</li>
               <li>• <strong>例句1, 例句2, 例句3...</strong>（可选）：使用示例</li>
             </ul>
+          </div>
+        </div>
+
+        <!-- 导入进度条 -->
+        <div v-if="isImporting" class="fixed inset-0 bg-black/50 flex items-center justify-center z-[70]">
+          <div class="bg-white rounded-lg p-8 w-full max-w-md">
+            <h3 class="text-lg font-semibold mb-4 text-center">正在导入词汇...</h3>
+            <div class="space-y-4">
+              <div class="w-full bg-gray-200 rounded-full h-4 overflow-hidden">
+                <div
+                  class="bg-primary-500 h-full transition-all duration-300"
+                  :style="{ width: `${importProgress.percentage}%` }"
+                ></div>
+              </div>
+              <div class="text-center text-sm text-gray-600">
+                <p class="font-medium text-lg text-gray-800">{{ importProgress.percentage }}%</p>
+                <p class="mt-1">{{ importProgress.current }} / {{ importProgress.total }} 条</p>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -571,9 +604,10 @@
             <button
               v-if="importStep === 2 && validImportCount > 0"
               @click="executeImport"
-              class="px-4 py-2 bg-primary-500 text-white rounded-md hover:bg-primary-600 transition-colors"
+              :disabled="isImporting"
+              class="px-4 py-2 bg-primary-500 text-white rounded-md hover:bg-primary-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              导入 {{ validImportCount }} 条数据
+              {{ isImporting ? '导入中...' : `导入 ${validImportCount} 条数据` }}
             </button>
           </div>
         </div>
@@ -965,6 +999,13 @@ const importResult = ref({
   success: 0,
   skipped: 0,
 })
+const importProgress = ref({
+  current: 0,
+  total: 0,
+  percentage: 0,
+})
+const isImporting = ref(false)
+const isDragging = ref(false)
 
 // 计算属性：统计导入数据
 const validImportCount = computed(() => {
@@ -1053,8 +1094,54 @@ function handleFileUpload(event: Event) {
   const target = event.target as HTMLInputElement
   const file = target.files?.[0]
   if (file) {
-    importFile.value = file
+    processFile(file)
   }
+}
+
+// 处理拖拽事件
+function handleDragOver(event: DragEvent) {
+  event.preventDefault()
+  isDragging.value = true
+}
+
+function handleDragLeave(event: DragEvent) {
+  event.preventDefault()
+  // 只有当离开整个拖拽区域时才取消高亮
+  const target = event.currentTarget as HTMLElement
+  const relatedTarget = event.relatedTarget as HTMLElement
+  if (!target.contains(relatedTarget)) {
+    isDragging.value = false
+  }
+}
+
+function handleDrop(event: DragEvent) {
+  event.preventDefault()
+  isDragging.value = false
+
+  const files = event.dataTransfer?.files
+  if (files && files.length > 0) {
+    const file = files[0]
+    // 验证文件类型
+    const validTypes = [
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', // .xlsx
+      'application/vnd.ms-excel', // .xls
+      'text/csv', // .csv
+    ]
+    const validExtensions = ['.xlsx', '.xls', '.csv']
+    const fileName = file.name.toLowerCase()
+    const isValidType = validTypes.includes(file.type) || validExtensions.some(ext => fileName.endsWith(ext))
+
+    if (isValidType) {
+      processFile(file)
+    } else {
+      alert('请上传 Excel (.xlsx, .xls) 或 CSV (.csv) 格式的文件')
+    }
+  }
+}
+
+// 统一处理文件
+function processFile(file: File) {
+  importFile.value = file
 }
 
 // 解析导入文件
@@ -1151,60 +1238,90 @@ function parseImportFile() {
   reader.readAsArrayBuffer(importFile.value)
 }
 
-// 执行导入
-function executeImport() {
+// 分批处理导入 - 避免页面卡顿
+async function executeImport() {
+  isImporting.value = true
   let successCount = 0
   let skippedCount = 0
-  const baseTimestamp = Date.now() // 固定基准时间戳
-  let idCounter = 0 // 添加计数器确保ID唯一性
+  const baseTimestamp = Date.now()
+  let idCounter = 0
 
-  importPreviewData.value.forEach(item => {
-    // 跳过错误数据
-    if (item.error) {
-      skippedCount++
-      return
-    }
+  const BATCH_SIZE = 100 // 每批处理100条（使用批量添加后可以增加批次大小）
+  const totalItems = importPreviewData.value.length
 
-    // 根据模式处理重复数据
-    if (item.isDuplicate) {
-      if (importMode.value === 'append') {
+  importProgress.value = {
+    current: 0,
+    total: totalItems,
+    percentage: 0,
+  }
+
+  // 分批处理数据
+  for (let i = 0; i < totalItems; i += BATCH_SIZE) {
+    const batch = importPreviewData.value.slice(i, i + BATCH_SIZE)
+    const wordsToAdd: Array<Omit<StoredWord, 'createdAt' | 'updatedAt'>> = []
+
+    // 处理当前批次
+    batch.forEach(item => {
+      // 跳过错误数据
+      if (item.error) {
         skippedCount++
         return
-      } else {
-        // 覆盖模式：找到并更新现有词汇
-        const existingWord = adminStore.words.find(w => w.label.toLowerCase() === item.label.toLowerCase())
-        if (existingWord) {
-          adminStore.updateWord(existingWord.id, {
-            label: item.label,
-            phonetic: item.phonetic,
-            posDefinitions: item.posDefinitions || [{ pos: undefined, definition: undefined }],
-            examples: item.examples,
-          })
-          successCount++
+      }
+
+      // 根据模式处理重复数据
+      if (item.isDuplicate) {
+        if (importMode.value === 'append') {
+          skippedCount++
           return
+        } else {
+          // 覆盖模式：找到并更新现有词汇
+          const existingWord = adminStore.words.find(w => w.label.toLowerCase() === item.label.toLowerCase())
+          if (existingWord) {
+            adminStore.updateWord(existingWord.id, {
+              label: item.label,
+              phonetic: item.phonetic,
+              posDefinitions: item.posDefinitions || [{ pos: undefined, definition: undefined }],
+              examples: item.examples,
+            })
+            successCount++
+            return
+          }
         }
       }
+
+      // 添加到批量添加列表
+      const wordId = `word_${baseTimestamp}_${idCounter.toString().padStart(6, '0')}`
+      idCounter++
+
+      wordsToAdd.push({
+        id: wordId,
+        label: item.label,
+        phonetic: item.phonetic,
+        posDefinitions: item.posDefinitions || [{ pos: undefined, definition: undefined }],
+        examples: item.examples,
+      })
+    })
+
+    // 批量添加词汇（一次性写入 localStorage）
+    if (wordsToAdd.length > 0) {
+      adminStore.addWordsBatch(wordsToAdd)
+      successCount += wordsToAdd.length
     }
 
-    // 添加新词汇 - 使用基准时间戳 + 递增计数器确保ID唯一性
-    const wordId = `word_${baseTimestamp}_${idCounter.toString().padStart(6, '0')}`
-    idCounter++
+    // 更新进度
+    importProgress.value.current = Math.min(i + BATCH_SIZE, totalItems)
+    importProgress.value.percentage = Math.round((importProgress.value.current / totalItems) * 100)
 
-    adminStore.addWord({
-      id: wordId,
-      label: item.label,
-      phonetic: item.phonetic,
-      posDefinitions: item.posDefinitions || [{ pos: undefined, definition: undefined }],
-      examples: item.examples,
-    })
-    successCount++
-  })
+    // 让出控制权给浏览器，避免页面卡顿
+    await new Promise(resolve => setTimeout(resolve, 10))
+  }
 
   importResult.value = {
     success: successCount,
     skipped: skippedCount,
   }
 
+  isImporting.value = false
   importStep.value = 3
 }
 

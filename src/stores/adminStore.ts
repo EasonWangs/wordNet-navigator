@@ -25,6 +25,24 @@ export const useAdminStore = defineStore('admin', () => {
     return newWord
   }
 
+  // 批量添加词汇 - 优化性能，减少 localStorage 写入次数
+  function addWordsBatch(wordList: Array<Omit<StoredWord, 'createdAt' | 'updatedAt'>>) {
+    const now = new Date().toISOString()
+    const newWords: StoredWord[] = wordList.map(word => ({
+      ...word,
+      createdAt: now,
+      updatedAt: now,
+    }))
+
+    // 一次性添加到内存
+    words.value.push(...newWords)
+
+    // 一次性写入 localStorage
+    storageService.saveWords(words.value)
+
+    return newWords
+  }
+
   function updateWord(id: string, updates: Partial<StoredWord>) {
     storageService.updateWord(id, updates)
     const index = words.value.findIndex((w) => w.id === id)
@@ -235,6 +253,7 @@ export const useAdminStore = defineStore('admin', () => {
     posTypes,
     loadData,
     addWord,
+    addWordsBatch,
     updateWord,
     deleteWord,
     addConnection,
