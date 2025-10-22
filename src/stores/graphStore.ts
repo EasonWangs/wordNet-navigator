@@ -12,6 +12,7 @@ export const useGraphStore = defineStore('graph', () => {
   const layout = ref<LayoutType>('cose')
   const showDefinitionInNode = ref<boolean>(false) // 是否在节点内显示定义
   const relationDepth = ref<number>(2) // 关系层级深度，默认2层
+  const maxNodes = ref<number>(50) // 最大显示节点数，默认50个
 
   // 动态从 LocalStorage 加载默认激活的关系类型
   const getDefaultActiveRelations = (): string[] => {
@@ -69,6 +70,10 @@ export const useGraphStore = defineStore('graph', () => {
     relationDepth.value = depth
   }
 
+  function setMaxNodes(max: number) {
+    maxNodes.value = max
+  }
+
   // 重新加载默认激活关系（在关系类型更新后调用）
   function reloadActiveRelations() {
     activeRelations.value = getDefaultActiveRelations()
@@ -84,6 +89,7 @@ export const useGraphStore = defineStore('graph', () => {
     activeRelations,
     showDefinitionInNode,
     relationDepth,
+    maxNodes,
     // Computed
     hasGraphData,
     // Actions
@@ -96,6 +102,7 @@ export const useGraphStore = defineStore('graph', () => {
     toggleRelation,
     setActiveRelations,
     setRelationDepth,
+    setMaxNodes,
     reloadActiveRelations,
   }
 })

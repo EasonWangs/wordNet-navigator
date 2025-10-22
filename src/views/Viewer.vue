@@ -69,6 +69,19 @@
             <option :value="4">4层关系</option>
             <option :value="5">5层关系</option>
           </select>
+          <select
+            v-model="graphStore.maxNodes"
+            @change="handleMaxNodesChange"
+            class="px-3 py-1.5 border border-gray-300 rounded text-sm bg-white cursor-pointer hover:border-gray-400 transition-colors"
+            title="最大节点数量"
+          >
+            <option :value="20">20个节点</option>
+            <option :value="50">50个节点</option>
+            <option :value="100">100个节点</option>
+            <option :value="200">200个节点</option>
+            <option :value="500">500个节点</option>
+            <option :value="1000">1000个节点</option>
+          </select>
           <router-link
             to="/admin"
             class="px-3 py-1.5 bg-gray-100 text-gray-700 rounded text-sm hover:bg-gray-200 transition-colors"
@@ -86,7 +99,7 @@
       <!-- 性能统计信息 -->
       <div v-if="graphStore.graphData.nodes.length > 0" class="absolute top-4 left-4 bg-blue-500/90 text-white text-xs px-3 py-2 rounded-lg backdrop-blur-sm">
         <div class="font-semibold">📊 当前显示</div>
-        <div>节点: {{ graphStore.graphData.nodes.length }} 个</div>
+        <div>节点: {{ graphStore.graphData.nodes.length }} / {{ graphStore.maxNodes }} 个</div>
         <div>关系: {{ graphStore.graphData.edges.length }} 条</div>
         <div>深度: {{ graphStore.relationDepth }} 层</div>
       </div>
@@ -118,7 +131,11 @@ let debounceTimer: ReturnType<typeof setTimeout> | null = null
 const handleLoadGraph = async () => {
   graphStore.setLoading(true)
   try {
-    const data = await WordNetService.fetchWordGraph(graphStore.searchQuery, graphStore.relationDepth)
+    const data = await WordNetService.fetchWordGraph(
+      graphStore.searchQuery,
+      graphStore.relationDepth,
+      graphStore.maxNodes
+    )
     graphStore.setGraphData(data)
   } catch (error) {
     console.error('Failed to load graph:', error)
@@ -146,6 +163,11 @@ const handleDepthChange = async () => {
   await handleLoadGraph()
 }
 
+const handleMaxNodesChange = async () => {
+  // 最大节点数变化时重新加载图谱
+  await handleLoadGraph()
+}
+
 // 搜索防抖：监听searchQuery变化，300ms后自动搜索
 watch(
   () => graphStore.searchQuery,
@@ -166,7 +188,11 @@ onMounted(async () => {
   graphStore.setLoading(true)
   try {
     // Load all words initially (use '*' to show all)
-    const data = await WordNetService.fetchWordGraph('*', graphStore.relationDepth)
+    const data = await WordNetService.fetchWordGraph(
+      '*',
+      graphStore.relationDepth,
+      graphStore.maxNodes
+    )
     graphStore.setGraphData(data)
   } catch (error) {
     console.error('Failed to load initial data:', error)
