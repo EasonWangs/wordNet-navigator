@@ -210,7 +210,7 @@
               type="text"
               class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
               placeholder="例如：英语词汇库"
-              @keyup.enter="createProject"
+              @keydown.enter="handleCreateProjectEnter"
             />
           </div>
           <div>
@@ -261,7 +261,7 @@
               v-model="editProjectName"
               type="text"
               class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              @keyup.enter="renameProject"
+              @keydown.enter="handleRenameProjectEnter"
             />
           </div>
           <div>
@@ -328,6 +328,16 @@ function loadProjects() {
   currentProjectId.value = storageService.getCurrentProjectId()
 }
 
+// 处理创建项目对话框的回车键
+function handleCreateProjectEnter(event: KeyboardEvent) {
+  // 如果是输入法组合输入（如中文拼音），不触发提交
+  if (event.isComposing) {
+    return
+  }
+  event.preventDefault()
+  createProject()
+}
+
 // 创建新项目
 function createProject() {
   if (!newProjectName.value.trim()) {
@@ -377,6 +387,16 @@ function saveCurrentProject() {
   } else {
     alert('保存失败：未找到当前项目')
   }
+}
+
+// 处理重命名对话框的回车键
+function handleRenameProjectEnter(event: KeyboardEvent) {
+  // 如果是输入法组合输入（如中文拼音），不触发提交
+  if (event.isComposing) {
+    return
+  }
+  event.preventDefault()
+  renameProject()
 }
 
 // 重命名项目
