@@ -6,6 +6,8 @@ const STORAGE_KEYS = {
   CONNECTIONS: 'wordnet_connections',
   RELATION_TYPES: 'wordnet_relation_types',
   POS_TYPES: 'wordnet_pos_types',
+  PROJECTS: 'wordnet_projects',  // 项目列表
+  CURRENT_PROJECT: 'wordnet_current_project',  // 当前激活的项目ID
 }
 
 export interface StoredWord extends WordNode {
@@ -37,6 +39,20 @@ export interface StoredPosType {
   label: string  // 中文名称，如"名词"、"动词"等
   abbreviation?: string  // 缩写，如 n., v., adj. 等
   description?: string  // 说明
+}
+
+export interface Project {
+  id: string  // 项目唯一ID
+  name: string  // 项目名称
+  description?: string  // 项目描述
+  createdAt: string  // 创建时间
+  updatedAt: string  // 更新时间
+  data: {
+    words: StoredWord[]
+    connections: StoredConnection[]
+    relationTypes: StoredRelationType[]
+    posTypes: StoredPosType[]
+  }
 }
 
 class StorageService {
@@ -320,6 +336,178 @@ class StorageService {
     localStorage.removeItem(STORAGE_KEYS.RELATION_TYPES)
     localStorage.removeItem(STORAGE_KEYS.POS_TYPES)
   }
+
+  // ========== 多项目管理 ==========
+
+  // 获取所有项目
+  getProjects(): Project[] {
+    const stored = localStorage.getItem(STORAGE_KEYS.PROJECTS)
+    return stored ? JSON.parse(stored) : []
+  }
+
+  // 保存项目列表
+  private saveProjects(projects: Project[]): void {
+    localStorage.setItem(STORAGE_KEYS.PROJECTS, JSON.stringify(projects))
+  }
+
+  // 获取当前激活的项目ID
+  getCurrentProjectId(): string | null {
+    return localStorage.getItem(STORAGE_KEYS.CURRENT_PROJECT)
+  }
+
+  // 设置当前激活的项目
+  setCurrentProject(projectId: string): void {
+    localStorage.setItem(STORAGE_KEYS.CURRENT_PROJECT, projectId)
+  }
+
+  // 创建新项目（从当前数据）
+  createProjectFromCurrentData(name: string, description?: string): Project {
+    const projects = this.getProjects()
+    const now = new Date().toISOString()
+
+    const newProject: Project = {
+      id: `project_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      name,
+      description,
+      createdAt: now,
+      updatedAt: now,
+      data: {
+        words: this.getWords(),
+        connections: this.getConnections(),
+        relationTypes: this.getRelationTypes(),
+        posTypes: this.getPosTypes(),
+      }
+    }
+
+    projects.push(newProject)
+    this.saveProjects(projects)
+    this.setCurrentProject(newProject.id)
+
+    return newProject
+  }
+
+  // 导入数据为新项目
+  importDataAsProject(name: string, data: {
+    words: StoredWord[]
+    connections: StoredConnection[]
+    relationTypes: StoredRelationType[]
+    posTypes?: StoredPosType[]
+  }, description?: string): Project {
+    const projects = this.getProjects()
+    const now = new Date().toISOString()
+
+    const newProject: Project = {
+      id: `project_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      name,
+      description,
+      createdAt: now,
+      updatedAt: now,
+      data: {
+        words: data.words,
+        connections: data.connections,
+        relationTypes: data.relationTypes,
+        posTypes: data.posTypes || [],
+      }
+    }
+
+    projects.push(newProject)
+    this.saveProjects(projects)
+
+    return newProject
+  }
+
+  // 切换到指定项目
+  switchToProject(projectId: string): boolean {
+    const projects = this.getProjects()
+    const project = projects.find(p => p.id === projectId)
+
+    if (!project) {
+      return false
+    }
+
+    // 加载项目数据到当前工作区
+    this.saveWords(project.data.words)
+    this.saveConnections(project.data.connections)
+    this.saveRelationTypes(project.data.relationTypes)
+    this.savePosTypes(project.data.posTypes)
+
+    this.setCurrentProject(projectId)
+    return true
+  }
+
+  // 更新当前项目数据
+  updateCurrentProject(): boolean {
+    const currentProjectId = this.getCurrentProjectId()
+    if (!currentProjectId) {
+      return false
+    }
+
+    const projects = this.getProjects()
+    const index = projects.findIndex(p => p.id === currentProjectId)
+
+    if (index === -1) {
+      return false
+    }
+
+    projects[index].data = {
+      words: this.getWords(),
+      connections: this.getConnections(),
+      relationTypes: this.getRelationTypes(),
+      posTypes: this.getPosTypes(),
+    }
+    projects[index].updatedAt = new Date().toISOString()
+
+    this.saveProjects(projects)
+    return true
+  }
+
+  // 重命名项目
+  renameProject(projectId: string, newName: string, newDescription?: string): boolean {
+    const projects = this.getProjects()
+    const index = projects.findIndex(p => p.id === projectId)
+
+    if (index === -1) {
+      return false
+    }
+
+    projects[index].name = newName
+    if (newDescription !== undefined) {
+      projects[index].description = newDescription
+    }
+    projects[index].updatedAt = new Date().toISOString()
+
+    this.saveProjects(projects)
+    return true
+  }
+
+  // 删除项目
+  deleteProject(projectId: string): boolean {
+    const projects = this.getProjects()
+    const filtered = projects.filter(p => p.id !== projectId)
+
+    if (filtered.length === projects.length) {
+      return false  // 项目不存在
+    }
+
+    this.saveProjects(filtered)
+
+    // 如果删除的是当前项目，清空当前项目ID
+    if (this.getCurrentProjectId() === projectId) {
+      localStorage.removeItem(STORAGE_KEYS.CURRENT_PROJECT)
+      // 清空当前工作区数据
+      this.clearAll()
+    }
+
+    return true
+  }
+
+  // 导出项目
+  exportProject(projectId: string): Project | null {
+    const projects = this.getProjects()
+    const project = projects.find(p => p.id === projectId)
+    return project || null
+  }
 }
+
 
 export const storageService = new StorageService()
