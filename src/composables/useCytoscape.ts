@@ -229,6 +229,9 @@ export function useCytoscape(options: UseCytoscapeOptions) {
 
         options.onSelectionChange(sortedNodes)
       }
+
+      // 更新节点颜色（取消选中时恢复原始颜色）
+      updateNodeColors()
     })
 
     // Background click handler - clear click order and close detail when clicking background
@@ -361,6 +364,22 @@ export function useCytoscape(options: UseCytoscapeOptions) {
     cyInstance.value = cy
   }
 
+  // 计算节点的关系数量并返回对应的颜色
+  const getNodeColorByDegree = (nodeId: string, edges: any[]) => {
+    // 计算该节点的关系总数（入度 + 出度）
+    const degree = edges.filter(edge =>
+      edge.data.source === nodeId || edge.data.target === nodeId
+    ).length
+
+    // 根据关系数量返回不同的颜色
+    if (degree === 0) return { bg: '#95a5a6', border: '#7f8c8d' }        // 灰色 - 孤立节点
+    if (degree <= 2) return { bg: '#3498db', border: '#2980b9' }        // 蓝色 - 少量关系
+    if (degree <= 5) return { bg: '#1abc9c', border: '#16a085' }        // 青色 - 中等关系
+    if (degree <= 10) return { bg: '#f39c12', border: '#d68910' }       // 橙色 - 较多关系
+    if (degree <= 20) return { bg: '#e67e22', border: '#ca6f1e' }       // 深橙 - 很多关系
+    return { bg: '#e74c3c', border: '#c0392b' }                         // 红色 - 大量关系（核心节点）
+  }
+
   const updateGraph = () => {
     if (!cyInstance.value) return
 
@@ -381,6 +400,9 @@ export function useCytoscape(options: UseCytoscapeOptions) {
 
       // 更新节点标签显示
       updateNodeLabels()
+
+      // 应用基于关系数量的节点颜色
+      updateNodeColors()
 
       // 选中中心词并触发详情显示
       selectCenterNode()
@@ -415,6 +437,9 @@ export function useCytoscape(options: UseCytoscapeOptions) {
 
         // 更新节点标签显示
         updateNodeLabels()
+
+        // 应用基于关系数量的节点颜色
+        updateNodeColors()
 
         // 选中中心词并触发详情显示
         selectCenterNode()
@@ -452,6 +477,26 @@ export function useCytoscape(options: UseCytoscapeOptions) {
         edge.style('display', 'element')
       } else {
         edge.style('display', 'none')
+      }
+    })
+  }
+
+  // 更新节点颜色（基于关系数量）
+  const updateNodeColors = () => {
+    if (!cyInstance.value) return
+
+    const allEdges = cyInstance.value.edges().jsons()
+
+    cyInstance.value.nodes().forEach((node: any) => {
+      const nodeId = node.data('id')
+      const colors = getNodeColorByDegree(nodeId, allEdges)
+
+      // 只有未选中时才更新颜色（保持选中时的红色）
+      if (!node.selected()) {
+        node.style({
+          'background-color': colors.bg,
+          'border-color': colors.border,
+        })
       }
     })
   }
@@ -672,6 +717,9 @@ export function useCytoscape(options: UseCytoscapeOptions) {
 
     // 更新节点标签显示
     updateNodeLabels()
+
+    // 更新节点颜色
+    updateNodeColors()
 
     // 如果没有提供位置，运行布局算法
     if (!position) {
