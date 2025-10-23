@@ -2,15 +2,45 @@
 
 > 现代化的 WordNet 可视化工具 - 基于 Vue 3 + TypeScript + Cytoscape.js
 
-## ✨ 特性
+## 🚀 快速开始
 
-- 🎨 **现代化界面** - 使用 Tailwind CSS 构建的美观响应式设计
-- 📊 **交互式图形可视化** - 基于 Cytoscape.js 的强大图形渲染
-- 🔍 **词汇关系探索** - 支持上位词、下位词、同义词、反义词等多种关系
-- ⚡ **高性能** - Vite 构建工具提供极速开发体验
+**3 步快速体验：**
+
+```bash
+# 1. 安装依赖
+npm install
+
+# 2. 启动开发服务器
+npm run dev
+
+# 3. 导入示例数据
+访问 http://localhost:3001/admin/data
+点击"导入为新项目"，选择 data/demo-data.json
+```
+
+**立即可用！** 导入后系统自动激活项目，在首页即可查看词汇关系图谱。
+
+## ✨ 核心特性
+
+### 可视化功能
+- 🎨 **交互式图形** - 基于 Cytoscape.js 的强大图形渲染引擎
+- 🔍 **词汇关系探索** - 支持上位词、下位词、同义词、反义词等 8 种关系类型
+- 🎯 **智能布局** - 力导向、圆形、网格、层次等多种布局算法
+- 🌈 **节点着色** - 根据关系数量自动着色，快速识别核心词汇
+- 📊 **实时筛选** - 支持按关系类型动态筛选显示
+
+### 数据管理
+- 📁 **多项目支持** - 管理多个独立词汇项目，自由切换
+- 📥 **批量导入** - 支持 Excel/CSV 批量导入词汇数据
+- 💾 **项目管理** - 创建、重命名、导出、删除项目
+- 🔄 **数据同步** - 自动保存项目修改
+- 📤 **导入导出** - JSON 格式数据导入导出
+
+### 技术架构
+- ⚡ **高性能** - Vite 构建 + 批量处理优化
 - 🎯 **类型安全** - 完整的 TypeScript 类型支持
-- 🧪 **测试覆盖** - 配置 Vitest 测试框架
-- 📦 **状态管理** - 使用 Zustand 进行轻量级状态管理
+- 📦 **状态管理** - Pinia 轻量级状态管理
+- 🎨 **现代UI** - Tailwind CSS 响应式设计
 
 ## 🚀 技术栈
 
@@ -65,24 +95,34 @@ pnpm format
 
 ```
 wordNet-navigator/
+├── data/                    # 示例数据文件
+│   ├── demo-data.json       # 完整项目示例数据
+│   └── CET-6.xlsx           # 英语六级词汇表
 ├── src/
 │   ├── components/          # Vue 组件
 │   │   ├── Header.vue       # 顶部标题栏
-│   │   ├── Sidebar.vue      # 侧边栏搜索和筛选
-│   │   ├── GraphCanvas.vue  # 图形画布容器
-│   │   ├── NodeDetail.vue   # 节点详情面板
-│   │   ├── Legend.vue       # 图例组件
-│   │   └── Toolbar.vue      # 工具栏
+│   │   ├── GraphCanvas.vue  # 图形画布（主要可视化组件）
+│   │   ├── Legend.vue       # 图例和关系类型筛选
+│   │   └── ...
+│   ├── views/               # 页面组件
+│   │   ├── Viewer.vue       # 前台可视化页面
+│   │   └── admin/           # 后台管理页面
+│   │       ├── Words.vue    # 词汇管理
+│   │       ├── Relations.vue # 关系类型管理
+│   │       ├── PosTypes.vue # 词性类型管理
+│   │       └── DataManagement.vue # 数据管理（项目管理）
 │   ├── composables/         # Vue Composables
-│   │   └── useCytoscape.ts  # Cytoscape 集成
+│   │   └── useCytoscape.ts  # Cytoscape 图形库集成
 │   ├── types/               # TypeScript 类型定义
 │   │   └── wordnet.ts       # WordNet 数据类型
 │   ├── utils/               # 工具函数
 │   │   └── relationConfig.ts # 关系类型配置
-│   ├── services/            # API 和数据服务
-│   │   └── wordnetService.ts # WordNet 数据服务
+│   ├── services/            # 数据服务
+│   │   ├── wordnetService.ts # WordNet 图形数据服务
+│   │   └── storageService.ts # 本地存储服务（支持多项目）
 │   ├── stores/              # Pinia 状态管理
-│   │   └── graphStore.ts    # 图形状态 Store
+│   │   ├── graphStore.ts    # 图形状态
+│   │   └── adminStore.ts    # 后台管理状态
 │   ├── styles/              # 全局样式
 │   │   └── index.css        # Tailwind 样式入口
 │   ├── App.vue              # 根组件
@@ -93,8 +133,7 @@ wordNet-navigator/
 ├── tsconfig.json            # TypeScript 配置
 ├── vite.config.ts           # Vite 配置
 ├── tailwind.config.js       # Tailwind 配置
-├── .eslintrc.cjs            # ESLint 配置
-└── .prettierrc              # Prettier 配置
+└── README.md                # 项目文档
 ```
 
 ## 🎯 核心功能
@@ -157,42 +196,143 @@ wordNet-navigator/
 - 部分词: `#9b59b6` (紫色)
 - 整体词: `#1abc9c` (青绿色)
 
-## 🔄 迁移说明
+## 💾 数据管理
 
-### 从原单文件版本迁移的改进
+### 多项目支持
 
-1. **模块化架构** - 从单文件 HTML 拆分为多个模块化组件
-2. **类型安全** - 添加完整的 TypeScript 类型定义
-3. **现代构建** - 使用 Vite 替代 CDN 引入
-4. **状态管理** - 使用 Zustand 进行集中式状态管理
-5. **样式系统** - 使用 Tailwind CSS 替代内联样式
-6. **开发体验** - 热更新、类型检查、代码检查等
+应用支持管理多个独立的词汇项目：
+
+- ✅ **项目切换** - 在不同项目间自由切换
+- ✅ **独立存储** - 每个项目的数据完全独立
+- ✅ **导入导出** - 支持导入/导出 JSON 格式数据
+- ✅ **自动激活** - 首个导入的项目自动激活
+
+**项目管理功能：**
+- 创建项目（从当前工作区）
+- 导入 JSON 为新项目
+- 切换项目
+- 重命名项目
+- 导出项目数据
+- 删除项目
+
+**访问路径：** `/admin/data`
+
+### 数据格式
+
+**JSON 数据文件结构：**
+```json
+{
+  "words": [
+    {
+      "id": "dog",
+      "label": "dog",
+      "phonetic": "/dɒg/",
+      "posDefinitions": [
+        { "pos": "noun", "definition": "驯养的食肉哺乳动物" }
+      ],
+      "examples": ["The dog barked loudly."]
+    }
+  ],
+  "connections": [
+    {
+      "source": "dog",
+      "target": "canine",
+      "relation": "hypernym"
+    }
+  ],
+  "relationTypes": [...],
+  "posTypes": [...]
+}
+```
+
+### Excel 导入格式
+
+支持导入 Excel (.xlsx) 和 CSV 文件，格式要求：
+
+| 词汇 | 音标 | 词性 | 定义 | 例句 |
+|------|------|------|------|------|
+| dog | /dɒg/ | noun | 驯养的食肉哺乳动物 | The dog barked. |
+
+**批量导入流程：**
+1. 准备 Excel 文件（参考 `data/CET-6.xlsx`）
+2. 访问 `/admin/words`
+3. 点击"批量导入"按钮
+4. 选择文件并导入
+5. 系统自动解析并添加词汇
+
+## 🔄 技术架构
+
+### 核心技术栈
+
+1. **模块化架构** - 组件化开发，职责分离
+2. **类型安全** - 完整的 TypeScript 类型定义
+3. **现代构建** - Vite 提供极速开发体验
+4. **状态管理** - Pinia 管理应用状态
+5. **样式系统** - Tailwind CSS 响应式设计
+6. **图形可视化** - Cytoscape.js 强大的图形渲染
+7. **本地存储** - LocalStorage 支持多项目管理
 
 ## 🎯 使用指南
 
-### 首次使用
+### 快速开始（使用示例数据）
 
-应用首次启动时为**空白状态**，您需要：
+项目提供了示例数据文件，位于 `data/` 目录：
 
-1. **配置关系类型和词性类型**
+#### 方式 1：导入完整项目数据（推荐）
+
+使用 `data/demo-data.json` 快速体验完整功能：
+
+1. 启动应用后，访问 `/admin/data`（数据管理页面）
+2. 点击 **"📥 导入为新项目"**
+3. 选择 `data/demo-data.json` 文件
+4. 输入项目名称（如：Demo Project）
+5. ✅ **系统自动激活项目**，立即可用！
+
+**demo-data.json 包含：**
+- ✅ 14 个英语词汇（dog, cat, puppy 等动物相关词汇）
+- ✅ 24 条词汇关系（上位词、下位词、同义词等）
+- ✅ 8 种关系类型配置（hypernym, hyponym, synonym 等）
+- ✅ 10 种词性类型配置（名词、动词、形容词等）
+
+导入后即可在前台查看词汇关系图谱！
+
+#### 方式 2：批量导入词汇表
+
+使用 `data/CET-6.xlsx` 批量导入大量词汇：
+
+1. 访问 `/admin/words`（词汇管理页面）
+2. 点击 **"批量导入"** 按钮
+3. 选择 `data/CET-6.xlsx` 文件
+4. 系统将自动导入 Excel 中的词汇数据
+5. 导入完成后可手动添加词汇关系
+
+**CET-6.xlsx 包含：**
+- ✅ 英语六级词汇表
+- ✅ 词汇、音标、词性、定义、例句等完整信息
+
+**Excel 文件格式要求：**
+```
+列名：词汇 | 音标 | 词性 | 定义 | 例句
+示例：dog  | /dɒg/ | n.  | 狗   | The dog barked.
+```
+
+### 从零开始
+
+应用首次启动时为**空白状态**，您可以：
+
+1. **配置基础类型**
    - 访问 `/admin/relations` 添加关系类型（如：上位词、下位词、同义词等）
    - 访问 `/admin/pos-types` 添加词性类型（如：名词、动词、形容词等）
 
 2. **添加词汇数据**
    - 访问 `/admin/words` 手动添加词汇
    - 或使用批量导入功能导入 Excel/CSV 文件
-   - 或从 JSON 文件导入完整数据
+   - 或从 JSON 文件导入完整项目数据
 
-3. **数据管理**
-   - 访问 `/admin/data` 进行数据导入导出
-   - 定期导出备份以防数据丢失
-
-### 快速开始
-
-如需快速体验，可以：
-1. 访问"数据管理"页面
-2. 准备一个包含词汇、关系、配置的 JSON 文件
-3. 点击"导入数据"按钮导入示例数据
+3. **创建项目**
+   - 访问 `/admin/data` 数据管理页面
+   - 点击 **"新建项目"** 将当前数据保存为项目
+   - 支持创建多个项目并自由切换
 
 ## 🚧 后续计划
 
