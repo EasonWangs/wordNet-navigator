@@ -53,11 +53,11 @@
       <div class="bg-white rounded-lg shadow p-6">
         <h3 class="text-lg font-semibold text-gray-900 mb-4">🗑️ 清空数据</h3>
         <p class="text-sm text-gray-600 mb-4">
-          清空所有词汇和关系数据（保留关系类型和词性配置）。
+          清空所有数据，包括词汇、关系、关系类型和词性配置。
         </p>
         <div class="bg-red-50 border border-red-200 rounded-md p-3 mb-4">
           <p class="text-xs text-red-800">
-            ⚠️ <strong>危险操作</strong>：此操作不可撤销，建议先导出备份！
+            ⚠️ <strong>危险操作</strong>：将清空所有数据和配置，此操作不可撤销，建议先导出备份！
           </p>
         </div>
         <button
@@ -170,18 +170,18 @@ function handleFileChange(event: Event) {
 
 // 清空所有数据
 function clearAllData() {
-  if (!confirm('确定要清空所有词汇和关系数据吗？\n\n关系类型和词性配置将保留。\n\n此操作不可撤销！')) {
+  if (!confirm('确定要清空所有数据吗？\n\n包括：词汇、关系、关系类型、词性配置\n\n此操作不可撤销！')) {
     return
   }
 
-  if (!confirm('最后确认：真的要清空所有数据吗？')) {
+  if (!confirm('最后确认：真的要清空所有数据和配置吗？')) {
     return
   }
 
   storageService.clearAll()
   adminStore.loadData()
 
-  alert('数据已清空！')
+  alert('所有数据和配置已清空！')
 }
 
 // 获取存储大小

@@ -46,7 +46,11 @@ class StorageService {
     if (stored) {
       return JSON.parse(stored)
     }
-    // 初始化默认关系类型（包含配对关系和箭头样式）
+    return []
+  }
+
+  // 初始化默认关系类型（仅在需要时调用）
+  initializeDefaultRelationTypes(): StoredRelationType[] {
     const defaults: StoredRelationType[] = Object.entries(relationConfig).map(([key, config]) => {
       // 默认配对关系映射
       const defaultPairMap: Record<string, string> = {
@@ -118,7 +122,11 @@ class StorageService {
     if (stored) {
       return JSON.parse(stored)
     }
-    // 初始化默认词性类型
+    return []
+  }
+
+  // 初始化默认词性类型（仅在需要时调用）
+  initializeDefaultPosTypes(): StoredPosType[] {
     const defaults: StoredPosType[] = [
       { key: 'noun', label: '名词', abbreviation: 'n.', description: '表示人、事物、地点或抽象概念' },
       { key: 'verb', label: '动词', abbreviation: 'v.', description: '表示动作或状态' },
@@ -310,49 +318,7 @@ class StorageService {
     localStorage.removeItem(STORAGE_KEYS.WORDS)
     localStorage.removeItem(STORAGE_KEYS.CONNECTIONS)
     localStorage.removeItem(STORAGE_KEYS.RELATION_TYPES)
-  }
-
-  // 初始化数据（从 Mock 数据迁移）
-  initializeMockData(mockData: { nodes: Array<{ data: WordNode }>; edges: Array<{ data: WordEdge }> }): void {
-    // 检查是否已经初始化过
-    const existingWords = this.getWords()
-    if (existingWords.length > 0) {
-      console.log('数据已存在，跳过初始化')
-      return
-    }
-
-    const now = new Date().toISOString()
-
-    // 转换节点数据为 StoredWord 格式（使用新格式）
-    const words: StoredWord[] = mockData.nodes.map((node) => ({
-      id: node.data.id,
-      label: node.data.label,
-      phonetic: (node.data as any).phonetic,
-      posDefinitions: (node.data as any).posDefinitions || [],
-      examples: node.data.examples || [],
-      createdAt: now,
-      updatedAt: now,
-    }))
-
-    // 转换边数据为 StoredConnection 格式
-    const connections: StoredConnection[] = mockData.edges.map((edge, index) => ({
-      id: `conn_init_${index}_${Date.now()}`,
-      source: edge.data.source,
-      target: edge.data.target,
-      relation: edge.data.relation,
-      createdAt: now,
-    }))
-
-    // 保存到 localStorage
-    this.saveWords(words)
-    this.saveConnections(connections)
-
-    console.log(`已初始化 ${words.length} 个词汇和 ${connections.length} 个关系连接`)
-  }
-
-  // 检查是否已初始化
-  isInitialized(): boolean {
-    return this.getWords().length > 0
+    localStorage.removeItem(STORAGE_KEYS.POS_TYPES)
   }
 }
 
