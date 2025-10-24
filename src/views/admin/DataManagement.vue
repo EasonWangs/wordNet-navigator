@@ -34,6 +34,7 @@
           </div>
           <div class="flex gap-2">
             <button
+              v-if="currentProjectHasUnsavedChanges"
               @click="saveCurrentProject"
               class="px-3 py-1.5 bg-green-500 text-white rounded text-sm hover:bg-green-600 transition-colors"
               title="保存当前工作到项目"
@@ -290,6 +291,60 @@
         </div>
       </div>
     </div>
+
+    <!-- 切换项目确认对话框 -->
+    <div
+      v-if="showSwitchConfirmDialog"
+      class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+      @click.self="closeSwitchConfirmDialog"
+    >
+      <div class="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+        <h3 class="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+          <span class="text-2xl">⚠️</span>
+          <span>切换项目确认</span>
+        </h3>
+
+        <div class="mb-6">
+          <p class="text-sm text-gray-700 mb-3">
+            切换到项目 <span class="font-semibold text-blue-600">{{ targetProjectName }}</span> 会加载该项目的数据到当前工作区。
+          </p>
+
+          <div v-if="hasUnsavedChanges" class="bg-yellow-50 border border-yellow-300 rounded-md p-4 mb-3">
+            <p class="text-sm text-yellow-800 font-medium mb-1">⚠️ 检测到未保存的修改</p>
+            <p class="text-xs text-yellow-700">
+              当前工作区有未保存的修改，建议先保存再切换。
+            </p>
+          </div>
+
+          <p class="text-xs text-gray-500">
+            请选择如何处理当前工作区的数据：
+          </p>
+        </div>
+
+        <div class="flex flex-col gap-3">
+          <button
+            @click="handleSwitchWithSave"
+            class="w-full px-4 py-2.5 bg-green-500 text-white rounded-md hover:bg-green-600 transition-colors flex items-center justify-center gap-2"
+          >
+            <span>💾</span>
+            <span>保存并切换</span>
+          </button>
+          <button
+            @click="handleSwitchWithoutSave"
+            class="w-full px-4 py-2.5 bg-orange-500 text-white rounded-md hover:bg-orange-600 transition-colors flex items-center justify-center gap-2"
+          >
+            <span>🔄</span>
+            <span>放弃并切换</span>
+          </button>
+          <button
+            @click="closeSwitchConfirmDialog"
+            class="w-full px-4 py-2.5 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 transition-colors"
+          >
+            取消
+          </button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -312,9 +367,24 @@ const editProjectName = ref('')
 const editProjectDescription = ref('')
 const importFileRef = ref<HTMLInputElement | null>(null)
 
+// 切换项目确认对话框
+const showSwitchConfirmDialog = ref(false)
+const targetSwitchProjectId = ref<string | null>(null)
+const hasUnsavedChanges = ref(false)
+const targetProjectName = computed(() => {
+  if (!targetSwitchProjectId.value) return ''
+  const project = projects.value.find(p => p.id === targetSwitchProjectId.value)
+  return project?.name || ''
+})
+
 // 当前项目
 const currentProject = computed(() => {
   return projects.value.find(p => p.id === currentProjectId.value) || null
+})
+
+// 当前项目是否有未保存的修改
+const currentProjectHasUnsavedChanges = computed(() => {
+  return storageService.hasUnsavedChanges()
 })
 
 onMounted(() => {
@@ -366,17 +436,69 @@ function createProject() {
 
 // 切换项目
 function switchProject(projectId: string) {
-  if (!confirm('切换项目会加载该项目的数据到当前工作区，未保存的修改将丢失。是否继续？')) {
+  // 检查是否有未保存的修改
+  hasUnsavedChanges.value = storageService.hasUnsavedChanges()
+
+  // 如果没有未保存的修改，直接切换
+  if (!hasUnsavedChanges.value) {
+    if (storageService.switchToProject(projectId)) {
+      currentProjectId.value = projectId
+      adminStore.loadData()
+      loadProjects()
+      alert('项目切换成功！')
+    } else {
+      alert('项目切换失败')
+    }
     return
   }
 
-  if (storageService.switchToProject(projectId)) {
-    currentProjectId.value = projectId
+  // 有未保存的修改，显示确认对话框
+  targetSwitchProjectId.value = projectId
+  showSwitchConfirmDialog.value = true
+}
+
+// 保存并切换
+function handleSwitchWithSave() {
+  if (!targetSwitchProjectId.value) return
+
+  // 先保存当前项目
+  if (currentProjectId.value) {
+    storageService.updateCurrentProject()
+  }
+
+  // 切换到目标项目
+  if (storageService.switchToProject(targetSwitchProjectId.value)) {
+    currentProjectId.value = targetSwitchProjectId.value
     adminStore.loadData()
+    loadProjects()
+    closeSwitchConfirmDialog()
+    alert('项目已保存并切换成功！')
+  } else {
+    alert('项目切换失败')
+  }
+}
+
+// 放弃并切换
+function handleSwitchWithoutSave() {
+  if (!targetSwitchProjectId.value) return
+
+  // 直接切换到目标项目（不保存当前修改）
+  if (storageService.switchToProject(targetSwitchProjectId.value)) {
+    currentProjectId.value = targetSwitchProjectId.value
+    adminStore.loadData()
+    loadProjects()
+    closeSwitchConfirmDialog()
     alert('项目切换成功！')
   } else {
     alert('项目切换失败')
   }
+}
+
+// 关闭切换确认对话框
+function closeSwitchConfirmDialog() {
+  showSwitchConfirmDialog.value = false
+  targetSwitchProjectId.value = null
+  hasUnsavedChanges.value = false
 }
 
 // 保存当前项目

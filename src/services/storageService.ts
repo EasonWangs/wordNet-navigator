@@ -435,6 +435,32 @@ class StorageService {
     return true
   }
 
+  // 检查当前项目是否有未保存的修改
+  hasUnsavedChanges(): boolean {
+    const currentProjectId = this.getCurrentProjectId()
+    if (!currentProjectId) {
+      return false
+    }
+
+    const projects = this.getProjects()
+    const project = projects.find(p => p.id === currentProjectId)
+
+    if (!project) {
+      return false
+    }
+
+    // 比较当前工作区数据和项目保存的数据
+    const currentData = {
+      words: this.getWords(),
+      connections: this.getConnections(),
+      relationTypes: this.getRelationTypes(),
+      posTypes: this.getPosTypes(),
+    }
+
+    // 使用 JSON 字符串比较（简单但有效）
+    return JSON.stringify(currentData) !== JSON.stringify(project.data)
+  }
+
   // 更新当前项目数据
   updateCurrentProject(): boolean {
     const currentProjectId = this.getCurrentProjectId()
