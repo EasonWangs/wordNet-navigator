@@ -697,6 +697,45 @@ export function useCytoscape(options: UseCytoscapeOptions) {
     }
   }
 
+  // 添加边（关系）
+  const addEdge = (source: string, target: string, relation: string) => {
+    if (!cyInstance.value) return
+
+    // 检查节点是否存在
+    const sourceNode = cyInstance.value.getElementById(source)
+    const targetNode = cyInstance.value.getElementById(target)
+
+    if (!sourceNode.length || !targetNode.length) {
+      console.warn(`Cannot add edge: source "${source}" or target "${target}" not found`)
+      return
+    }
+
+    // 检查边是否已存在
+    const existingEdges = cyInstance.value.edges(`[source="${source}"][target="${target}"][relation="${relation}"]`)
+    if (existingEdges.length > 0) {
+      console.warn('Edge already exists')
+      return
+    }
+
+    // 创建边配置
+    const edgeConfig = {
+      group: 'edges',
+      data: {
+        source,
+        target,
+        relation,
+      }
+    }
+
+    // 添加边到图表
+    const newEdge = cyInstance.value.add(edgeConfig)
+
+    // 更新节点颜色（因为节点的关系数量变化了）
+    updateNodeColors()
+
+    return newEdge
+  }
+
   // 添加新节点到指定位置
   const addNode = (nodeData: any, position?: { x: number; y: number }) => {
     if (!cyInstance.value) return
@@ -738,6 +777,7 @@ export function useCytoscape(options: UseCytoscapeOptions) {
     removeNode,
     removeNodes,
     removeEdge,
+    addEdge,
     addNode,
   }
 }

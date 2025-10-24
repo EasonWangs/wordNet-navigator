@@ -799,6 +799,11 @@ async function deleteRelation(connectionId: string) {
     // 删除这个连接
     adminStore.deleteConnection(connectionId)
 
+    // 动态从图表中移除边（不刷新整个图表）
+    if (removeEdge) {
+      removeEdge(connection.source, connection.target, connection.relation)
+    }
+
     // 查找并删除反向关系
     const relationTypeConfig = adminStore.relationTypes.find(rt => rt.key === connection.relation)
     if (relationTypeConfig?.pairWith) {
@@ -809,15 +814,16 @@ async function deleteRelation(connectionId: string) {
       )
       if (reverseConnection) {
         adminStore.deleteConnection(reverseConnection.id)
+
+        // 动态从图表中移除反向边
+        if (removeEdge) {
+          removeEdge(reverseConnection.source, reverseConnection.target, reverseConnection.relation)
+        }
       }
     }
 
     // 更新已存在的关系列表
     existingRelations.value = existingRelations.value.filter(r => r.id !== connectionId)
-
-    // 刷新图表数据
-    const data = await WordNetService.fetchWordGraph(graphStore.searchQuery || '*')
-    graphStore.setGraphData(data)
   } catch (error) {
     console.error('Failed to delete relation:', error)
     alert('删除关系失败')
@@ -841,12 +847,17 @@ async function saveRelation() {
     const targetId = selectedNodes.value[1].id
     const relationType = newRelationForm.value.relationType
 
-    // 添加关系
+    // 添加关系到存储
     adminStore.addConnection({
       source: sourceId,
       target: targetId,
       relation: relationType as any,
     })
+
+    // 动态添加边到图表（不刷新整个图表）
+    if (addEdge) {
+      addEdge(sourceId, targetId, relationType)
+    }
 
     // 检查是否需要添加反向关系
     const relationTypeConfig = adminStore.relationTypes.find(rt => rt.key === relationType)
@@ -856,6 +867,11 @@ async function saveRelation() {
         target: sourceId,
         relation: relationTypeConfig.pairWith as any,
       })
+
+      // 动态添加反向边到图表
+      if (addEdge) {
+        addEdge(targetId, sourceId, relationTypeConfig.pairWith)
+      }
     }
 
     // 重置表单
@@ -877,10 +893,6 @@ async function saveRelation() {
       closeCreateRelationDialog()
       clearSelection()
     }
-
-    // 刷新图表数据
-    const data = await WordNetService.fetchWordGraph(graphStore.searchQuery || '*')
-    graphStore.setGraphData(data)
   } catch (error) {
     console.error('Failed to create relation:', error)
     alert('创建关系失败')
@@ -984,7 +996,7 @@ function handleEdgeDelete(edgeData: any) {
   }
 }
 
-const { containerRef, fitView, exportPNG, updateNodeData, removeNode, removeNodes, removeEdge, addNode } = useCytoscape({
+const { containerRef, fitView, exportPNG, updateNodeData, removeNode, removeNodes, removeEdge, addEdge, addNode } = useCytoscape({
   get graphData() {
     return graphDataRef.value
   },
