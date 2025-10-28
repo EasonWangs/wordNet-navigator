@@ -640,9 +640,22 @@ const filteredQuickLinkWords = computed(() => {
   }
 
   const searchTerm = quickLinkSearch.value.toLowerCase()
+
+  // 获取当前词汇已经关联的所有节点ID
+  const connectedNodeIds = new Set<string>()
+  adminStore.connections.forEach(c => {
+    if (c.source === editingWordId.value) {
+      connectedNodeIds.add(c.target)
+    }
+    if (c.target === editingWordId.value) {
+      connectedNodeIds.add(c.source)
+    }
+  })
+
   const matches = adminStore.words
     .filter(w =>
       w.id !== editingWordId.value && // 排除当前编辑的词汇
+      !connectedNodeIds.has(w.id) && // 排除已经关联过的词汇
       w.label.toLowerCase().includes(searchTerm)
     )
 
