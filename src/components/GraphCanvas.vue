@@ -847,6 +847,10 @@ async function saveRelation() {
     const targetId = selectedNodes.value[1].id
     const relationType = newRelationForm.value.relationType
 
+    // 获取完整的节点数据（以防节点不在图表中）
+    const sourceWordData = adminStore.words.find(w => w.id === sourceId)
+    const targetWordData = adminStore.words.find(w => w.id === targetId)
+
     // 添加关系到存储
     adminStore.addConnection({
       source: sourceId,
@@ -854,10 +858,36 @@ async function saveRelation() {
       relation: relationType as any,
     })
 
-    // 动态添加边到图表（不刷新整个图表）
-    if (addEdge) {
-      addEdge(sourceId, targetId, relationType)
+    // 检查并添加缺失的节点到 graphData（防止 watch 触发时节点丢失）
+    const sourceNodeExists = graphStore.graphData.nodes.some(n => n.data.id === sourceId)
+    const targetNodeExists = graphStore.graphData.nodes.some(n => n.data.id === targetId)
+
+    if (!sourceNodeExists && sourceWordData) {
+      graphStore.graphData.nodes.push({
+        data: sourceWordData
+      } as any)
     }
+
+    if (!targetNodeExists && targetWordData) {
+      graphStore.graphData.nodes.push({
+        data: targetWordData
+      } as any)
+    }
+
+    // 动态添加边到图表（不刷新整个图表）
+    // 传递完整的节点数据，以便在节点不存在时自动添加
+    if (addEdge) {
+      addEdge(sourceId, targetId, relationType, sourceWordData, targetWordData)
+    }
+
+    // 添加边到 graphData（防止 watch 触发时边丢失）
+    graphStore.graphData.edges.push({
+      data: {
+        source: sourceId,
+        target: targetId,
+        relation: relationType
+      }
+    } as any)
 
     // 检查是否需要添加反向关系
     const relationTypeConfig = adminStore.relationTypes.find(rt => rt.key === relationType)
@@ -869,9 +899,19 @@ async function saveRelation() {
       })
 
       // 动态添加反向边到图表
+      // 注意：反向关系的源和目标是相反的
       if (addEdge) {
-        addEdge(targetId, sourceId, relationTypeConfig.pairWith)
+        addEdge(targetId, sourceId, relationTypeConfig.pairWith, targetWordData, sourceWordData)
       }
+
+      // 添加反向边到 graphData
+      graphStore.graphData.edges.push({
+        data: {
+          source: targetId,
+          target: sourceId,
+          relation: relationTypeConfig.pairWith
+        }
+      } as any)
     }
 
     // 重置表单

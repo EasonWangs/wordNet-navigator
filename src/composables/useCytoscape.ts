@@ -698,12 +698,36 @@ export function useCytoscape(options: UseCytoscapeOptions) {
   }
 
   // 添加边（关系）
-  const addEdge = (source: string, target: string, relation: string) => {
+  const addEdge = (source: string, target: string, relation: string, sourceNodeData?: any, targetNodeData?: any) => {
     if (!cyInstance.value) return
 
-    // 检查节点是否存在
-    const sourceNode = cyInstance.value.getElementById(source)
-    const targetNode = cyInstance.value.getElementById(target)
+    // 检查节点是否存在，如果不存在且提供了节点数据，则自动添加
+    let sourceNode = cyInstance.value.getElementById(source)
+    let targetNode = cyInstance.value.getElementById(target)
+
+    // 如果源节点不存在，在中心位置添加
+    if (!sourceNode.length && sourceNodeData) {
+      addNode(sourceNodeData)
+      sourceNode = cyInstance.value.getElementById(source)
+    }
+
+    // 如果目标节点不存在，在源节点附近添加
+    if (!targetNode.length && targetNodeData) {
+      // 获取源节点的位置，在其附近创建目标节点
+      let targetPosition: { x: number; y: number } | undefined
+
+      if (sourceNode.length > 0) {
+        const sourcePos = sourceNode.position()
+        // 在源节点的右侧偏下方创建目标节点（偏移150px, 50px）
+        targetPosition = {
+          x: sourcePos.x + 150,
+          y: sourcePos.y + 50
+        }
+      }
+
+      addNode(targetNodeData, targetPosition)
+      targetNode = cyInstance.value.getElementById(target)
+    }
 
     if (!sourceNode.length || !targetNode.length) {
       console.warn(`Cannot add edge: source "${source}" or target "${target}" not found`)
@@ -718,7 +742,7 @@ export function useCytoscape(options: UseCytoscapeOptions) {
     }
 
     // 创建边配置
-    const edgeConfig = {
+    const edgeConfig: any = {
       group: 'edges',
       data: {
         source,
@@ -729,6 +753,13 @@ export function useCytoscape(options: UseCytoscapeOptions) {
 
     // 添加边到图表
     const newEdge = cyInstance.value.add(edgeConfig)
+
+    // 设置边的可见性（根据 activeRelations）
+    if (options.activeRelations.includes(relation)) {
+      newEdge.style('display', 'element')
+    } else {
+      newEdge.style('display', 'none')
+    }
 
     // 更新节点颜色（因为节点的关系数量变化了）
     updateNodeColors()
