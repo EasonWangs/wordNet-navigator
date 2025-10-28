@@ -170,6 +170,10 @@
                 class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary-500 text-sm"
                 @focus="showQuickLinkResults = true"
                 @blur="handleQuickLinkBlur"
+                @keydown.down.prevent="moveQuickLinkSelection('down')"
+                @keydown.up.prevent="moveQuickLinkSelection('up')"
+                @keydown.enter="handleQuickLinkEnter"
+                @keydown.esc.stop.prevent="hideQuickLinkResults"
               />
               <!-- 搜索结果下拉列表 -->
               <div
@@ -177,10 +181,12 @@
                 class="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-48 overflow-y-auto"
               >
                 <div
-                  v-for="word in filteredQuickLinkWords"
+                  v-for="(word, index) in filteredQuickLinkWords"
                   :key="word.id"
-                  class="px-3 py-2 hover:bg-gray-100 cursor-pointer text-sm"
+                  class="px-3 py-2 cursor-pointer text-sm hover:bg-gray-100"
+                  :class="{ 'bg-gray-100': index === quickLinkActiveIndex }"
                   @mousedown.prevent="selectQuickLinkWord(word)"
+                  @mouseenter="quickLinkActiveIndex = index"
                 >
                   <span class="font-medium">{{ word.label }}</span>
                   <span v-if="word.posDefinitions && word.posDefinitions[0]?.definition" class="text-gray-500 ml-2 text-xs">
@@ -316,7 +322,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, toRef, computed, nextTick } from 'vue'
+import { ref, toRef, computed, nextTick, watch } from 'vue'
 import { useGraphStore } from '@/stores/graphStore'
 import { useAdminStore } from '@/stores/adminStore'
 import { useCytoscape } from '@/composables/useCytoscape'
@@ -357,6 +363,7 @@ const newRelationForm = ref({
 // 快速关联词汇
 const quickLinkSearch = ref('')
 const showQuickLinkResults = ref(false)
+const quickLinkActiveIndex = ref(-1)
 
 // 添加词汇时的搜索
 const showAddWordSearchResults = ref(false)
@@ -664,10 +671,75 @@ const filteredQuickLinkWords = computed(() => {
   return sorted.slice(0, 10) // 最多显示10个结果
 })
 
+watch(filteredQuickLinkWords, newItems => {
+  if (!newItems.length) {
+    quickLinkActiveIndex.value = -1
+    return
+  }
+
+  if (quickLinkActiveIndex.value < 0 || quickLinkActiveIndex.value >= newItems.length) {
+    quickLinkActiveIndex.value = 0
+  }
+})
+
+function moveQuickLinkSelection(direction: 'up' | 'down') {
+  const items = filteredQuickLinkWords.value
+  if (!items.length) {
+    return
+  }
+
+  showQuickLinkResults.value = true
+
+  if (direction === 'down') {
+    if (quickLinkActiveIndex.value === -1) {
+      quickLinkActiveIndex.value = 0
+      return
+    }
+
+    quickLinkActiveIndex.value = (quickLinkActiveIndex.value + 1) % items.length
+    return
+  }
+
+  // direction === 'up'
+  if (quickLinkActiveIndex.value <= 0) {
+    quickLinkActiveIndex.value = items.length - 1
+  } else {
+    quickLinkActiveIndex.value -= 1
+  }
+}
+
+function confirmQuickLinkSelection() {
+  const items = filteredQuickLinkWords.value
+  if (!items.length) {
+    return
+  }
+
+  const activeIndex = quickLinkActiveIndex.value >= 0 ? quickLinkActiveIndex.value : 0
+  const targetWord = items[activeIndex]
+  if (targetWord) {
+    selectQuickLinkWord(targetWord)
+  }
+}
+
+function hideQuickLinkResults() {
+  showQuickLinkResults.value = false
+  quickLinkActiveIndex.value = -1
+}
+
+function handleQuickLinkEnter(event: KeyboardEvent) {
+  if (!filteredQuickLinkWords.value.length) {
+    return
+  }
+
+  event.preventDefault()
+  event.stopPropagation()
+  confirmQuickLinkSelection()
+}
+
 function handleQuickLinkBlur() {
   // 延迟关闭，以便点击事件能够触发
   setTimeout(() => {
-    showQuickLinkResults.value = false
+    hideQuickLinkResults()
   }, 200)
 }
 
@@ -677,6 +749,7 @@ function selectQuickLinkWord(targetWord: any) {
   // 关闭搜索结果
   showQuickLinkResults.value = false
   quickLinkSearch.value = ''
+  quickLinkActiveIndex.value = -1
 
   // 设置选中的节点
   const currentWord = adminStore.words.find(w => w.id === editingWordId.value)
