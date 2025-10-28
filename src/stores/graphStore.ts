@@ -10,6 +10,7 @@ export const useGraphStore = defineStore('graph', () => {
   const searchQuery = ref<string>('*')
   const loading = ref<boolean>(false)
   const layout = ref<LayoutType>('cose')
+  const graphVersion = ref<number>(0)
   const showDefinitionInNode = ref<boolean>(false) // 是否在节点内显示定义
   const relationDepth = ref<number>(2) // 关系层级深度，默认2层
   const maxNodes = ref<number>(50) // 最大显示节点数，默认50个
@@ -31,6 +32,7 @@ export const useGraphStore = defineStore('graph', () => {
   // Actions
   function setGraphData(data: GraphData) {
     graphData.value = data
+    graphVersion.value += 1
   }
 
   function setSelectedNode(node: WordNode | null) {
@@ -82,6 +84,7 @@ export const useGraphStore = defineStore('graph', () => {
   return {
     // State
     graphData,
+    graphVersion,
     selectedNode,
     searchQuery,
     loading,

@@ -1027,6 +1027,7 @@ async function saveRelation() {
 
 // 使用 toRef 创建响应式引用
 const graphDataRef = toRef(graphStore, 'graphData')
+const graphVersionRef = toRef(graphStore, 'graphVersion')
 const activeRelationsRef = toRef(graphStore, 'activeRelations')
 const layoutRef = toRef(graphStore, 'layout')
 const showDefinitionInNodeRef = toRef(graphStore, 'showDefinitionInNode')
@@ -1125,6 +1126,9 @@ function handleEdgeDelete(edgeData: any) {
 const { containerRef, fitView, exportPNG, updateNodeData, removeNode, removeNodes, removeEdge, addEdge, addNode } = useCytoscape({
   get graphData() {
     return graphDataRef.value
+  },
+  get graphVersion() {
+    return graphVersionRef.value
   },
   get activeRelations() {
     return activeRelationsRef.value

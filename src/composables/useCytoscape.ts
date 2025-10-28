@@ -5,6 +5,7 @@ import { storageService } from '@/services/storageService'
 
 interface UseCytoscapeOptions {
   graphData: GraphData
+  graphVersion: number
   activeRelations: string[]
   layout: LayoutType
   showDefinitionInNode: boolean
@@ -580,13 +581,15 @@ export function useCytoscape(options: UseCytoscapeOptions) {
 
   // Watch for changes
   watch(
-    () => options.graphData,
-    (newData) => {
-      if (newData.nodes.length > 0) {
-        updateGraph()
+    () => options.graphVersion,
+    () => {
+      const data = options.graphData
+      if (!data.nodes.length && !data.edges.length) {
+        cyInstance.value?.elements().remove()
+        return
       }
-    },
-    { deep: true }
+      updateGraph()
+    }
   )
 
   watch(
