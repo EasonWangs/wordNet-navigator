@@ -178,11 +178,13 @@
               <!-- 搜索结果下拉列表 -->
               <div
                 v-if="showQuickLinkResults && filteredQuickLinkWords.length > 0"
+                ref="quickLinkListRef"
                 class="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-48 overflow-y-auto"
               >
                 <div
                   v-for="(word, index) in filteredQuickLinkWords"
                   :key="word.id"
+                  ref="quickLinkItemRefs"
                   class="px-3 py-2 cursor-pointer text-sm hover:bg-gray-100"
                   :class="{ 'bg-gray-100': index === quickLinkActiveIndex }"
                   @mousedown.prevent="selectQuickLinkWord(word)"
@@ -641,6 +643,34 @@ function selectExistingWord(word: any) {
 }
 
 // 快速关联词汇相关函数
+const quickLinkListRef = ref<HTMLElement | null>(null)
+const quickLinkItemRefs = ref<HTMLElement[]>([])
+
+function ensureQuickLinkOptionVisible(index: number) {
+  if (index < 0) {
+    return
+  }
+
+  nextTick(() => {
+    const listEl = quickLinkListRef.value
+    const itemEl = quickLinkItemRefs.value[index]
+    if (!listEl || !itemEl) {
+      return
+    }
+
+    const optionTop = itemEl.offsetTop
+    const optionBottom = optionTop + itemEl.offsetHeight
+    const viewTop = listEl.scrollTop
+    const viewBottom = viewTop + listEl.clientHeight
+
+    if (optionTop < viewTop) {
+      listEl.scrollTop = optionTop
+    } else if (optionBottom > viewBottom) {
+      listEl.scrollTop = optionBottom - listEl.clientHeight
+    }
+  })
+}
+
 const filteredQuickLinkWords = computed(() => {
   if (!quickLinkSearch.value.trim() || !editingWordId.value) {
     return []
@@ -672,6 +702,8 @@ const filteredQuickLinkWords = computed(() => {
 })
 
 watch(filteredQuickLinkWords, newItems => {
+  quickLinkItemRefs.value = []
+
   if (!newItems.length) {
     quickLinkActiveIndex.value = -1
     return
@@ -679,7 +711,13 @@ watch(filteredQuickLinkWords, newItems => {
 
   if (quickLinkActiveIndex.value < 0 || quickLinkActiveIndex.value >= newItems.length) {
     quickLinkActiveIndex.value = 0
+  } else {
+    ensureQuickLinkOptionVisible(quickLinkActiveIndex.value)
   }
+})
+
+watch(quickLinkActiveIndex, index => {
+  ensureQuickLinkOptionVisible(index)
 })
 
 function moveQuickLinkSelection(direction: 'up' | 'down') {
@@ -693,10 +731,10 @@ function moveQuickLinkSelection(direction: 'up' | 'down') {
   if (direction === 'down') {
     if (quickLinkActiveIndex.value === -1) {
       quickLinkActiveIndex.value = 0
-      return
+    } else {
+      quickLinkActiveIndex.value = (quickLinkActiveIndex.value + 1) % items.length
     }
-
-    quickLinkActiveIndex.value = (quickLinkActiveIndex.value + 1) % items.length
+    ensureQuickLinkOptionVisible(quickLinkActiveIndex.value)
     return
   }
 
@@ -706,6 +744,8 @@ function moveQuickLinkSelection(direction: 'up' | 'down') {
   } else {
     quickLinkActiveIndex.value -= 1
   }
+
+  ensureQuickLinkOptionVisible(quickLinkActiveIndex.value)
 }
 
 function confirmQuickLinkSelection() {
