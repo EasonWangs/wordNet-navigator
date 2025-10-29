@@ -29,6 +29,20 @@ export function useCytoscape(options: UseCytoscapeOptions) {
     // Mac: Backspace 键的 e.key 是 'Backspace'
     // Windows/Linux: Delete 键的 e.key 是 'Delete'
     if ((e.key === 'Delete' || e.key === 'Backspace') && cyInstance.value) {
+      // 检查焦点是否在输入框、文本区域或可编辑元素上
+      const target = e.target as HTMLElement
+      const isInputElement =
+        target.tagName === 'INPUT' ||
+        target.tagName === 'TEXTAREA' ||
+        target.isContentEditable ||
+        target.closest('input') !== null ||
+        target.closest('textarea') !== null
+
+      // 如果焦点在输入元素上，不触发删除功能
+      if (isInputElement) {
+        return
+      }
+
       // 检查是否有选中的边（关系）
       const selectedEdges = cyInstance.value.edges(':selected')
       if (selectedEdges.length > 0) {

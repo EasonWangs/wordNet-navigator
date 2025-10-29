@@ -117,16 +117,13 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref, watch } from 'vue'
+import { onMounted, ref } from 'vue'
 import { useGraphStore } from '@/stores/graphStore'
 import { WordNetService } from '@/services/wordnetService'
 import GraphCanvas from '@/components/GraphCanvas.vue'
 
 const graphStore = useGraphStore()
 const graphCanvasRef = ref<InstanceType<typeof GraphCanvas> | null>(null)
-
-// 防抖定时器
-let debounceTimer: ReturnType<typeof setTimeout> | null = null
 
 const handleLoadGraph = async () => {
   graphStore.setLoading(true)
@@ -168,21 +165,9 @@ const handleMaxNodesChange = async () => {
   await handleLoadGraph()
 }
 
-// 搜索防抖：监听searchQuery变化，300ms后自动搜索
-watch(
-  () => graphStore.searchQuery,
-  () => {
-    // 清除之前的定时器
-    if (debounceTimer) {
-      clearTimeout(debounceTimer)
-    }
-
-    // 设置新的定时器
-    debounceTimer = setTimeout(() => {
-      handleLoadGraph()
-    }, 300)
-  }
-)
+// 注意：已移除实时搜索功能
+// 用户需要手动点击"搜索"按钮或按回车键触发搜索
+// 这样可以避免输入时频繁触发搜索，提升用户体验
 
 onMounted(async () => {
   graphStore.setLoading(true)
