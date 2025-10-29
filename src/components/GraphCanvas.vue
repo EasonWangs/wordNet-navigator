@@ -769,10 +769,6 @@ watch(filteredQuickLinkWords, newItems => {
   }
 })
 
-watch(quickLinkActiveIndex, index => {
-  ensureQuickLinkOptionVisible(index)
-})
-
 function moveQuickLinkSelection(direction: 'up' | 'down') {
   const items = filteredQuickLinkWords.value
   if (!items.length) {
