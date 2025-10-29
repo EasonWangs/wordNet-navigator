@@ -204,10 +204,19 @@
                   @mousedown.prevent="selectQuickLinkWord(word)"
                   @mouseenter="quickLinkActiveIndex = index"
                 >
-                  <span class="font-medium">{{ word.label }}</span>
-                  <span v-if="word.posDefinitions && word.posDefinitions[0]?.definition" class="text-gray-500 ml-2 text-xs">
-                    - {{ word.posDefinitions[0].definition.substring(0, 30) }}{{ word.posDefinitions[0].definition.length > 30 ? '...' : '' }}
-                  </span>
+                  <div class="flex items-center justify-between">
+                    <div class="flex-1 min-w-0">
+                      <span class="font-medium">{{ word.label }}</span>
+                      <span v-if="word.posDefinitions && word.posDefinitions[0]?.definition" class="text-gray-500 ml-2 text-xs">
+                        - {{ word.posDefinitions[0].definition.substring(0, 25) }}{{ word.posDefinitions[0].definition.length > 25 ? '...' : '' }}
+                      </span>
+                    </div>
+                    <div v-if="getWordRelationCount(word.id) > 0" class="flex-shrink-0 ml-2">
+                      <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                        {{ getWordRelationCount(word.id) }} 条关系
+                      </span>
+                    </div>
+                  </div>
                 </div>
               </div>
               </Teleport>
@@ -704,6 +713,13 @@ function ensureQuickLinkOptionVisible(index: number) {
       listEl.scrollTop = optionBottom - listEl.clientHeight
     }
   })
+}
+
+// 计算词汇的关联次数
+function getWordRelationCount(wordId: string): number {
+  return adminStore.connections.filter(c =>
+    c.source === wordId || c.target === wordId
+  ).length
 }
 
 const filteredQuickLinkWords = computed(() => {
