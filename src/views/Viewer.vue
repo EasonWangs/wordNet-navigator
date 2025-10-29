@@ -49,7 +49,8 @@
             {{ graphStore.showDefinitionInNode ? '隐藏定义' : '显示定义' }}
           </button>
           <select
-            v-model="graphStore.layout"
+            :value="graphStore.layout"
+            @change="handleLayoutChange"
             class="px-3 py-1.5 border border-gray-300 rounded text-sm bg-white cursor-pointer hover:border-gray-400 transition-colors"
           >
             <option value="cose">力导向</option>
@@ -58,7 +59,7 @@
             <option value="breadthfirst">层次</option>
           </select>
           <select
-            v-model="graphStore.relationDepth"
+            :value="graphStore.relationDepth"
             @change="handleDepthChange"
             class="px-3 py-1.5 border border-gray-300 rounded text-sm bg-white cursor-pointer hover:border-gray-400 transition-colors"
             title="关系层级深度"
@@ -70,7 +71,7 @@
             <option :value="5">5层关系</option>
           </select>
           <select
-            v-model="graphStore.maxNodes"
+            :value="graphStore.maxNodes"
             @change="handleMaxNodesChange"
             class="px-3 py-1.5 border border-gray-300 rounded text-sm bg-white cursor-pointer hover:border-gray-400 transition-colors"
             title="最大节点数量"
@@ -155,12 +156,24 @@ const exportPNG = () => {
   }
 }
 
-const handleDepthChange = async () => {
+const handleLayoutChange = (e: Event) => {
+  // 更新布局算法并保存到 cookie
+  const target = e.target as HTMLSelectElement
+  graphStore.setLayout(target.value as any)
+}
+
+const handleDepthChange = async (e: Event) => {
+  // 更新关系层级深度并保存到 cookie
+  const target = e.target as HTMLSelectElement
+  graphStore.setRelationDepth(Number(target.value))
   // 深度变化时重新加载图谱
   await handleLoadGraph()
 }
 
-const handleMaxNodesChange = async () => {
+const handleMaxNodesChange = async (e: Event) => {
+  // 更新最大节点数并保存到 cookie
+  const target = e.target as HTMLSelectElement
+  graphStore.setMaxNodes(Number(target.value))
   // 最大节点数变化时重新加载图谱
   await handleLoadGraph()
 }
