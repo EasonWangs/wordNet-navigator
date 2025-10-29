@@ -175,6 +175,7 @@
             <label class="block text-sm font-medium text-gray-700 mb-2">🔗 快速关联词汇</label>
             <div class="relative">
               <input
+                ref="quickLinkInputRef"
                 v-model="quickLinkSearch"
                 type="text"
                 placeholder="搜索词汇..."
@@ -186,12 +187,14 @@
                 @keydown.enter="handleQuickLinkEnter"
                 @keydown.esc.stop.prevent="hideQuickLinkResults"
               />
-              <!-- 搜索结果下拉列表 -->
-              <div
-                v-if="showQuickLinkResults && filteredQuickLinkWords.length > 0"
-                ref="quickLinkListRef"
-                class="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-48 overflow-y-auto"
-              >
+              <!-- 搜索结果下拉列表 - 使用 Teleport 避免被父容器裁剪 -->
+              <Teleport to="body">
+                <div
+                  v-if="showQuickLinkResults && filteredQuickLinkWords.length > 0"
+                  ref="quickLinkListRef"
+                  class="fixed z-[70] bg-white border border-gray-300 rounded-md shadow-lg max-h-48 overflow-y-auto"
+                  :style="getQuickLinkDropdownStyle()"
+                >
                 <div
                   v-for="(word, index) in filteredQuickLinkWords"
                   :key="word.id"
@@ -207,6 +210,7 @@
                   </span>
                 </div>
               </div>
+              </Teleport>
             </div>
           </div>
         </div>
@@ -661,6 +665,21 @@ function selectExistingWord(word: any) {
 // 快速关联词汇相关函数
 const quickLinkListRef = ref<HTMLElement | null>(null)
 const quickLinkItemRefs = ref<HTMLElement[]>([])
+const quickLinkInputRef = ref<HTMLInputElement | null>(null)
+
+// 获取快速关联下拉列表的位置
+function getQuickLinkDropdownStyle() {
+  if (!quickLinkInputRef.value) {
+    return { display: 'none' }
+  }
+
+  const rect = quickLinkInputRef.value.getBoundingClientRect()
+  return {
+    top: `${rect.bottom + 4}px`,
+    left: `${rect.left}px`,
+    width: `${rect.width}px`
+  }
+}
 
 function ensureQuickLinkOptionVisible(index: number) {
   if (index < 0) {
