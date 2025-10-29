@@ -744,9 +744,11 @@ watch(filteredQuickLinkWords, newItems => {
     return
   }
 
-  if (quickLinkActiveIndex.value < 0 || quickLinkActiveIndex.value >= newItems.length) {
-    quickLinkActiveIndex.value = 0
-  } else {
+  // 不自动选中第一项，保持 -1（无选中状态）
+  // 只有当用户使用方向键时才选中
+  if (quickLinkActiveIndex.value >= newItems.length) {
+    quickLinkActiveIndex.value = -1
+  } else if (quickLinkActiveIndex.value >= 0) {
     ensureQuickLinkOptionVisible(quickLinkActiveIndex.value)
   }
 })
@@ -789,8 +791,12 @@ function confirmQuickLinkSelection() {
     return
   }
 
-  const activeIndex = quickLinkActiveIndex.value >= 0 ? quickLinkActiveIndex.value : 0
-  const targetWord = items[activeIndex]
+  // 只有在有选中项时才触发关联，避免误操作
+  if (quickLinkActiveIndex.value < 0) {
+    return
+  }
+
+  const targetWord = items[quickLinkActiveIndex.value]
   if (targetWord) {
     selectQuickLinkWord(targetWord)
   }
