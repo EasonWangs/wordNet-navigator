@@ -421,7 +421,7 @@
       "label": "同义词",
       "color": "#2ecc71",
       "lineStyle": "dashed",
-      "arrowStyle": "line",
+      "arrowStyle": "none",
       "edgeLength": 100,
       "pairWith": "synonym"
     },
@@ -430,7 +430,7 @@
       "label": "反义词",
       "color": "#f39c12",
       "lineStyle": "dotted",
-      "arrowStyle": "line",
+      "arrowStyle": "none",
       "edgeLength": 100,
       "pairWith": "antonym"
     },
@@ -465,7 +465,7 @@
       "label": "相似词",
       "color": "#34495e",
       "lineStyle": "dotted",
-      "arrowStyle": "line",
+      "arrowStyle": "none",
       "edgeLength": 100,
       "pairWith": "graphonyms"
     }
