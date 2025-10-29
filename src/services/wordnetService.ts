@@ -75,24 +75,28 @@ export class WordNetService {
           return
         }
 
-        // Find the target word (case-insensitive)
-        const targetWord = allWords.find((w) => w.label.toLowerCase() === word.toLowerCase())
+        // Find all target words with the same label (支持重复词汇)
+        const targetWords = allWords.filter((w) => w.label.toLowerCase() === word.toLowerCase())
 
-        if (!targetWord) {
+        if (targetWords.length === 0) {
           // If word not found, return empty graph
           resolve({ nodes: [], edges: [] })
           return
         }
 
-        // Build graph: include the target word and all connected words
+        // Build graph: include the target words and all connected words
         const visitedWords = new Set<string>()
         const nodesToInclude = new Set<string>()
         const edgesToInclude = new Set<string>()
 
         // BFS to find all connected words (可配置深度)
-        const queue: Array<{ id: string; level: number }> = [{ id: targetWord.id, level: 0 }]
-        visitedWords.add(targetWord.id)
-        nodesToInclude.add(targetWord.id)
+        // 将所有同名词汇作为起点加入队列
+        const queue: Array<{ id: string; level: number }> = []
+        targetWords.forEach(targetWord => {
+          queue.push({ id: targetWord.id, level: 0 })
+          visitedWords.add(targetWord.id)
+          nodesToInclude.add(targetWord.id)
+        })
 
         while (queue.length > 0) {
           const { id, level } = queue.shift()!
@@ -123,6 +127,9 @@ export class WordNetService {
         }
 
         // Build the graph data
+        // 创建中心词ID集合，用于标记
+        const centerWordIds = new Set(targetWords.map(w => w.id))
+
         const nodes = allWords
           .filter((w) => nodesToInclude.has(w.id))
           .map((w) => ({
@@ -132,7 +139,7 @@ export class WordNetService {
               phonetic: (w as any).phonetic,
               posDefinitions: (w as any).posDefinitions,
               examples: w.examples,
-              isCenter: w.id === targetWord.id, // 标记中心词
+              isCenter: centerWordIds.has(w.id), // 标记所有同名的中心词
             },
           }))
 

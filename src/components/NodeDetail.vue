@@ -22,6 +22,10 @@
         <div class="text-2xl font-bold text-gray-800 mb-2">
           {{ graphStore.selectedNode.label }}
         </div>
+        <!-- 节点ID（用于区分同名词汇） -->
+        <div class="text-xs text-gray-400 mb-1 font-mono">
+          ID: {{ graphStore.selectedNode.id }}
+        </div>
         <!-- 音标 -->
         <div v-if="graphStore.selectedNode.phonetic" class="text-sm text-gray-600 mb-2 italic">
           {{ graphStore.selectedNode.phonetic }}
