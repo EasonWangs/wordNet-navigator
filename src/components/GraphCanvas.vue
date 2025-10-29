@@ -276,31 +276,35 @@
             {{ existingRelations.length > 0 ? '添加新关系' : '选择关系类型' }}
             <span class="text-red-500">*</span>
           </label>
-          <div class="space-y-1.5 max-h-64 overflow-y-auto">
-            <label
-              v-for="relationType in availableRelationTypes"
-              :key="relationType.key"
-              class="flex items-center p-2 border rounded cursor-pointer hover:bg-gray-50 transition-colors"
-              :class="{
-                'border-primary-500 bg-primary-50': newRelationForm.relationType === relationType.key,
-                'opacity-50 cursor-not-allowed': isRelationExists(relationType.key)
-              }"
+          <div class="space-y-1.5 max-h-[500px] overflow-y-auto">
+            <!-- 遍历分组 -->
+            <div
+              v-for="(group, groupIndex) in groupedRelationTypes"
+              :key="groupIndex"
+              :class="group.isPair ? 'grid grid-cols-2 gap-2' : ''"
             >
-              <input
-                type="radio"
-                :value="relationType.key"
-                v-model="newRelationForm.relationType"
-                class="mr-2"
-                :disabled="isRelationExists(relationType.key)"
-              />
-              <div class="flex-1 min-w-0 flex items-center flex-wrap gap-1">
-                <span class="text-sm font-medium">{{ relationType.label }}</span>
-                <span v-if="relationType.pairWith" class="text-xs text-green-600">
-                  (反向: {{ getRelationLabel(relationType.pairWith) }})
-                </span>
-                <span v-if="isRelationExists(relationType.key)" class="text-xs text-gray-500">(已存在)</span>
-              </div>
-            </label>
+              <label
+                v-for="relationType in group.relations"
+                :key="relationType.key"
+                class="flex items-center p-2 border rounded cursor-pointer hover:bg-gray-50 transition-colors"
+                :class="{
+                  'border-primary-500 bg-primary-50': newRelationForm.relationType === relationType.key,
+                  'opacity-50 cursor-not-allowed': isRelationExists(relationType.key)
+                }"
+              >
+                <input
+                  type="radio"
+                  :value="relationType.key"
+                  v-model="newRelationForm.relationType"
+                  class="mr-2 flex-shrink-0"
+                  :disabled="isRelationExists(relationType.key)"
+                />
+                <div class="flex-1 min-w-0">
+                  <div class="text-sm font-medium truncate">{{ relationType.label }}</div>
+                  <span v-if="isRelationExists(relationType.key)" class="text-xs text-gray-500">(已存在)</span>
+                </div>
+              </label>
+            </div>
           </div>
         </div>
         <div class="mt-4 flex justify-end gap-2">
@@ -895,6 +899,56 @@ function getRelationLabel(key: string): string {
   return relationType ? relationType.label : key
 }
 
+// 将关系类型按配对关系分组
+const groupedRelationTypes = computed(() => {
+  const groups: Array<{ isPair: boolean; relations: any[] }> = []
+  const processed = new Set<string>()
+
+  adminStore.relationTypes.forEach(relationType => {
+    if (processed.has(relationType.key)) return
+
+    // 检查是否有配对关系
+    if (relationType.pairWith) {
+      // 检查是否是自配对（对称关系）
+      if (relationType.pairWith === relationType.key) {
+        // 对称关系（如同义词、反义词），只显示一次
+        groups.push({
+          isPair: false,
+          relations: [relationType]
+        })
+        processed.add(relationType.key)
+      } else {
+        const pairType = adminStore.relationTypes.find(rt => rt.key === relationType.pairWith)
+        if (pairType && pairType.pairWith === relationType.key) {
+          // 互相配对的关系（如上位词-下位词），显示在同一行
+          groups.push({
+            isPair: true,
+            relations: [relationType, pairType]
+          })
+          processed.add(relationType.key)
+          processed.add(pairType.key)
+        } else {
+          // 配对关系不完整，单独显示
+          groups.push({
+            isPair: false,
+            relations: [relationType]
+          })
+          processed.add(relationType.key)
+        }
+      }
+    } else {
+      // 没有配对关系，单独显示
+      groups.push({
+        isPair: false,
+        relations: [relationType]
+      })
+      processed.add(relationType.key)
+    }
+  })
+
+  return groups
+})
+
 // 可用的关系类型（用于显示）
 const availableRelationTypes = computed(() => {
   return adminStore.relationTypes
@@ -1040,25 +1094,9 @@ async function saveRelation() {
       } as any)
     }
 
-    // 重置表单
-    newRelationForm.value.relationType = ''
-
-    // 刷新已存在的关系列表（只显示单向）
-    adminStore.loadData()
-    const newExistingRelations = adminStore.connections.filter(
-      c => c.source === sourceId && c.target === targetId
-    )
-    existingRelations.value = newExistingRelations
-
-    // 如果是创建模式（之前没有关系），则关闭对话框
-    if (existingRelations.value.length === 2 && !relationTypeConfig?.pairWith) {
-      // 只有一个关系且无配对
-      closeCreateRelationDialog()
-      clearSelection()
-    } else if (existingRelations.value.length === 0) {
-      closeCreateRelationDialog()
-      clearSelection()
-    }
+    // 创建成功后直接关闭对话框并清除选择
+    closeCreateRelationDialog()
+    clearSelection()
   } catch (error) {
     console.error('Failed to create relation:', error)
     alert('创建关系失败')

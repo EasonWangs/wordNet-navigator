@@ -2,6 +2,7 @@ import { ref, onMounted, onBeforeUnmount, watch } from 'vue'
 import cytoscape, { type Core, type NodeSingular } from 'cytoscape'
 import type { GraphData, LayoutType } from '@/types/wordnet'
 import { storageService } from '@/services/storageService'
+import { isSymmetricRelation } from '@/utils/relationUtils'
 
 interface UseCytoscapeOptions {
   graphData: GraphData
@@ -693,16 +694,31 @@ export function useCytoscape(options: UseCytoscapeOptions) {
   const removeEdge = (source: string, target: string, relation: string) => {
     if (!cyInstance.value) return
 
-    // 查找匹配的边并移除
-    const edges = cyInstance.value.edges(`[source="${source}"][target="${target}"][relation="${relation}"]`)
-    if (edges.length > 0) {
-      edges.remove()
+    if (isSymmetricRelation(relation)) {
+      // 对称关系：尝试删除两个方向的边（实际只会有一条）
+      const edge1 = cyInstance.value.edges(`[source="${source}"][target="${target}"][relation="${relation}"]`)
+      const edge2 = cyInstance.value.edges(`[source="${target}"][target="${source}"][relation="${relation}"]`)
+
+      if (edge1.length > 0) edge1.remove()
+      if (edge2.length > 0) edge2.remove()
+    } else {
+      // 非对称关系：直接删除指定方向的边
+      const edges = cyInstance.value.edges(`[source="${source}"][target="${target}"][relation="${relation}"]`)
+      if (edges.length > 0) {
+        edges.remove()
+      }
     }
   }
 
   // 添加边（关系）
   const addEdge = (source: string, target: string, relation: string, sourceNodeData?: any, targetNodeData?: any) => {
     if (!cyInstance.value) return
+
+    // 对于对称关系，只添加 source < target 的边，避免重复显示
+    if (isSymmetricRelation(relation) && source > target) {
+      console.log(`Skipping symmetric edge: ${source} -> ${target} (will use reverse direction)`)
+      return
+    }
 
     // 检查节点是否存在，如果不存在且提供了节点数据，则自动添加
     let sourceNode = cyInstance.value.getElementById(source)

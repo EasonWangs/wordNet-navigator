@@ -2,6 +2,7 @@ import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import { storageService } from '@/services/storageService'
 import type { StoredWord, StoredConnection, StoredRelationType, StoredPosType } from '@/services/storageService'
+import { clearRelationTypesCache } from '@/utils/relationUtils'
 
 export const useAdminStore = defineStore('admin', () => {
   // State
@@ -73,6 +74,7 @@ export const useAdminStore = defineStore('admin', () => {
   function addRelationType(type: StoredRelationType) {
     const newType = storageService.addRelationType(type)
     relationTypes.value.push(newType)
+    clearRelationTypesCache() // 清除缓存
     return newType
   }
 
@@ -82,6 +84,7 @@ export const useAdminStore = defineStore('admin', () => {
     if (index !== -1) {
       relationTypes.value[index] = { ...relationTypes.value[index], ...updates }
     }
+    clearRelationTypesCache() // 清除缓存
   }
 
   // 更新关系类型的键（同时迁移所有历史连接）
@@ -108,11 +111,13 @@ export const useAdminStore = defineStore('admin', () => {
     if (index !== -1) {
       relationTypes.value[index] = { ...relationTypes.value[index], ...fullUpdates }
     }
+    clearRelationTypesCache() // 清除缓存
   }
 
   function deleteRelationType(key: string) {
     storageService.deleteRelationType(key)
     relationTypes.value = relationTypes.value.filter((t) => t.key !== key)
+    clearRelationTypesCache() // 清除缓存
   }
 
   // Update word relations (批量更新一个词汇的所有关系)

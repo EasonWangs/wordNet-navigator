@@ -1,21 +1,8 @@
 import type { GraphData } from '@/types/wordnet'
 import { storageService } from './storageService'
+import { getSymmetricRelationTypes } from '@/utils/relationUtils'
 
 export class WordNetService {
-  // 获取对称关系类型（自己配对自己的关系）
-  private static getSymmetricRelationTypes(): Set<string> {
-    const relationTypes = storageService.getRelationTypes()
-    const symmetricTypes = new Set<string>()
-
-    relationTypes.forEach(rt => {
-      // 如果关系配对到自己，则是对称关系
-      if (rt.pairWith === rt.key) {
-        symmetricTypes.add(rt.key)
-      }
-    })
-
-    return symmetricTypes
-  }
 
   // Fetch word graph from LocalStorage
   static async fetchWordGraph(word: string, maxDepth: number = 2, maxNodes: number = 50): Promise<GraphData> {
@@ -24,7 +11,7 @@ export class WordNetService {
         // Get all words and connections from storage
         const allWords = storageService.getWords()
         const allConnections = storageService.getConnections()
-        const symmetricTypes = this.getSymmetricRelationTypes()
+        const symmetricTypes = getSymmetricRelationTypes()
 
         // If word is empty or "*", return limited data (智能分区)
         if (!word || word.trim() === '' || word === '*') {
