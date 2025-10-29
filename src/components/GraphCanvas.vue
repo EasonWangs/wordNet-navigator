@@ -17,17 +17,28 @@
     <Legend />
     <NodeDetail />
 
-    <!-- 快速添加/编辑词汇对话框 -->
+    <!-- 快速添加/编辑词汇对话框 - 右侧滑动面板 -->
     <div
       v-if="showAddWordDialog || showEditWordDialog"
-      class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
-      @click.self="closeWordDialog"
+      class="absolute top-5 right-5 w-[420px] max-h-[calc(100%-2.5rem)] bg-white/95 backdrop-blur-md shadow-2xl z-[60] overflow-y-auto transition-all duration-300 rounded-lg border border-gray-200"
+      :class="{ 'translate-x-0 opacity-100': showAddWordDialog || showEditWordDialog, 'translate-x-full opacity-0': !showAddWordDialog && !showEditWordDialog }"
       @keydown.enter="handleWordDialogEnter"
       @keydown.delete.stop
       @keydown.backspace.stop
     >
-      <div class="bg-white rounded-lg p-6 w-full max-w-md">
-        <h3 class="text-lg font-semibold mb-4">{{ showEditWordDialog ? '编辑词汇' : '快速添加词汇' }}</h3>
+      <!-- Header -->
+      <div class="bg-gradient-to-r from-green-500/60 to-blue-500/60 backdrop-blur-sm text-white px-4 py-3 flex justify-between items-center sticky top-0 z-10">
+        <h3 class="text-base font-bold">{{ showEditWordDialog ? '✏️ 编辑词汇' : '➕ 快速添加词汇' }}</h3>
+        <button
+          class="w-7 h-7 bg-white/20 rounded-full text-xl leading-none hover:bg-white/30 transition-all hover:rotate-90 duration-200"
+          @click="closeWordDialog"
+        >
+          ×
+        </button>
+      </div>
+
+      <!-- Content -->
+      <div class="p-6">
         <div class="space-y-4">
           <div v-if="showEditWordDialog" class="grid grid-cols-2 gap-4">
             <div>
@@ -230,6 +241,7 @@
         </div>
       </div>
     </div>
+    <!-- /编辑词汇对话框 -->
 
     <!-- 创建/编辑关系对话框 -->
     <div
