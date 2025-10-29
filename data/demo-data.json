@@ -462,12 +462,21 @@
     },
     {
       "key": "graphonyms",
-      "label": "相似词",
+      "label": "形近词",
       "color": "#34495e",
       "lineStyle": "dotted",
       "arrowStyle": "none",
       "edgeLength": 100,
       "pairWith": "graphonyms"
+    },
+    {
+      "key": "variant",
+      "label": "变体词",
+      "color": "#1abc9c",
+      "lineStyle": "dotted",
+      "arrowStyle": "none",
+      "edgeLength": 100,
+      "pairWith": "variant"
     }
   ],
   "posTypes": [
