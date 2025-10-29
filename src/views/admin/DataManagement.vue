@@ -124,6 +124,24 @@
           class="hidden"
           @change="handleImportAsProject"
         />
+
+        <!-- 拖拽区域 -->
+        <div
+          @drop.prevent="handleDrop"
+          @dragover.prevent="handleDragOver"
+          @dragleave.prevent="handleDragLeave"
+          class="border-2 border-dashed rounded-lg p-6 text-center transition-all mb-3"
+          :class="isDragging ? 'border-green-500 bg-green-50' : 'border-gray-300 hover:border-green-400 hover:bg-gray-50'"
+        >
+          <div class="text-4xl mb-2">📁</div>
+          <p class="text-sm text-gray-600 mb-1">
+            <span class="font-medium">拖拽 JSON 文件到此处</span>
+          </p>
+          <p class="text-xs text-gray-500">
+            或点击下方按钮选择文件
+          </p>
+        </div>
+
         <button
           @click="importFileRef?.click()"
           class="w-full px-4 py-2 bg-green-500 text-white rounded-md hover:bg-green-600 transition-colors"
@@ -366,6 +384,7 @@ const editingProject = ref<Project | null>(null)
 const editProjectName = ref('')
 const editProjectDescription = ref('')
 const importFileRef = ref<HTMLInputElement | null>(null)
+const isDragging = ref(false)
 
 // 切换项目确认对话框
 const showSwitchConfirmDialog = ref(false)
@@ -598,16 +617,37 @@ function exportCurrentData() {
   alert('当前数据导出成功！')
 }
 
-// 导入为新项目
-function handleImportAsProject(event: Event) {
-  const target = event.target as HTMLInputElement
-  const file = target.files?.[0]
+// 拖拽处理
+function handleDragOver(event: DragEvent) {
+  isDragging.value = true
+}
 
-  if (!file) return
+function handleDragLeave(event: DragEvent) {
+  isDragging.value = false
+}
 
+function handleDrop(event: DragEvent) {
+  isDragging.value = false
+
+  const files = event.dataTransfer?.files
+  if (!files || files.length === 0) return
+
+  const file = files[0]
+
+  // 检查文件类型
+  if (!file.name.endsWith('.json')) {
+    alert('请上传 JSON 文件')
+    return
+  }
+
+  // 处理文件导入
+  importFile(file)
+}
+
+// 统一的文件导入处理函数
+function importFile(file: File) {
   const projectName = prompt('请输入项目名称：', file.name.replace('.json', ''))
   if (!projectName) {
-    target.value = ''
     return
   }
 
@@ -641,9 +681,6 @@ function handleImportAsProject(event: Event) {
       } else {
         alert(`项目 "${project.name}" 导入成功！\n\n词汇: ${data.words.length}\n关系: ${data.connections.length}\n\n提示：点击"切换"按钮激活该项目`)
       }
-
-      // 清空文件输入
-      target.value = ''
     } catch (error) {
       console.error('Import error:', error)
       alert('导入失败：文件格式错误或数据损坏')
@@ -651,6 +688,20 @@ function handleImportAsProject(event: Event) {
   }
 
   reader.readAsText(file)
+}
+
+// 导入为新项目
+function handleImportAsProject(event: Event) {
+  const target = event.target as HTMLInputElement
+  const file = target.files?.[0]
+
+  if (!file) return
+
+  // 使用统一的导入函数
+  importFile(file)
+
+  // 清空文件输入
+  target.value = ''
 }
 
 // 清空工作区
