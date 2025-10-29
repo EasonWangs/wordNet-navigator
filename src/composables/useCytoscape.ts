@@ -520,10 +520,19 @@ export function useCytoscape(options: UseCytoscapeOptions) {
   const runLayout = () => {
     if (!cyInstance.value) return
 
+    // 根据节点数量决定是否使用动画
+    const nodeCount = cyInstance.value?.nodes().length || 0
+    const edgeCount = cyInstance.value?.edges().length || 0
+
+    // 只有少量节点时才使用平滑动画
+    const shouldAnimate = nodeCount < 50
+
     const layoutOptions: any = {
       name: options.layout,
-      animate: true,
-      animationDuration: 500,
+      animate: shouldAnimate,
+      animationDuration: shouldAnimate ? 400 : 0,
+      // 停止动画的阈值
+      animationThreshold: 250,
     }
 
     if (options.layout === 'cose') {
@@ -537,21 +546,72 @@ export function useCytoscape(options: UseCytoscapeOptions) {
         return relationType?.edgeLength || 100
       }
 
-      // 性能优化：根据节点数量动态调整布局参数
-      const nodeCount = cyInstance.value?.nodes().length || 0
-      const edgeCount = cyInstance.value?.edges().length || 0
+      // 根据节点数量动态调整迭代次数（平衡质量与性能）
+      let numIterations = 500  // 默认值，提供较好的布局质量
+      let nodeRepulsion = 8000
+      let edgeElasticity = 100
+      let gravity = 0.25
 
-      // 如果节点很多但边很少（孤立节点多），降低迭代次数和排斥力
-      const isLowConnectivity = nodeCount > 200 && edgeCount < 50
+      if (nodeCount < 30) {
+        // 少量节点：追求完美布局
+        numIterations = 600
+        nodeRepulsion = 10000
+        edgeElasticity = 120
+      } else if (nodeCount < 100) {
+        // 中等节点：平衡质量与速度
+        numIterations = 500
+        nodeRepulsion = 8000
+        edgeElasticity = 100
+      } else if (nodeCount < 200) {
+        // 较多节点：略微降低质量换取速度
+        numIterations = 400
+        nodeRepulsion = 6000
+        edgeElasticity = 80
+      } else {
+        // 大量节点：优先考虑性能
+        numIterations = 300
+        nodeRepulsion = 5000
+        edgeElasticity = 60
+        gravity = 0.4  // 增加重力让大图更紧凑
+      }
+
+      // 如果节点很多但边很少（孤立节点多），特殊处理
+      const isLowConnectivity = nodeCount > 100 && edgeCount < nodeCount * 0.3
+
+      if (isLowConnectivity) {
+        numIterations = 200
+        nodeRepulsion = 4000
+        gravity = 0.6  // 强重力，快速收拢孤立节点
+      }
 
       Object.assign(layoutOptions, {
-        nodeRepulsion: isLowConnectivity ? 4000 : 8000,  // 孤立节点多时降低排斥力
+        // 基础力学参数
+        nodeRepulsion: nodeRepulsion,
         idealEdgeLength: idealEdgeLengthFn,
-        edgeElasticity: 100,
-        numIter: isLowConnectivity ? 500 : 1000,  // 孤立节点多时减少迭代次数
-        gravity: isLowConnectivity ? 0.5 : 0.25,  // 孤立节点多时增加重力，让节点更紧凑
-        animate: !isLowConnectivity,  // 孤立节点多时关闭动画
-        animationDuration: isLowConnectivity ? 0 : 500,
+        edgeElasticity: edgeElasticity,
+        gravity: gravity,
+
+        // 迭代控制
+        numIter: numIterations,
+
+        // 温度参数（控制收敛速度和质量）
+        initialTemp: 1000,       // 初始温度
+        coolingFactor: 0.99,     // 冷却因子（0.99更平滑，0.95更快）
+        minTemp: 1.0,            // 最小温度
+
+        // 嵌套参数（提升布局质量）
+        nestingFactor: 1.2,
+
+        // 随机化
+        randomize: false,         // 不随机化，保持一致性
+
+        // 节点重叠处理
+        nodeDimensionsIncludeLabels: true,
+
+        // 性能优化
+        refresh: 20,             // 每20次迭代刷新一次显示
+        fit: true,               // 自动适应视图
+        padding: 30,
       })
     }
 
