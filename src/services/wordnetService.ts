@@ -18,7 +18,14 @@ export class WordNetService {
           // 性能优化：显示全部时限制节点数量
           const MAX_NODES_ALL = maxNodes // 使用传入的最大节点数参数
 
-          // 优先显示有连接的节点
+          // 统计每个节点的关系数量，用于排序
+          const connectionCounts = new Map<string, number>()
+          allConnections.forEach(conn => {
+            connectionCounts.set(conn.source, (connectionCounts.get(conn.source) || 0) + 1)
+            connectionCounts.set(conn.target, (connectionCounts.get(conn.target) || 0) + 1)
+          })
+
+          // 优先显示有连接的节点（按关系数量从多到少排序）
           const connectedNodeIds = new Set<string>()
           allConnections.forEach(c => {
             connectedNodeIds.add(c.source)
@@ -26,8 +33,20 @@ export class WordNetService {
           })
 
           // 分类节点：有连接的节点 + 孤立节点
-          const connectedWords = allWords.filter(w => connectedNodeIds.has(w.id))
-          const isolatedWords = allWords.filter(w => !connectedNodeIds.has(w.id))
+          const connectedWords = allWords
+            .filter(w => connectedNodeIds.has(w.id))
+            .sort((a, b) => {
+              const degreeA = connectionCounts.get(a.id) || 0
+              const degreeB = connectionCounts.get(b.id) || 0
+              if (degreeA !== degreeB) {
+                return degreeB - degreeA
+              }
+              return a.label.localeCompare(b.label)
+            })
+
+          const isolatedWords = allWords
+            .filter(w => !connectedNodeIds.has(w.id))
+            .sort((a, b) => a.label.localeCompare(b.label))
 
           // 优先展示有连接的节点，不足时用孤立节点补全到1000个
           const connectedToShow = Math.min(connectedWords.length, MAX_NODES_ALL)
