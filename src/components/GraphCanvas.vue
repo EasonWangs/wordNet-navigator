@@ -15,7 +15,6 @@
     </div>
 
     <Legend />
-    <NodeDetail />
 
     <!-- 快速添加/编辑词汇对话框 - 右侧滑动面板 -->
     <div
@@ -39,7 +38,12 @@
 
       <!-- Content -->
       <div class="p-6">
-        <div class="space-y-4">
+        <!-- 加载提示（仅编辑模式且内容未准备好时显示） -->
+        <div v-if="showEditWordDialog && !dialogContentReady" class="flex items-center justify-center py-8">
+          <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
+        </div>
+        <!-- 表单内容 -->
+        <div v-if="showAddWordDialog || dialogContentReady" class="space-y-4">
           <div v-if="showEditWordDialog" class="grid grid-cols-2 gap-4">
             <div>
               <label class="block text-sm font-medium text-gray-700 mb-1">词汇 <span class="text-red-500">*</span></label>
@@ -353,7 +357,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, toRef, computed, nextTick, watch } from 'vue'
+import { ref, toRef, computed, nextTick, watch, onMounted } from 'vue'
 import { useGraphStore } from '@/stores/graphStore'
 import { useAdminStore } from '@/stores/adminStore'
 import { useCytoscape } from '@/composables/useCytoscape'
@@ -361,10 +365,14 @@ import { WordNetService } from '@/services/wordnetService'
 import { migrateWordData } from '@/utils/wordDataUtils'
 import type { PosDefinitionPair } from '@/types/wordnet'
 import Legend from './Legend.vue'
-import NodeDetail from './NodeDetail.vue'
 
 const graphStore = useGraphStore()
 const adminStore = useAdminStore()
+
+// 组件初始化时加载一次数据
+onMounted(() => {
+  adminStore.loadData()
+})
 
 // 选中的节点
 const selectedNodes = ref<any[]>([])
@@ -375,6 +383,7 @@ const existingRelations = ref<any[]>([])
 // 添加/编辑词汇对话框
 const showAddWordDialog = ref(false)
 const showEditWordDialog = ref(false)
+const dialogContentReady = ref(false) // 延迟渲染标志
 const editingWordId = ref<string | null>(null)
 const wordInputRef = ref<HTMLInputElement | null>(null)
 const clickPosition = ref<{ x: number; y: number } | null>(null)
@@ -402,6 +411,7 @@ const showAddWordSearchResults = ref(false)
 function openAddWordDialog(position?: { x: number; y: number }) {
   showAddWordDialog.value = true
   showEditWordDialog.value = false
+  dialogContentReady.value = true // 添加模式直接显示内容
   editingWordId.value = null
   clickPosition.value = position || null
   wordForm.value = {
@@ -410,8 +420,6 @@ function openAddWordDialog(position?: { x: number; y: number }) {
     posDefinitions: [{ pos: '', definition: '' }],
     examples: [],
   }
-  // 确保 adminStore 已加载数据
-  adminStore.loadData()
 
   // 自动聚焦到词汇输入框
   nextTick(() => {
@@ -420,40 +428,48 @@ function openAddWordDialog(position?: { x: number; y: number }) {
 }
 
 function openEditWordDialog(nodeData: any) {
+  // 先显示对话框外壳
   showEditWordDialog.value = true
   showAddWordDialog.value = false
+  dialogContentReady.value = false
   editingWordId.value = nodeData.id
 
   // 关闭词汇详情面板
   graphStore.setSelectedNode(null)
 
-  // 从 adminStore 获取完整的词汇数据
-  adminStore.loadData()
-  const word = adminStore.words.find(w => w.id === nodeData.id)
-
-  if (word) {
-    // 迁移数据到新格式
-    const migratedWord = migrateWordData(word)
-
-    wordForm.value = {
-      label: word.label,
-      phonetic: (word as any).phonetic || '',
-      posDefinitions: migratedWord.posDefinitions && migratedWord.posDefinitions.length > 0
-        ? migratedWord.posDefinitions.map(pd => ({ ...pd }))
-        : [{ pos: '', definition: '' }],
-      examples: word.examples ? [...word.examples] : [],
-    }
-  }
-
-  // 自动聚焦到词汇输入框
+  // 延迟准备数据和渲染内容，给用户快速响应的感觉
   nextTick(() => {
-    wordInputRef.value?.focus()
+    // 从 adminStore 获取完整的词汇数据（数据已在 onMounted 中加载）
+    const word = adminStore.words.find(w => w.id === nodeData.id)
+
+    if (word) {
+      // 迁移数据到新格式
+      const migratedWord = migrateWordData(word)
+
+      wordForm.value = {
+        label: word.label,
+        phonetic: (word as any).phonetic || '',
+        posDefinitions: migratedWord.posDefinitions && migratedWord.posDefinitions.length > 0
+          ? migratedWord.posDefinitions.map(pd => ({ ...pd }))
+          : [{ pos: '', definition: '' }],
+        examples: word.examples ? [...word.examples] : [],
+      }
+    }
+
+    // 标记内容已准备好
+    dialogContentReady.value = true
+
+    // 自动聚焦到词汇输入框
+    nextTick(() => {
+      wordInputRef.value?.focus()
+    })
   })
 }
 
 function closeWordDialog() {
   showAddWordDialog.value = false
   showEditWordDialog.value = false
+  dialogContentReady.value = false
   editingWordId.value = null
   clickPosition.value = null
   quickLinkSearch.value = ''
@@ -854,7 +870,6 @@ function selectQuickLinkWord(targetWord: any) {
   ]
 
   // 查找已存在的关系
-  adminStore.loadData()
   existingRelations.value = adminStore.connections.filter(
     c => c.source === currentWord.id && c.target === targetWord.id
   )
@@ -871,7 +886,6 @@ function handleSelectionChange(nodes: any[]) {
 
   // 当选中2个节点时，自动打开关系对话框
   if (nodes.length === 2) {
-    adminStore.loadData()
     const sourceId = nodes[0].id
     const targetId = nodes[1].id
 
@@ -905,15 +919,11 @@ function clearSelection() {
 function openCreateRelationDialog() {
   if (selectedNodes.value.length !== 2) return
   showCreateRelationDialog.value = true
-  // 确保 adminStore 已加载数据
-  adminStore.loadData()
 }
 
 // 双击边打开编辑关系对话框
 function openEditRelationFromEdge(edgeData: any) {
   // 从边的数据中获取源和目标节点
-  adminStore.loadData()
-
   const sourceNode = adminStore.words.find(w => w.id === edgeData.source)
   const targetNode = adminStore.words.find(w => w.id === edgeData.target)
 
@@ -1162,7 +1172,6 @@ const showDefinitionInNodeRef = toRef(graphStore, 'showDefinitionInNode')
 // 删除节点处理器
 function handleNodeDelete(nodeData: any) {
   // 检查节点是否有关系
-  adminStore.loadData()
   const hasConnections = adminStore.connections.some(
     c => c.source === nodeData.id || c.target === nodeData.id
   )
@@ -1205,8 +1214,6 @@ function handleEdgeDelete(edgeData: any) {
   }
 
   try {
-    adminStore.loadData()
-
     // 查找这个连接（通过 source, target, relation 来查找）
     const connection = adminStore.connections.find(
       c => c.source === edgeData.source &&
@@ -1266,7 +1273,13 @@ const { containerRef, fitView, exportPNG, updateNodeData, removeNode, removeNode
   get showDefinitionInNode() {
     return showDefinitionInNodeRef.value
   },
-  onNodeClick: (nodeData) => graphStore.setSelectedNode(nodeData),
+  onNodeClick: (nodeData) => {
+    if (nodeData) {
+      openEditWordDialog(nodeData)
+    } else {
+      closeWordDialog()
+    }
+  },
   onBackgroundDblClick: (position) => openAddWordDialog(position),
   onNodeDblClick: (nodeData) => openEditWordDialog(nodeData),
   onEdgeDblClick: (edgeData) => openEditRelationFromEdge(edgeData),
