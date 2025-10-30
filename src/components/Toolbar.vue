@@ -4,7 +4,7 @@
       class="px-4 py-2 bg-gray-100 text-gray-700 rounded-md text-sm font-medium hover:bg-gray-200 transition-colors"
       @click="$emit('fitView')"
     >
-      🔍 适应视图
+      🔍 适应视图 / 正常大小
     </button>
     <button
       class="px-4 py-2 bg-gray-100 text-gray-700 rounded-md text-sm font-medium hover:bg-gray-200 transition-colors"

@@ -563,12 +563,28 @@ export function useCytoscape(options: UseCytoscapeOptions) {
     })
   }
 
-  const focusOnRelationNodes = () => {
+  type FocusMode = 'fit' | 'center'
+
+  const isFitModeActive = ref(false)
+
+  const focusOnRelationNodes = (mode: FocusMode = 'fit') => {
     if (!cyInstance.value) return
     const connectedNodes = cyInstance.value.nodes().filter(node => node.connectedEdges().length > 0)
     const target = connectedNodes.length > 0 ? connectedNodes : cyInstance.value.nodes()
     if (!target.length) return
-    cyInstance.value.fit(target, 80)
+    if (mode === 'fit') {
+      cyInstance.value.fit(target, 80)
+    } else {
+      cyInstance.value.animate(
+        {
+          zoom: 1,
+          center: { eles: target },
+        },
+        {
+          duration: 300,
+        }
+      )
+    }
   }
 
   const runLayout = () => {
@@ -674,12 +690,14 @@ export function useCytoscape(options: UseCytoscapeOptions) {
 
     layout.once('layoutstop', () => {
       arrangeIsolatedNodes()
-      focusOnRelationNodes()
+      focusOnRelationNodes(isFitModeActive.value ? 'fit' : 'center')
     })
   }
 
   const fitView = () => {
-    cyInstance.value?.fit(undefined, 50)
+    if (!cyInstance.value) return
+    isFitModeActive.value = !isFitModeActive.value
+    focusOnRelationNodes(isFitModeActive.value ? 'fit' : 'center')
   }
 
   const exportPNG = () => {
@@ -957,6 +975,7 @@ export function useCytoscape(options: UseCytoscapeOptions) {
     cyInstance,
     fitView,
     exportPNG,
+    isFitModeActive,
     updateNodeData,
     removeNode,
     removeNodes,

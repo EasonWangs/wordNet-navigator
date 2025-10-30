@@ -1245,7 +1245,18 @@ function handleEdgeDelete(edgeData: any) {
   }
 }
 
-const { containerRef, fitView, exportPNG, updateNodeData, removeNode, removeNodes, removeEdge, addEdge, addNode } = useCytoscape({
+const {
+  containerRef,
+  fitView,
+  exportPNG,
+  isFitModeActive,
+  updateNodeData,
+  removeNode,
+  removeNodes,
+  removeEdge,
+  addEdge,
+  addNode,
+} = useCytoscape({
   get graphData() {
     return graphDataRef.value
   },
@@ -1279,5 +1290,6 @@ const { containerRef, fitView, exportPNG, updateNodeData, removeNode, removeNode
 defineExpose({
   fitView,
   exportPNG,
+  isFitModeActive,
 })
 </script>

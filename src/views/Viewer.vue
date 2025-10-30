@@ -30,7 +30,7 @@
             class="px-3 py-1.5 bg-gray-100 text-gray-700 rounded text-sm hover:bg-gray-200 transition-colors"
             @click="fitView"
           >
-            适应视图
+            🔍 {{ fitViewButtonLabel }}
           </button>
           <button
             class="px-3 py-1.5 bg-gray-100 text-gray-700 rounded text-sm hover:bg-gray-200 transition-colors"
@@ -117,13 +117,20 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
+import { onMounted, ref, watch } from 'vue'
 import { useGraphStore } from '@/stores/graphStore'
 import { WordNetService } from '@/services/wordnetService'
 import GraphCanvas from '@/components/GraphCanvas.vue'
 
 const graphStore = useGraphStore()
 const graphCanvasRef = ref<InstanceType<typeof GraphCanvas> | null>(null)
+const fitViewButtonLabel = ref('适应视图')
+
+const syncFitViewLabel = () => {
+  const fitModeRef = graphCanvasRef.value?.isFitModeActive
+  const isFit = fitModeRef ? fitModeRef.value : true
+  fitViewButtonLabel.value = isFit ? '适应视图' : '正常大小'
+}
 
 const handleLoadGraph = async () => {
   graphStore.setLoading(true)
@@ -142,10 +149,9 @@ const handleLoadGraph = async () => {
 }
 
 const fitView = () => {
-  // 通过 GraphCanvas 的 ref 调用 fitView
-  if (graphCanvasRef.value) {
-    (graphCanvasRef.value as any).fitView()
-  }
+  if (!graphCanvasRef.value) return
+  ;(graphCanvasRef.value as any).fitView()
+  syncFitViewLabel()
 }
 
 const exportPNG = () => {
@@ -197,4 +203,12 @@ onMounted(async () => {
     graphStore.setLoading(false)
   }
 })
+
+watch(
+  () => graphCanvasRef.value?.isFitModeActive?.value,
+  () => {
+    syncFitViewLabel()
+  },
+  { immediate: true }
+)
 </script>
