@@ -19,8 +19,7 @@
     <!-- 快速添加/编辑词汇对话框 - 右侧滑动面板 -->
     <div
       v-if="showAddWordDialog || showEditWordDialog"
-      class="absolute top-5 right-5 w-[420px] max-h-[calc(100%-2.5rem)] bg-white/95 backdrop-blur-md shadow-2xl z-[60] overflow-y-auto transition-all duration-300 rounded-lg border border-gray-200"
-      :class="{ 'translate-x-0 opacity-100': showAddWordDialog || showEditWordDialog, 'translate-x-full opacity-0': !showAddWordDialog && !showEditWordDialog }"
+      class="absolute top-5 right-5 w-[420px] max-h-[calc(100%-2.5rem)] bg-white/95 backdrop-blur-md shadow-2xl z-[60] overflow-y-auto rounded-lg border border-gray-200"
       @keydown.enter="handleWordDialogEnter"
       @keydown.delete.stop
       @keydown.backspace.stop
@@ -38,12 +37,7 @@
 
       <!-- Content -->
       <div class="p-6">
-        <!-- 加载提示（仅编辑模式且内容未准备好时显示） -->
-        <div v-if="showEditWordDialog && !dialogContentReady" class="flex items-center justify-center py-8">
-          <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
-        </div>
-        <!-- 表单内容 -->
-        <div v-if="showAddWordDialog || dialogContentReady" class="space-y-4">
+        <div v-if="showAddWordDialog || showEditWordDialog" class="space-y-4">
           <div v-if="showEditWordDialog" class="grid grid-cols-2 gap-4">
             <div>
               <label class="block text-sm font-medium text-gray-700 mb-1">词汇 <span class="text-red-500">*</span></label>
@@ -383,7 +377,6 @@ const existingRelations = ref<any[]>([])
 // 添加/编辑词汇对话框
 const showAddWordDialog = ref(false)
 const showEditWordDialog = ref(false)
-const dialogContentReady = ref(false) // 延迟渲染标志
 const editingWordId = ref<string | null>(null)
 const wordInputRef = ref<HTMLInputElement | null>(null)
 const clickPosition = ref<{ x: number; y: number } | null>(null)
@@ -411,7 +404,6 @@ const showAddWordSearchResults = ref(false)
 function openAddWordDialog(position?: { x: number; y: number }) {
   showAddWordDialog.value = true
   showEditWordDialog.value = false
-  dialogContentReady.value = true // 添加模式直接显示内容
   editingWordId.value = null
   clickPosition.value = position || null
   wordForm.value = {
@@ -428,48 +420,44 @@ function openAddWordDialog(position?: { x: number; y: number }) {
 }
 
 function openEditWordDialog(nodeData: any) {
-  // 先显示对话框外壳
   showEditWordDialog.value = true
   showAddWordDialog.value = false
-  dialogContentReady.value = false
   editingWordId.value = nodeData.id
 
-  // 关闭词汇详情面板
+  // 关闭词汇详情面板，避免同时展示两个侧栏
   graphStore.setSelectedNode(null)
 
-  // 延迟准备数据和渲染内容，给用户快速响应的感觉
-  nextTick(() => {
-    // 从 adminStore 获取完整的词汇数据（数据已在 onMounted 中加载）
-    const word = adminStore.words.find(w => w.id === nodeData.id)
+  const word = adminStore.words.find(w => w.id === nodeData.id)
 
-    if (word) {
-      // 迁移数据到新格式
-      const migratedWord = migrateWordData(word)
+  if (word) {
+    // 迁移数据到新格式，确保旧数据结构也能正常显示
+    const migratedWord = migrateWordData(word)
 
-      wordForm.value = {
-        label: word.label,
-        phonetic: (word as any).phonetic || '',
-        posDefinitions: migratedWord.posDefinitions && migratedWord.posDefinitions.length > 0
-          ? migratedWord.posDefinitions.map(pd => ({ ...pd }))
-          : [{ pos: '', definition: '' }],
-        examples: word.examples ? [...word.examples] : [],
-      }
+    wordForm.value = {
+      label: word.label,
+      phonetic: (word as any).phonetic || '',
+      posDefinitions: migratedWord.posDefinitions && migratedWord.posDefinitions.length > 0
+        ? migratedWord.posDefinitions.map(pd => ({ ...pd }))
+        : [{ pos: '', definition: '' }],
+      examples: word.examples ? [...word.examples] : [],
     }
+  } else {
+    wordForm.value = {
+      label: nodeData.label || '',
+      phonetic: '',
+      posDefinitions: [{ pos: '', definition: '' }],
+      examples: [],
+    }
+  }
 
-    // 标记内容已准备好
-    dialogContentReady.value = true
-
-    // 自动聚焦到词汇输入框
-    nextTick(() => {
-      wordInputRef.value?.focus()
-    })
+  nextTick(() => {
+    wordInputRef.value?.focus()
   })
 }
 
 function closeWordDialog() {
   showAddWordDialog.value = false
   showEditWordDialog.value = false
-  dialogContentReady.value = false
   editingWordId.value = null
   clickPosition.value = null
   quickLinkSearch.value = ''
@@ -1281,7 +1269,6 @@ const { containerRef, fitView, exportPNG, updateNodeData, removeNode, removeNode
     }
   },
   onBackgroundDblClick: (position) => openAddWordDialog(position),
-  onNodeDblClick: (nodeData) => openEditWordDialog(nodeData),
   onEdgeDblClick: (edgeData) => openEditRelationFromEdge(edgeData),
   onSelectionChange: (nodes) => handleSelectionChange(nodes),
   onNodeDelete: (nodeData) => handleNodeDelete(nodeData),
