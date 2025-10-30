@@ -796,14 +796,15 @@ export function useCytoscape(options: UseCytoscapeOptions) {
           ? definition.substring(0, 40) + '...'
           : definition
         node.style('label', `${data.label}\n${truncatedDef}`)
-        node.style('font-size', '12px')
+        node.style('line-height', 1.25)
+        node.style('font-size', '14px')
         node.style('text-max-width', '180px')
-        node.style('min-width', '80px')
-        node.style('min-height', '80px')
+        node.style('min-width', '85px')
+        node.style('min-height', '85px')
       } else {
         // 只显示词汇
         node.style('label', data.label)
-        node.style('font-size', '15px')
+        node.style('font-size', '16px')
         node.style('text-max-width', '150px')
         node.style('min-width', '60px')
         node.style('min-height', '60px')
