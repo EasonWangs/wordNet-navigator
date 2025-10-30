@@ -517,6 +517,60 @@ export function useCytoscape(options: UseCytoscapeOptions) {
     })
   }
 
+  const arrangeIsolatedNodes = () => {
+    if (!cyInstance.value) return
+
+    const allNodes = cyInstance.value.nodes()
+    if (!allNodes.length) return
+
+    const isolatedNodes = allNodes.filter(node => node.connectedEdges().length === 0)
+    if (!isolatedNodes.length) return
+
+    const connectedNodes = allNodes.filter(node => node.connectedEdges().length > 0)
+    const rowSize = Math.ceil(Math.sqrt(isolatedNodes.length))
+    const columnCount = Math.ceil(isolatedNodes.length / rowSize)
+    const columnSpacing = 160
+    const rowSpacing = 110
+
+    if (connectedNodes.length === 0) {
+      const offsetX = -((columnCount - 1) * columnSpacing) / 2
+      const offsetY = -((rowSize - 1) * rowSpacing) / 2
+
+      isolatedNodes.forEach((node, idx) => {
+        const col = Math.floor(idx / rowSize)
+        const row = idx % rowSize
+        node.position({
+          x: offsetX + col * columnSpacing,
+          y: offsetY + row * rowSpacing,
+        })
+      })
+      return
+    }
+
+    const connectedBox = connectedNodes.boundingBox()
+    const baseX = connectedBox.x2 + 160
+    const centerY = (connectedBox.y1 + connectedBox.y2) / 2
+    const gridHeight = (rowSize - 1) * rowSpacing
+    const baseY = centerY - gridHeight / 2
+
+    isolatedNodes.forEach((node, idx) => {
+      const col = Math.floor(idx / rowSize)
+      const row = idx % rowSize
+      node.position({
+        x: baseX + col * columnSpacing,
+        y: baseY + row * rowSpacing,
+      })
+    })
+  }
+
+  const focusOnRelationNodes = () => {
+    if (!cyInstance.value) return
+    const connectedNodes = cyInstance.value.nodes().filter(node => node.connectedEdges().length > 0)
+    const target = connectedNodes.length > 0 ? connectedNodes : cyInstance.value.nodes()
+    if (!target.length) return
+    cyInstance.value.fit(target, 80)
+  }
+
   const runLayout = () => {
     if (!cyInstance.value) return
 
@@ -610,12 +664,18 @@ export function useCytoscape(options: UseCytoscapeOptions) {
 
         // 性能优化
         refresh: 20,             // 每20次迭代刷新一次显示
-        fit: true,               // 自动适应视图
+        fit: false,
         padding: 30,
       })
     }
 
-    cyInstance.value.layout(layoutOptions).run()
+    const layout = cyInstance.value.layout(layoutOptions)
+    layout.run()
+
+    layout.once('layoutstop', () => {
+      arrangeIsolatedNodes()
+      focusOnRelationNodes()
+    })
   }
 
   const fitView = () => {
