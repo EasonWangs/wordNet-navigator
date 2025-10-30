@@ -100,48 +100,48 @@
           </div>
           <div>
             <div class="flex items-center justify-between mb-2">
-              <label class="block text-sm font-medium text-gray-700">词性-定义对</label>
+              <label class="block text-xs font-medium text-gray-700">词性-定义对</label>
               <button
                 @click="addPosDefinitionPair"
                 type="button"
-                class="text-sm text-primary-600 hover:text-primary-800"
+                class="text-xs text-primary-600 hover:text-primary-800"
               >
                 + 添加
               </button>
             </div>
-            <div class="space-y-2">
+            <div class="space-y-1.5">
               <div
                 v-for="(pair, index) in wordForm.posDefinitions"
                 :key="index"
-                class="border border-gray-200 rounded-md p-2 bg-gray-50"
+                class="border border-gray-200 rounded-md px-2.5 py-2 bg-gray-50"
               >
-                <div class="flex gap-2 mb-2">
+                <div class="flex items-center gap-2">
                   <select
                     v-model="pair.pos"
-                    class="flex-1 px-2 py-1.5 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary-500 text-sm"
+                    class="w-28 px-2 py-1 border border-gray-300 rounded-md focus:ring-1 focus:ring-primary-500 text-xs"
                   >
                     <option value="">- 词性 -</option>
                     <option v-for="posType in adminStore.posTypes" :key="posType.key" :value="posType.key">
                       {{ posType.label }}<span v-if="posType.abbreviation"> ({{ posType.abbreviation }})</span>
                     </option>
                   </select>
+                  <input
+                    v-model="pair.definition"
+                    type="text"
+                    class="flex-1 px-2.5 py-1.5 border border-gray-300 rounded-md focus:ring-1 focus:ring-primary-500 text-sm"
+                    placeholder="该词性的定义"
+                    @keydown.enter.stop
+                  />
                   <button
                     v-if="wordForm.posDefinitions.length > 1"
                     @click="removePosDefinitionPair(index)"
                     type="button"
-                    class="px-2 py-1 text-red-600 hover:bg-red-100 rounded transition-colors text-sm"
+                    class="px-2 py-1 text-red-600 hover:bg-red-100 rounded transition-colors text-xs"
                     title="删除"
                   >
                     ✕
                   </button>
                 </div>
-                <textarea
-                  v-model="pair.definition"
-                  rows="2"
-                  class="w-full px-2 py-1.5 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary-500 text-sm"
-                  placeholder="该词性的定义"
-                  @keydown.enter.stop
-                />
               </div>
             </div>
           </div>
