@@ -474,13 +474,11 @@ export function useCytoscape(options: UseCytoscapeOptions) {
     if (!cyInstance.value) return
 
     const centerNodes = cyInstance.value.nodes().filter((node: any) => node.data('isCenter') === true)
-    if (centerNodes.length > 0) {
-      const centerNode = centerNodes[0]
-      centerNode.select()
-      if (options.onNodeClick) {
-        options.onNodeClick(centerNode.data())
-      }
-    }
+    if (!centerNodes.length) return
+
+    const centerNode = centerNodes[0]
+    centerNode.select()
+    // 不主动触发节点点击回调，避免前台搜索时自动打开编辑词汇弹窗
   }
 
   const updateEdgeVisibility = () => {
