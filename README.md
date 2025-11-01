@@ -1,6 +1,6 @@
 # WordNet Navigator
 
-> 现代化的 WordNet 可视化工具 - 基于 Vue 3 + TypeScript + Cytoscape.js
+> 现代化的 Word Network 可视化工具 - 基于 Vue 3 + TypeScript + Cytoscape.js
 
 ## 🚀 快速开始
 
@@ -14,7 +14,7 @@ npm install
 npm run dev
 
 # 3. 导入示例数据
-访问 http://localhost:3001/admin/data
+访问 http://localhost:5001/admin/data
 点击"导入为新项目"，选择 data/demo-data.json
 ```
 

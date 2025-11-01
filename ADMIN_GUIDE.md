@@ -2,7 +2,7 @@
 
 ## 🎯 功能概览
 
-WordNet Navigator 现在包含完整的数据管理后台，支持：
+Word Network Navigator 现在包含完整的数据管理后台，支持：
 
 1. **关系类型管理** - 管理词汇关系的类型定义
 2. **词汇管理** - CRUD 操作管理所有词汇
@@ -14,8 +14,8 @@ WordNet Navigator 现在包含完整的数据管理后台，支持：
 
 ### 访问方式
 
-- **前台可视化**: http://localhost:3001/
-- **管理后台**: http://localhost:3001/admin
+- **前台可视化**: http://localhost:5001/
+- **管理后台**: http://localhost:5001/admin
 
 ### 导航
 
