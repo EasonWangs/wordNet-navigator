@@ -3,8 +3,8 @@
     <div class="flex items-center justify-between mb-6">
       <h2 class="text-2xl font-bold text-gray-900">关系类型管理</h2>
       <button
-        @click="showAddDialog = true"
         class="px-4 py-2 bg-primary-500 text-white rounded-md hover:bg-primary-600 transition-colors"
+        @click="showAddDialog = true"
       >
         + 添加关系类型
       </button>
@@ -57,14 +57,14 @@
             <td class="px-6 py-4 text-sm text-gray-500">{{ type.description || '-' }}</td>
             <td class="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
               <button
-                @click="editType(type)"
                 class="text-primary-600 hover:text-primary-900"
+                @click="editType(type)"
               >
                 编辑
               </button>
               <button
-                @click="deleteType(type.key)"
                 class="text-red-600 hover:text-red-900"
+                @click="deleteType(type.key)"
               >
                 删除
               </button>
@@ -192,14 +192,14 @@
         </div>
         <div class="mt-6 flex justify-end space-x-3">
           <button
-            @click="closeDialog"
             class="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-md transition-colors"
+            @click="closeDialog"
           >
             取消
           </button>
           <button
-            @click="saveType"
             class="px-4 py-2 bg-primary-500 text-white rounded-md hover:bg-primary-600 transition-colors"
+            @click="saveType"
           >
             保存
           </button>

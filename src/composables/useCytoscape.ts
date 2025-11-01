@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any -- Cytoscape's event payloads expose loosely typed data; encapsulating every variant here would add excessive boilerplate */
 import { ref, onMounted, onBeforeUnmount, watch } from 'vue'
 import cytoscape, { type Core, type NodeSingular } from 'cytoscape'
 import type { GraphData, LayoutType } from '@/types/wordnet'

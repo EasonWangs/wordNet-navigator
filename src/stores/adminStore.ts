@@ -4,6 +4,8 @@ import { storageService } from '@/services/storageService'
 import type { StoredWord, StoredConnection, StoredRelationType, StoredPosType } from '@/services/storageService'
 import { clearRelationTypesCache } from '@/utils/relationUtils'
 
+type StorageImportPayload = Parameters<typeof storageService.importData>[0]
+
 export const useAdminStore = defineStore('admin', () => {
   // State
   const words = ref<StoredWord[]>([])
@@ -172,7 +174,7 @@ export const useAdminStore = defineStore('admin', () => {
       // 移除目标为当前词且是反向关系的连接
       if (c.target === wordId) {
         // 检查是否是某个关系类型的反向关系
-        for (const [relationType, _] of Object.entries(oldRelations)) {
+        for (const relationType of Object.keys(oldRelations)) {
           const reverseRelation = relationMapping[relationType]
           if (reverseRelation && c.relation === reverseRelation) {
             return false
@@ -190,7 +192,7 @@ export const useAdminStore = defineStore('admin', () => {
         const newConn = storageService.addConnection({
           source: wordId,
           target: targetId,
-          relation: relationType as any,
+          relation: relationType,
         })
         newConnections.push(newConn)
 
@@ -200,7 +202,7 @@ export const useAdminStore = defineStore('admin', () => {
           const reverseConn = storageService.addConnection({
             source: targetId,
             target: wordId,
-            relation: reverseRelation as any,
+            relation: reverseRelation,
           })
           newConnections.push(reverseConn)
         }
@@ -216,7 +218,7 @@ export const useAdminStore = defineStore('admin', () => {
     return storageService.exportData()
   }
 
-  function importData(data: any) {
+  function importData(data: StorageImportPayload) {
     storageService.importData(data)
     loadData()
   }

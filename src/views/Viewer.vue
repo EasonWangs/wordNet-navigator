@@ -43,15 +43,15 @@
             :class="graphStore.showDefinitionInNode
               ? 'bg-blue-500 text-white hover:bg-blue-600'
               : 'bg-gray-100 text-gray-700 hover:bg-gray-200'"
-            @click="graphStore.toggleShowDefinitionInNode()"
             title="在节点内显示定义"
+            @click="graphStore.toggleShowDefinitionInNode()"
           >
             {{ graphStore.showDefinitionInNode ? '隐藏定义' : '显示定义' }}
           </button>
           <select
             :value="graphStore.layout"
-            @change="handleLayoutChange"
             class="px-3 py-1.5 border border-gray-300 rounded text-sm bg-white cursor-pointer hover:border-gray-400 transition-colors"
+            @change="handleLayoutChange"
           >
             <option value="cose">力导向</option>
             <option value="circle">圆形</option>
@@ -60,9 +60,9 @@
           </select>
           <select
             :value="graphStore.relationDepth"
-            @change="handleDepthChange"
             class="px-3 py-1.5 border border-gray-300 rounded text-sm bg-white cursor-pointer hover:border-gray-400 transition-colors"
             title="关系层级深度"
+            @change="handleDepthChange"
           >
             <option :value="1">1层关系</option>
             <option :value="2">2层关系</option>
@@ -72,9 +72,9 @@
           </select>
           <select
             :value="graphStore.maxNodes"
-            @change="handleMaxNodesChange"
             class="px-3 py-1.5 border border-gray-300 rounded text-sm bg-white cursor-pointer hover:border-gray-400 transition-colors"
             title="最大节点数量"
+            @change="handleMaxNodesChange"
           >
             <option :value="20">20个节点</option>
             <option :value="50">50个节点</option>
@@ -118,12 +118,21 @@
 
 <script setup lang="ts">
 import { onMounted, ref, watch } from 'vue'
+import type { Ref as VueRef } from 'vue'
 import { useGraphStore } from '@/stores/graphStore'
 import { WordNetService } from '@/services/wordnetService'
 import GraphCanvas from '@/components/GraphCanvas.vue'
+import type { LayoutType } from '@/types/wordnet'
 
 const graphStore = useGraphStore()
-const graphCanvasRef = ref<InstanceType<typeof GraphCanvas> | null>(null)
+
+interface GraphCanvasExposed {
+  fitView: () => void
+  exportPNG: () => void
+  isFitModeActive: VueRef<boolean>
+}
+
+const graphCanvasRef = ref<GraphCanvasExposed | null>(null)
 const fitViewButtonLabel = ref('适应视图')
 
 const syncFitViewLabel = () => {
@@ -150,21 +159,19 @@ const handleLoadGraph = async () => {
 
 const fitView = () => {
   if (!graphCanvasRef.value) return
-  ;(graphCanvasRef.value as any).fitView()
+  graphCanvasRef.value.fitView()
   syncFitViewLabel()
 }
 
 const exportPNG = () => {
   // 通过 GraphCanvas 的 ref 调用 exportPNG
-  if (graphCanvasRef.value) {
-    (graphCanvasRef.value as any).exportPNG()
-  }
+  graphCanvasRef.value?.exportPNG()
 }
 
 const handleLayoutChange = (e: Event) => {
   // 更新布局算法并保存到 cookie
   const target = e.target as HTMLSelectElement
-  graphStore.setLayout(target.value as any)
+  graphStore.setLayout(target.value as LayoutType)
 }
 
 const handleDepthChange = async (e: Event) => {

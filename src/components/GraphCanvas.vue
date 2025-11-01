@@ -102,9 +102,9 @@
             <div class="flex items-center justify-between mb-2">
               <label class="block text-xs font-medium text-gray-700">词性-定义对</label>
               <button
-                @click="addPosDefinitionPair"
                 type="button"
                 class="text-xs text-primary-600 hover:text-primary-800"
+                @click="addPosDefinitionPair"
               >
                 + 添加
               </button>
@@ -134,10 +134,10 @@
                   />
                   <button
                     v-if="wordForm.posDefinitions.length > 1"
-                    @click="removePosDefinitionPair(index)"
                     type="button"
                     class="px-2 py-1 text-red-600 hover:bg-red-100 rounded transition-colors text-xs"
                     title="删除"
+                    @click="removePosDefinitionPair(index)"
                   >
                     ✕
                   </button>
@@ -155,15 +155,15 @@
                 placeholder="输入例句"
               />
               <button
-                @click="removeExample(index)"
                 class="px-3 py-2 bg-red-500 text-white rounded-r-md hover:bg-red-600"
+                @click="removeExample(index)"
               >
                 删除
               </button>
             </div>
             <button
-              @click="addExample"
               class="mt-2 text-sm text-primary-600 hover:text-primary-800"
+              @click="addExample"
             >
               + 添加例句
             </button>
@@ -225,9 +225,9 @@
           <!-- 左侧删除按钮（仅在编辑模式且无关系时显示） -->
           <button
             v-if="showEditWordDialog && isIsolatedWord"
-            @click="deleteWord"
             class="px-4 py-2 text-red-600 hover:bg-red-50 rounded-md transition-colors border border-red-300"
             title="删除独立节点"
+            @click="deleteWord"
           >
             删除词汇
           </button>
@@ -236,15 +236,15 @@
           <!-- 右侧操作按钮 -->
           <div class="flex space-x-3">
             <button
-              @click="closeWordDialog"
               class="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-md transition-colors"
+              @click="closeWordDialog"
             >
               取消
             </button>
             <button
-              @click="saveWord"
               class="px-4 py-2 bg-primary-500 text-white rounded-md hover:bg-primary-600 transition-colors"
               :disabled="!wordForm.label.trim()"
+              @click="saveWord"
             >
               保存
             </button>
@@ -276,15 +276,15 @@
               <span class="text-gray-400">的</span>
               <div class="flex items-center flex-wrap gap-1.5">
                 <span
-                  v-for="(relation, index) in existingRelations"
+                  v-for="relation in existingRelations"
                   :key="relation.id"
                   class="inline-flex items-center gap-1 px-2 py-0.5 bg-blue-100 text-blue-700 rounded text-xs"
                 >
                   {{ getRelationLabel(relation.relation) }}
                   <button
-                    @click="deleteRelation(relation.id)"
                     class="hover:text-red-600 font-bold"
                     title="删除此关系"
+                    @click="deleteRelation(relation.id)"
                   >
                     ×
                   </button>
@@ -316,9 +316,9 @@
                 }"
               >
                 <input
+                  v-model="newRelationForm.relationType"
                   type="radio"
                   :value="relationType.key"
-                  v-model="newRelationForm.relationType"
                   class="mr-2 flex-shrink-0"
                   :disabled="isRelationExists(relationType.key)"
                 />
@@ -332,15 +332,15 @@
         </div>
         <div class="mt-4 flex justify-end gap-2">
           <button
-            @click="closeCreateRelationDialog"
             class="px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-100 rounded transition-colors"
+            @click="closeCreateRelationDialog"
           >
             {{ existingRelations.length > 0 ? '完成' : '取消' }}
           </button>
           <button
             v-if="newRelationForm.relationType"
-            @click="saveRelation"
             class="px-3 py-1.5 text-sm bg-primary-500 text-white rounded hover:bg-primary-600 transition-colors"
+            @click="saveRelation"
           >
             {{ existingRelations.length > 0 ? '添加' : '创建' }}
           </button>
@@ -357,11 +357,26 @@ import { useAdminStore } from '@/stores/adminStore'
 import { useCytoscape } from '@/composables/useCytoscape'
 import { WordNetService } from '@/services/wordnetService'
 import { migrateWordData } from '@/utils/wordDataUtils'
-import type { PosDefinitionPair } from '@/types/wordnet'
+import type { PosDefinitionPair, WordNode, WordEdge } from '@/types/wordnet'
+import type { StoredConnection, StoredWord, StoredRelationType } from '@/services/storageService'
 import Legend from './Legend.vue'
 
 const graphStore = useGraphStore()
 const adminStore = useAdminStore()
+
+interface SelectedNode {
+  id: string
+  label: string
+}
+
+interface WordFormState {
+  label: string
+  phonetic: string
+  posDefinitions: PosDefinitionPair[]
+  examples: string[]
+}
+
+type RelationEdgeData = Pick<WordEdge, 'source' | 'target' | 'relation'> & { id?: string }
 
 // 组件初始化时加载一次数据
 onMounted(() => {
@@ -369,10 +384,10 @@ onMounted(() => {
 })
 
 // 选中的节点
-const selectedNodes = ref<any[]>([])
+const selectedNodes = ref<SelectedNode[]>([])
 
 // 已存在的关系
-const existingRelations = ref<any[]>([])
+const existingRelations = ref<StoredConnection[]>([])
 
 // 添加/编辑词汇对话框
 const showAddWordDialog = ref(false)
@@ -380,16 +395,16 @@ const showEditWordDialog = ref(false)
 const editingWordId = ref<string | null>(null)
 const wordInputRef = ref<HTMLInputElement | null>(null)
 const clickPosition = ref<{ x: number; y: number } | null>(null)
-const wordForm = ref({
+const wordForm = ref<WordFormState>({
   label: '',
   phonetic: '',
-  posDefinitions: [{ pos: '', definition: '' }] as PosDefinitionPair[],
-  examples: [] as string[],
+  posDefinitions: [{ pos: '', definition: '' }],
+  examples: [],
 })
 
 // 创建关系对话框
 const showCreateRelationDialog = ref(false)
-const newRelationForm = ref({
+const newRelationForm = ref<{ relationType: string }>({
   relationType: '',
 })
 
@@ -419,7 +434,7 @@ function openAddWordDialog(position?: { x: number; y: number }) {
   })
 }
 
-function openEditWordDialog(nodeData: any) {
+function openEditWordDialog(nodeData: WordNode) {
   showEditWordDialog.value = true
   showAddWordDialog.value = false
   editingWordId.value = nodeData.id
@@ -435,7 +450,7 @@ function openEditWordDialog(nodeData: any) {
 
     wordForm.value = {
       label: word.label,
-      phonetic: (word as any).phonetic || '',
+      phonetic: word.phonetic ?? '',
       posDefinitions: migratedWord.posDefinitions && migratedWord.posDefinitions.length > 0
         ? migratedWord.posDefinitions.map(pd => ({ ...pd }))
         : [{ pos: '', definition: '' }],
@@ -485,14 +500,15 @@ function removePosDefinitionPair(index: number) {
 
 // 处理词汇对话框的回车键
 function handleWordDialogEnter(e: KeyboardEvent) {
+  const target = e.target as (HTMLElement & { isComposing?: boolean })
+
   // 检查是否在中文输入法输入过程中（IME composition）
   // isComposing 为 true 表示正在使用输入法输入，此时回车是用来确认输入的
-  if (e.isComposing || (e.target as any)?.isComposing) {
+  if (e.isComposing || target.isComposing) {
     return // 输入法输入中，不触发提交
   }
 
   // 检查是否在 textarea 中（textarea 需要回车换行）
-  const target = e.target as HTMLElement
   if (target.tagName === 'TEXTAREA') {
     return // textarea 中的回车不触发提交
   }
@@ -622,7 +638,7 @@ async function saveWord() {
 }
 
 // 智能排序函数：词首匹配优先
-function sortByMatchPosition(words: any[], searchTerm: string) {
+function sortByMatchPosition(words: StoredWord[], searchTerm: string) {
   const lowerSearchTerm = searchTerm.toLowerCase()
 
   return words.sort((a, b) => {
@@ -646,7 +662,7 @@ function sortByMatchPosition(words: any[], searchTerm: string) {
 }
 
 // 添加词汇时检查是否已存在
-const existingWordMatches = computed(() => {
+const existingWordMatches = computed<StoredWord[]>(() => {
   if (!showAddWordDialog.value || !wordForm.value.label.trim()) {
     return []
   }
@@ -667,7 +683,7 @@ function handleAddWordSearchBlur() {
   }, 200)
 }
 
-function selectExistingWord(word: any) {
+function selectExistingWord(word: StoredWord) {
   // 关闭添加对话框
   closeWordDialog()
 
@@ -726,7 +742,7 @@ function getWordRelationCount(wordId: string): number {
   ).length
 }
 
-const filteredQuickLinkWords = computed(() => {
+const filteredQuickLinkWords = computed<StoredWord[]>(() => {
   if (!quickLinkSearch.value.trim() || !editingWordId.value) {
     return []
   }
@@ -840,7 +856,7 @@ function handleQuickLinkBlur() {
   }, 200)
 }
 
-function selectQuickLinkWord(targetWord: any) {
+function selectQuickLinkWord(targetWord: StoredWord) {
   if (!editingWordId.value) return
 
   // 关闭搜索结果
@@ -869,8 +885,8 @@ function selectQuickLinkWord(targetWord: any) {
 }
 
 // 创建关系相关函数
-function handleSelectionChange(nodes: any[]) {
-  selectedNodes.value = nodes
+function handleSelectionChange(nodes: WordNode[]) {
+  selectedNodes.value = nodes.map(node => ({ id: node.id, label: node.label }))
 
   // 当选中2个节点时，自动打开关系对话框
   if (nodes.length === 2) {
@@ -898,19 +914,13 @@ function handleSelectionChange(nodes: any[]) {
 function clearSelection() {
   selectedNodes.value = []
   // 清除 Cytoscape 中的选择
-  const cy = (containerRef.value as any)?.$cyInstance
-  if (cy) {
-    cy.nodes().unselect()
+  if (cyInstance.value) {
+    cyInstance.value.nodes().unselect()
   }
 }
 
-function openCreateRelationDialog() {
-  if (selectedNodes.value.length !== 2) return
-  showCreateRelationDialog.value = true
-}
-
 // 双击边打开编辑关系对话框
-function openEditRelationFromEdge(edgeData: any) {
+function openEditRelationFromEdge(edgeData: RelationEdgeData) {
   // 从边的数据中获取源和目标节点
   const sourceNode = adminStore.words.find(w => w.id === edgeData.source)
   const targetNode = adminStore.words.find(w => w.id === edgeData.target)
@@ -948,7 +958,7 @@ function getRelationLabel(key: string): string {
 
 // 将关系类型按配对关系分组
 const groupedRelationTypes = computed(() => {
-  const groups: Array<{ isPair: boolean; relations: any[] }> = []
+  const groups: Array<{ isPair: boolean; relations: StoredRelationType[] }> = []
   const processed = new Set<string>()
 
   adminStore.relationTypes.forEach(relationType => {
@@ -994,11 +1004,6 @@ const groupedRelationTypes = computed(() => {
   })
 
   return groups
-})
-
-// 可用的关系类型（用于显示）
-const availableRelationTypes = computed(() => {
-  return adminStore.relationTypes
 })
 
 // 检查关系是否已存在
@@ -1082,7 +1087,7 @@ async function saveRelation() {
     adminStore.addConnection({
       source: sourceId,
       target: targetId,
-      relation: relationType as any,
+      relation: relationType,
     })
 
     // 检查并添加缺失的节点到 graphData（防止 watch 触发时节点丢失）
@@ -1092,13 +1097,13 @@ async function saveRelation() {
     if (!sourceNodeExists && sourceWordData) {
       graphStore.graphData.nodes.push({
         data: sourceWordData
-      } as any)
+      })
     }
 
     if (!targetNodeExists && targetWordData) {
       graphStore.graphData.nodes.push({
         data: targetWordData
-      } as any)
+      })
     }
 
     // 动态添加边到图表（不刷新整个图表）
@@ -1114,7 +1119,7 @@ async function saveRelation() {
         target: targetId,
         relation: relationType
       }
-    } as any)
+    })
 
     // 检查是否需要添加反向关系
     const relationTypeConfig = adminStore.relationTypes.find(rt => rt.key === relationType)
@@ -1122,7 +1127,7 @@ async function saveRelation() {
       adminStore.addConnection({
         source: targetId,
         target: sourceId,
-        relation: relationTypeConfig.pairWith as any,
+        relation: relationTypeConfig.pairWith,
       })
 
       // 动态添加反向边到图表
@@ -1138,7 +1143,7 @@ async function saveRelation() {
           target: sourceId,
           relation: relationTypeConfig.pairWith
         }
-      } as any)
+      })
     }
 
     // 创建成功后直接关闭对话框并清除选择
@@ -1158,7 +1163,7 @@ const layoutRef = toRef(graphStore, 'layout')
 const showDefinitionInNodeRef = toRef(graphStore, 'showDefinitionInNode')
 
 // 删除节点处理器
-function handleNodeDelete(nodeData: any) {
+function handleNodeDelete(nodeData: WordNode) {
   // 检查节点是否有关系
   const hasConnections = adminStore.connections.some(
     c => c.source === nodeData.id || c.target === nodeData.id
@@ -1196,7 +1201,7 @@ function handleNodeDelete(nodeData: any) {
 }
 
 // 删除边（关系）处理器
-function handleEdgeDelete(edgeData: any) {
+function handleEdgeDelete(edgeData: RelationEdgeData) {
   if (!confirm(`确定要删除这个关系吗？如果有配对的反向关系，也会一并删除。`)) {
     return
   }
@@ -1247,12 +1252,12 @@ function handleEdgeDelete(edgeData: any) {
 
 const {
   containerRef,
+  cyInstance,
   fitView,
   exportPNG,
   isFitModeActive,
   updateNodeData,
   removeNode,
-  removeNodes,
   removeEdge,
   addEdge,
   addNode,

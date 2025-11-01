@@ -63,8 +63,8 @@ export class WordNetService {
             data: {
               id: w.id,
               label: w.label,
-              phonetic: (w as any).phonetic,
-              posDefinitions: (w as any).posDefinitions,
+              phonetic: w.phonetic,
+              posDefinitions: w.posDefinitions,
               examples: w.examples,
             },
           }))
@@ -155,8 +155,8 @@ export class WordNetService {
             data: {
               id: w.id,
               label: w.label,
-              phonetic: (w as any).phonetic,
-              posDefinitions: (w as any).posDefinitions,
+              phonetic: w.phonetic,
+              posDefinitions: w.posDefinitions,
               examples: w.examples,
               isCenter: centerWordIds.has(w.id), // 标记所有同名的中心词
             },

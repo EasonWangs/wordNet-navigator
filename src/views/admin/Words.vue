@@ -4,20 +4,20 @@
       <h2 class="text-2xl font-bold text-gray-900">词汇与关系管理</h2>
       <div class="flex gap-3">
         <button
-          @click="showAddDialog = true"
           class="px-4 py-2 bg-primary-500 text-white rounded-md hover:bg-primary-600 transition-colors"
+          @click="showAddDialog = true"
         >
           + 添加词汇
         </button>
         <button
-          @click="exportWords"
           class="px-4 py-2 bg-emerald-500 text-white rounded-md hover:bg-emerald-600 transition-colors"
+          @click="exportWords"
         >
           📄 导出词汇
         </button>
         <button
-          @click="showBulkImportDialog = true"
           class="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors"
+          @click="showBulkImportDialog = true"
         >
           📤 批量导入
         </button>
@@ -29,10 +29,10 @@
       <div class="flex items-center gap-4">
         <input
           v-model="searchQuery"
-          @input="handleSearch"
           type="text"
           placeholder="搜索词汇或词性..."
           class="px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary-500 w-80"
+          @input="handleSearch"
         />
         <span class="text-sm text-gray-600">
           共 {{ filteredWords.length }} 个词汇
@@ -43,8 +43,8 @@
         <label class="text-sm text-gray-600">每页显示:</label>
         <select
           v-model.number="pageSize"
-          @change="currentPage = 1"
           class="px-3 py-1 border border-gray-300 rounded-md text-sm"
+          @change="currentPage = 1"
         >
           <option :value="20">20</option>
           <option :value="50">50</option>
@@ -100,20 +100,20 @@
             <td class="px-2 py-1.5 whitespace-nowrap text-xs font-medium sticky right-0 bg-white z-10">
               <div class="flex gap-1.5">
                 <button
-                  @click="editWord(word)"
                   class="text-primary-600 hover:text-primary-900"
+                  @click="editWord(word)"
                 >
                   编辑
                 </button>
                 <button
-                  @click="editRelations(word)"
                   class="text-purple-600 hover:text-purple-900"
+                  @click="editRelations(word)"
                 >
                   关系
                 </button>
                 <button
-                  @click="deleteWord(word.id)"
                   class="text-red-600 hover:text-red-900"
+                  @click="deleteWord(word.id)"
                 >
                   删除
                 </button>
@@ -131,16 +131,16 @@
       </div>
       <div class="flex items-center gap-2">
         <button
-          @click="goToPage(1)"
           :disabled="currentPage === 1"
           class="px-3 py-1 border border-gray-300 rounded-md text-sm hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+          @click="goToPage(1)"
         >
           首页
         </button>
         <button
-          @click="goToPage(currentPage - 1)"
           :disabled="currentPage === 1"
           class="px-3 py-1 border border-gray-300 rounded-md text-sm hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+          @click="goToPage(currentPage - 1)"
         >
           上一页
         </button>
@@ -149,7 +149,6 @@
           <button
             v-for="page in visiblePages"
             :key="page"
-            @click="typeof page === 'number' && goToPage(page)"
             :disabled="page === '...'"
             :class="[
               'px-3 py-1 border rounded-md text-sm',
@@ -159,22 +158,23 @@
                 ? 'border-transparent cursor-default'
                 : 'border-gray-300 hover:bg-gray-50'
             ]"
+            @click="typeof page === 'number' && goToPage(page)"
           >
             {{ page }}
           </button>
         </div>
 
         <button
-          @click="goToPage(currentPage + 1)"
           :disabled="currentPage === totalPages"
           class="px-3 py-1 border border-gray-300 rounded-md text-sm hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+          @click="goToPage(currentPage + 1)"
         >
           下一页
         </button>
         <button
-          @click="goToPage(totalPages)"
           :disabled="currentPage === totalPages"
           class="px-3 py-1 border border-gray-300 rounded-md text-sm hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+          @click="goToPage(totalPages)"
         >
           末页
         </button>
@@ -215,9 +215,9 @@
             <div class="flex items-center justify-between mb-2">
               <label class="block text-sm font-medium text-gray-700">词性-定义对</label>
               <button
-                @click="addPosDefinitionPair"
                 type="button"
                 class="text-sm text-primary-600 hover:text-primary-800"
+                @click="addPosDefinitionPair"
               >
                 + 添加词性-定义对
               </button>
@@ -253,10 +253,10 @@
                   </div>
                   <button
                     v-if="wordFormData.posDefinitions.length > 1"
-                    @click="removePosDefinitionPair(index)"
                     type="button"
                     class="mt-6 px-2 py-1 text-red-600 hover:bg-red-50 rounded transition-colors text-sm"
                     title="删除此对"
+                    @click="removePosDefinitionPair(index)"
                   >
                     ✕
                   </button>
@@ -275,15 +275,15 @@
                 placeholder="输入例句"
               />
               <button
-                @click="removeExample(index)"
                 class="px-3 py-2 bg-red-500 text-white rounded-r-md hover:bg-red-600"
+                @click="removeExample(index)"
               >
                 删除
               </button>
             </div>
             <button
-              @click="addExample"
               class="mt-2 text-sm text-primary-600 hover:text-primary-800"
+              @click="addExample"
             >
               + 添加例句
             </button>
@@ -292,14 +292,14 @@
 
         <div class="mt-6 flex justify-end space-x-3">
           <button
-            @click="closeWordDialog"
             class="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-md transition-colors"
+            @click="closeWordDialog"
           >
             取消
           </button>
           <button
-            @click="saveWord"
             class="px-4 py-2 bg-primary-500 text-white rounded-md hover:bg-primary-600 transition-colors"
+            @click="saveWord"
           >
             保存
           </button>
@@ -326,9 +326,9 @@
                 <span class="text-[10px] text-gray-400">({{ relationType.key }})</span>
               </label>
               <button
-                @click="openAddRelationDialog(relationType.key)"
                 class="px-2 py-0.5 text-[10px] text-white rounded"
                 :class="getRelationButtonClass(relationType.key)"
+                @click="openAddRelationDialog(relationType.key)"
               >
                 + 添加
               </button>
@@ -342,8 +342,8 @@
               >
                 {{ getWordLabel(wordId) }}
                 <button
-                  @click="removeRelation(relationType.key, wordId)"
                   class="hover:opacity-75 text-sm"
+                  @click="removeRelation(relationType.key, wordId)"
                 >
                   ×
                 </button>
@@ -355,14 +355,14 @@
 
         <div class="mt-4 flex justify-end gap-2">
           <button
-            @click="closeRelationsDialog"
             class="px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-100 rounded transition-colors"
+            @click="closeRelationsDialog"
           >
             取消
           </button>
           <button
-            @click="saveRelations"
             class="px-3 py-1.5 text-sm bg-primary-500 text-white rounded hover:bg-primary-600 transition-colors"
+            @click="saveRelations"
           >
             保存
           </button>
@@ -389,8 +389,8 @@
             <button
               v-for="word in filteredAvailableWords"
               :key="word.id"
-              @click="addRelationToList(word.id)"
               class="w-full text-left px-4 py-2 hover:bg-gray-100 rounded-md transition-colors"
+              @click="addRelationToList(word.id)"
             >
               <span class="font-medium">{{ word.label }}</span>
               <span class="text-sm text-gray-500 ml-2">({{ getPosLabel(word) }})</span>
@@ -399,8 +399,8 @@
         </div>
         <div class="mt-6 flex justify-end">
           <button
-            @click="closeAddRelationDialog"
             class="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-md transition-colors"
+            @click="closeAddRelationDialog"
           >
             关闭
           </button>
@@ -418,8 +418,8 @@
         <div class="flex items-center justify-between mb-4">
           <h3 class="text-lg font-semibold">批量导入词汇</h3>
           <button
-            @click="downloadTemplate"
             class="px-3 py-1.5 text-sm bg-green-500 text-white rounded-md hover:bg-green-600 transition-colors flex items-center gap-1"
+            @click="downloadTemplate"
           >
             📥 下载导入模板
           </button>
@@ -451,8 +451,8 @@
               ref="fileInputRef"
               type="file"
               accept=".xlsx,.xls,.csv"
-              @change="handleFileUpload"
               class="hidden"
+              @change="handleFileUpload"
             />
             <div v-if="!importFile">
               <div class="text-6xl mb-4" :class="isDragging ? 'animate-bounce' : ''">
@@ -464,8 +464,8 @@
               <p class="text-sm text-gray-500 mb-4">支持 Excel (.xlsx, .xls) 和 CSV (.csv) 格式</p>
               <button
                 v-if="!isDragging"
-                @click="fileInputRef?.click()"
                 class="px-4 py-2 bg-primary-500 text-white rounded-md hover:bg-primary-600 transition-colors"
+                @click="fileInputRef?.click()"
               >
                 选择文件
               </button>
@@ -475,8 +475,8 @@
               <p class="text-gray-800 font-medium mb-2">{{ importFile.name }}</p>
               <p class="text-sm text-gray-500 mb-3">{{ (importFile.size / 1024).toFixed(2) }} KB</p>
               <button
-                @click="importFile = null; importPreviewData = []"
                 class="text-sm text-red-600 hover:text-red-800"
+                @click="importFile = null; importPreviewData = []"
               >
                 重新选择
               </button>
@@ -519,18 +519,18 @@
             <div class="flex items-center gap-4">
               <label class="flex items-center gap-2 text-sm">
                 <input
+                  v-model="importMode"
                   type="radio"
                   value="append"
-                  v-model="importMode"
                   class="text-primary-500"
                 />
                 <span>追加模式</span>
               </label>
               <label class="flex items-center gap-2 text-sm">
                 <input
+                  v-model="importMode"
                   type="radio"
                   value="overwrite"
-                  v-model="importMode"
                   class="text-primary-500"
                 />
                 <span>覆盖重复</span>
@@ -586,8 +586,8 @@
         <div class="mt-6 flex justify-between">
           <button
             v-if="importStep > 1 && importStep < 3"
-            @click="importStep--"
             class="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-md transition-colors"
+            @click="importStep--"
           >
             上一步
           </button>
@@ -595,23 +595,23 @@
 
           <div class="flex gap-3">
             <button
-              @click="closeBulkImportDialog"
               class="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-md transition-colors"
+              @click="closeBulkImportDialog"
             >
               {{ importStep === 3 ? '关闭' : '取消' }}
             </button>
             <button
               v-if="importStep === 1 && importFile"
-              @click="parseImportFile"
               class="px-4 py-2 bg-primary-500 text-white rounded-md hover:bg-primary-600 transition-colors"
+              @click="parseImportFile"
             >
               下一步
             </button>
             <button
               v-if="importStep === 2 && validImportCount > 0"
-              @click="executeImport"
               :disabled="isImporting"
               class="px-4 py-2 bg-primary-500 text-white rounded-md hover:bg-primary-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              @click="executeImport"
             >
               {{ isImporting ? '导入中...' : `导入 ${validImportCount} 条数据` }}
             </button>
@@ -626,12 +626,14 @@
 import { ref, computed, onMounted } from 'vue'
 import { useAdminStore } from '@/stores/adminStore'
 import type { StoredWord } from '@/services/storageService'
-import type { PosDefinitionPair } from '@/types/wordnet'
+import type { PosDefinitionPair, WordNode } from '@/types/wordnet'
 import { migrateWordData, getWordPosList } from '@/utils/wordDataUtils'
 import * as XLSX from 'xlsx'
 
 const MAX_POS_DEFINITIONS = 10
 const MAX_EXAMPLE_COUNT = 10
+
+type WordLike = StoredWord | WordNode
 
 const TEMPLATE_HEADERS = (() => {
   const headers = ['词汇', '音标']
@@ -826,7 +828,7 @@ function getWordLabel(id: string): string {
   return word?.label || id
 }
 
-function getPosLabel(word: any): string {
+function getPosLabel(word: WordLike): string {
   // 使用工具函数获取词性列表
   const posList = getWordPosList(word)
   if (posList.length === 0) return '-'
@@ -840,12 +842,12 @@ function getPosLabel(word: any): string {
   }).join(', ')
 }
 
-function getDefinitionText(word: any): string {
+function getDefinitionText(word: WordLike): string {
   // 从新格式获取定义
   if (word.posDefinitions && word.posDefinitions.length > 0) {
     const definitions = word.posDefinitions
-      .filter((pd: any) => pd.definition)
-      .map((pd: any) => pd.definition)
+      .map(pd => pd.definition?.trim())
+      .filter((definition): definition is string => Boolean(definition))
 
     if (definitions.length > 0) {
       // 如果有多个定义，用分号分隔
@@ -884,7 +886,7 @@ function editWord(word: StoredWord) {
   wordFormData.value = {
     id: word.id,
     label: word.label,
-    phonetic: (word as any).phonetic || '',
+    phonetic: word.phonetic ?? '',
     posDefinitions: migratedWord.posDefinitions && migratedWord.posDefinitions.length > 0
       ? migratedWord.posDefinitions.map(pd => ({ ...pd }))
       : [{ pos: '', definition: '' }],
@@ -1214,22 +1216,22 @@ function parseImportFile() {
       const worksheet = workbook.Sheets[firstSheetName]
 
       // 转换为 JSON
-      const jsonData = XLSX.utils.sheet_to_json(worksheet, { defval: '' }) as any[]
+      const jsonData = XLSX.utils.sheet_to_json<Record<string, unknown>>(worksheet, { defval: '' })
 
       // 解析并验证数据
       const parsedData: ImportWordData[] = jsonData.map((row) => {
         const item: ImportWordData = {
-          label: String(row['词汇'] || '').trim(),
-          phonetic: String(row['音标'] || '').trim() || undefined,
+          label: String(row['词汇'] ?? '').trim(),
+          phonetic: String(row['音标'] ?? '').trim() || undefined,
           posDefinitions: [],
           examples: [],
         }
 
-        // 解析词性-定义对（支持最多10对）
+        // 解析词性-定义对
         const posDefinitions: PosDefinitionPair[] = []
-        for (let i = 1; i <= 10; i++) {
-          const posStr = String(row[`词性${i}`] || '').trim()
-          const defStr = String(row[`定义${i}`] || '').trim()
+        for (let i = 1; i <= MAX_POS_DEFINITIONS; i++) {
+          const posStr = String(row[`词性${i}`] ?? '').trim()
+          const defStr = String(row[`定义${i}`] ?? '').trim()
 
           // 如果词性或定义任一不为空，则添加这个对
           if (posStr || defStr) {
@@ -1260,8 +1262,8 @@ function parseImportFile() {
 
         // 解析例句
         const examples: string[] = []
-        for (let i = 1; i <= 10; i++) {
-          const example = String(row[`例句${i}`] || '').trim()
+        for (let i = 1; i <= MAX_EXAMPLE_COUNT; i++) {
+          const example = String(row[`例句${i}`] ?? '').trim()
           if (example) {
             examples.push(example)
           }

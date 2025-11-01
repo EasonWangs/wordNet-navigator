@@ -99,8 +99,8 @@
             </td>
             <td class="px-4 py-4 whitespace-nowrap text-sm font-medium">
               <button
-                @click="editRelations(word)"
                 class="text-primary-600 hover:text-primary-900"
+                @click="editRelations(word)"
               >
                 编辑
               </button>
@@ -233,14 +233,14 @@
 
         <div class="mt-6 flex justify-end space-x-3">
           <button
-            @click="closeDialog"
             class="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-md transition-colors"
+            @click="closeDialog"
           >
             取消
           </button>
           <button
-            @click="saveRelations"
             class="px-4 py-2 bg-primary-500 text-white rounded-md hover:bg-primary-600 transition-colors"
+            @click="saveRelations"
           >
             保存
           </button>

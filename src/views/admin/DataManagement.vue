@@ -10,8 +10,8 @@
           <span>项目管理</span>
         </h3>
         <button
-          @click="showCreateProjectDialog = true"
           class="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors text-sm flex items-center gap-2"
+          @click="showCreateProjectDialog = true"
         >
           <span>+</span>
           <span>新建项目</span>
@@ -35,16 +35,16 @@
           <div class="flex gap-2">
             <button
               v-if="currentProjectHasUnsavedChanges"
-              @click="saveCurrentProject"
               class="px-3 py-1.5 bg-green-500 text-white rounded text-sm hover:bg-green-600 transition-colors"
               title="保存当前工作到项目"
+              @click="saveCurrentProject"
             >
               💾 保存
             </button>
             <button
-              @click="editingProject = currentProject; showRenameDialog = true"
               class="px-3 py-1.5 bg-gray-500 text-white rounded text-sm hover:bg-gray-600 transition-colors"
               title="重命名项目"
+              @click="editingProject = currentProject; showRenameDialog = true"
             >
               ✏️ 重命名
             </button>
@@ -80,23 +80,23 @@
               <div class="flex gap-1 ml-2">
                 <button
                   v-if="project.id !== currentProjectId"
-                  @click="switchProject(project.id)"
                   class="px-2 py-1 bg-blue-500 text-white rounded text-xs hover:bg-blue-600 transition-colors whitespace-nowrap"
                   title="切换到此项目"
+                  @click="switchProject(project.id)"
                 >
                   切换
                 </button>
                 <button
-                  @click="exportProjectData(project.id)"
                   class="px-2 py-1 bg-green-500 text-white rounded text-xs hover:bg-green-600 transition-colors"
                   title="导出项目"
+                  @click="exportProjectData(project.id)"
                 >
                   📤
                 </button>
                 <button
-                  @click="confirmDeleteProject(project.id)"
                   class="px-2 py-1 bg-red-500 text-white rounded text-xs hover:bg-red-600 transition-colors"
                   title="删除项目"
+                  @click="confirmDeleteProject(project.id)"
                 >
                   🗑️
                 </button>
@@ -127,11 +127,11 @@
 
         <!-- 拖拽区域 -->
         <div
+          class="border-2 border-dashed rounded-lg p-6 text-center transition-all mb-3"
+          :class="isDragging ? 'border-green-500 bg-green-50' : 'border-gray-300 hover:border-green-400 hover:bg-gray-50'"
           @drop.prevent="handleDrop"
           @dragover.prevent="handleDragOver"
           @dragleave.prevent="handleDragLeave"
-          class="border-2 border-dashed rounded-lg p-6 text-center transition-all mb-3"
-          :class="isDragging ? 'border-green-500 bg-green-50' : 'border-gray-300 hover:border-green-400 hover:bg-gray-50'"
         >
           <div class="text-4xl mb-2">📁</div>
           <p class="text-sm text-gray-600 mb-1">
@@ -143,8 +143,8 @@
         </div>
 
         <button
-          @click="importFileRef?.click()"
           class="w-full px-4 py-2 bg-green-500 text-white rounded-md hover:bg-green-600 transition-colors"
+          @click="importFileRef?.click()"
         >
           选择 JSON 文件导入
         </button>
@@ -163,8 +163,8 @@
           <li>• 词性类型: {{ adminStore.posTypes.length }} 种</li>
         </ul>
         <button
-          @click="exportCurrentData"
           class="w-full px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors"
+          @click="exportCurrentData"
         >
           导出为 JSON 文件
         </button>
@@ -182,8 +182,8 @@
           </p>
         </div>
         <button
-          @click="clearWorkspace"
           class="w-full px-4 py-2 bg-orange-500 text-white rounded-md hover:bg-orange-600 transition-colors"
+          @click="clearWorkspace"
         >
           清空工作区
         </button>
@@ -249,15 +249,15 @@
         </div>
         <div class="flex gap-3 mt-6">
           <button
-            @click="showCreateProjectDialog = false"
             class="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 transition-colors"
+            @click="showCreateProjectDialog = false"
           >
             取消
           </button>
           <button
-            @click="createProject"
             :disabled="!newProjectName.trim()"
             class="flex-1 px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            @click="createProject"
           >
             创建项目
           </button>
@@ -294,15 +294,15 @@
         </div>
         <div class="flex gap-3 mt-6">
           <button
-            @click="showRenameDialog = false; editingProject = null"
             class="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 transition-colors"
+            @click="showRenameDialog = false; editingProject = null"
           >
             取消
           </button>
           <button
-            @click="renameProject"
             :disabled="!editProjectName.trim()"
             class="flex-1 px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            @click="renameProject"
           >
             保存
           </button>
@@ -341,22 +341,22 @@
 
         <div class="flex flex-col gap-3">
           <button
-            @click="handleSwitchWithSave"
             class="w-full px-4 py-2.5 bg-green-500 text-white rounded-md hover:bg-green-600 transition-colors flex items-center justify-center gap-2"
+            @click="handleSwitchWithSave"
           >
             <span>💾</span>
             <span>保存并切换</span>
           </button>
           <button
-            @click="handleSwitchWithoutSave"
             class="w-full px-4 py-2.5 bg-orange-500 text-white rounded-md hover:bg-orange-600 transition-colors flex items-center justify-center gap-2"
+            @click="handleSwitchWithoutSave"
           >
             <span>🔄</span>
             <span>放弃并切换</span>
           </button>
           <button
-            @click="closeSwitchConfirmDialog"
             class="w-full px-4 py-2.5 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 transition-colors"
+            @click="closeSwitchConfirmDialog"
           >
             取消
           </button>
@@ -618,11 +618,11 @@ function exportCurrentData() {
 }
 
 // 拖拽处理
-function handleDragOver(event: DragEvent) {
+function handleDragOver(_event: DragEvent) {
   isDragging.value = true
 }
 
-function handleDragLeave(event: DragEvent) {
+function handleDragLeave(_event: DragEvent) {
   isDragging.value = false
 }
 
