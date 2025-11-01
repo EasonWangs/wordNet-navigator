@@ -10,6 +10,12 @@
           + 添加词汇
         </button>
         <button
+          @click="exportWords"
+          class="px-4 py-2 bg-emerald-500 text-white rounded-md hover:bg-emerald-600 transition-colors"
+        >
+          📄 导出词汇
+        </button>
+        <button
           @click="showBulkImportDialog = true"
           class="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors"
         >
@@ -624,6 +630,66 @@ import type { PosDefinitionPair } from '@/types/wordnet'
 import { migrateWordData, getWordPosList } from '@/utils/wordDataUtils'
 import * as XLSX from 'xlsx'
 
+const MAX_POS_DEFINITIONS = 10
+const MAX_EXAMPLE_COUNT = 10
+
+const TEMPLATE_HEADERS = (() => {
+  const headers = ['词汇', '音标']
+  for (let i = 1; i <= MAX_POS_DEFINITIONS; i++) {
+    headers.push(`词性${i}`)
+    headers.push(`定义${i}`)
+  }
+  for (let i = 1; i <= MAX_EXAMPLE_COUNT; i++) {
+    headers.push(`例句${i}`)
+  }
+  return headers
+})()
+
+const TEMPLATE_COLUMN_WIDTHS: Array<{ wch: number }> = TEMPLATE_HEADERS.map(header => {
+  if (header === '词汇' || header === '音标') {
+    return { wch: 15 }
+  }
+  if (header.startsWith('词性')) {
+    return { wch: 14 }
+  }
+  if (header.startsWith('定义')) {
+    return { wch: 32 }
+  }
+  if (header.startsWith('例句')) {
+    return { wch: 40 }
+  }
+  return { wch: 18 }
+})
+
+interface ExcelRowSource {
+  label: string
+  phonetic?: string
+  posDefinitions?: PosDefinitionPair[]
+  examples?: string[]
+}
+
+function buildExcelRow(word: ExcelRowSource): Record<string, string> {
+  const row: Record<string, string> = {
+    '词汇': word.label ?? '',
+    '音标': word.phonetic ? String(word.phonetic) : '',
+  }
+
+  const posDefinitions = word.posDefinitions ?? []
+  for (let i = 1; i <= MAX_POS_DEFINITIONS; i++) {
+    const pair = posDefinitions[i - 1]
+    row[`词性${i}`] = pair?.pos ? String(pair.pos) : ''
+    row[`定义${i}`] = pair?.definition ? String(pair.definition) : ''
+  }
+
+  const examples = word.examples ?? []
+  for (let i = 1; i <= MAX_EXAMPLE_COUNT; i++) {
+    const example = examples[i - 1]
+    row[`例句${i}`] = example ? String(example) : ''
+  }
+
+  return row
+}
+
 const adminStore = useAdminStore()
 
 // 词汇编辑相关
@@ -1022,71 +1088,60 @@ const errorImportCount = computed(() => {
 
 // 下载导入模板
 function downloadTemplate() {
-  // 创建模板数据
-  const templateData = [
+  const sampleWords: ExcelRowSource[] = [
     {
-      '词汇': 'dog',
-      '音标': '/dɒg/',
-      '词性1': 'noun',
-      '定义1': '狗，犬科动物',
-      '词性2': '',
-      '定义2': '',
-      '词性3': '',
-      '定义3': '',
-      '例句1': 'I have a dog.',
-      '例句2': 'Dogs are loyal animals.',
-      '例句3': '',
+      label: 'dog',
+      phonetic: '/dɒg/',
+      posDefinitions: [
+        { pos: 'noun', definition: '狗，犬科动物' },
+      ],
+      examples: ['I have a dog.', 'Dogs are loyal animals.'],
     },
     {
-      '词汇': 'run',
-      '音标': '/rʌn/',
-      '词性1': 'verb',
-      '定义1': '跑；奔跑',
-      '词性2': 'noun',
-      '定义2': '跑步；奔跑',
-      '词性3': '',
-      '定义3': '',
-      '例句1': 'I run every morning.',
-      '例句2': 'He went for a run.',
-      '例句3': '',
+      label: 'run',
+      phonetic: '/rʌn/',
+      posDefinitions: [
+        { pos: 'verb', definition: '跑；奔跑' },
+        { pos: 'noun', definition: '跑步；奔跑' },
+      ],
+      examples: ['I run every morning.', 'He went for a run.'],
     },
     {
-      '词汇': 'beautiful',
-      '音标': '/ˈbjuːtɪfl/',
-      '词性1': 'adjective',
-      '定义1': '美丽的；漂亮的',
-      '词性2': '',
-      '定义2': '',
-      '词性3': '',
-      '定义3': '',
-      '例句1': 'She is beautiful.',
-      '例句2': '',
-      '例句3': '',
+      label: 'beautiful',
+      phonetic: '/ˈbjuːtɪfl/',
+      posDefinitions: [
+        { pos: 'adjective', definition: '美丽的；漂亮的' },
+      ],
+      examples: ['She is beautiful.'],
     },
   ]
 
-  // 创建工作簿
-  const ws = XLSX.utils.json_to_sheet(templateData)
-  const wb = XLSX.utils.book_new()
-  XLSX.utils.book_append_sheet(wb, ws, '词汇模板')
+  const templateData = sampleWords.map(buildExcelRow)
+  const worksheet = XLSX.utils.json_to_sheet(templateData, { header: TEMPLATE_HEADERS })
+  worksheet['!cols'] = TEMPLATE_COLUMN_WIDTHS
+  const workbook = XLSX.utils.book_new()
+  XLSX.utils.book_append_sheet(workbook, worksheet, '词汇模板')
+  const date = new Date().toISOString().split('T')[0]
+  XLSX.writeFile(workbook, `wordnet-import-template-${date}.xlsx`)
+}
 
-  // 设置列宽
-  ws['!cols'] = [
-    { wch: 15 }, // 词汇
-    { wch: 15 }, // 音标
-    { wch: 15 }, // 词性1
-    { wch: 30 }, // 定义1
-    { wch: 15 }, // 词性2
-    { wch: 30 }, // 定义2
-    { wch: 15 }, // 词性3
-    { wch: 30 }, // 定义3
-    { wch: 30 }, // 例句1
-    { wch: 30 }, // 例句2
-    { wch: 30 }, // 例句3
-  ]
+function exportWords() {
+  const rows = adminStore.words.map(word => {
+    const normalized = migrateWordData(word)
+    return buildExcelRow({
+      label: normalized.label,
+      phonetic: normalized.phonetic,
+      posDefinitions: normalized.posDefinitions,
+      examples: normalized.examples ?? word.examples,
+    })
+  })
 
-  // 导出文件
-  XLSX.writeFile(wb, `wordnet-import-template-${new Date().toISOString().split('T')[0]}.xlsx`)
+  const worksheet = XLSX.utils.json_to_sheet(rows, { header: TEMPLATE_HEADERS })
+  worksheet['!cols'] = TEMPLATE_COLUMN_WIDTHS
+  const workbook = XLSX.utils.book_new()
+  XLSX.utils.book_append_sheet(workbook, worksheet, '词汇导出')
+  const date = new Date().toISOString().split('T')[0]
+  XLSX.writeFile(workbook, `wordnet-words-export-${date}.xlsx`)
 }
 
 // 处理文件上传
