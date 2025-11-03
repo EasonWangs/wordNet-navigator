@@ -117,7 +117,7 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref, watch } from 'vue'
+import { onMounted, ref, watch, unref } from 'vue'
 import type { Ref as VueRef } from 'vue'
 import { useGraphStore } from '@/stores/graphStore'
 import { WordNetService } from '@/services/wordnetService'
@@ -137,7 +137,7 @@ const fitViewButtonLabel = ref('适应视图')
 
 const syncFitViewLabel = () => {
   const fitModeRef = graphCanvasRef.value?.isFitModeActive
-  const isFit = fitModeRef ? fitModeRef.value : true
+  const isFit = fitModeRef !== undefined ? unref(fitModeRef) : true
   fitViewButtonLabel.value = isFit ? '适应视图' : '正常大小'
 }
 
@@ -212,7 +212,10 @@ onMounted(async () => {
 })
 
 watch(
-  () => graphCanvasRef.value?.isFitModeActive?.value,
+  () => {
+    const canvasRef = graphCanvasRef.value
+    return canvasRef?.isFitModeActive ? unref(canvasRef.isFitModeActive) : undefined
+  },
   () => {
     syncFitViewLabel()
   },

@@ -53,7 +53,7 @@ export function useCytoscape(options: UseCytoscapeOptions) {
         // 删除选中的边（关系）
         if (options.onEdgeDelete) {
           selectedEdges.forEach((edge: any) => {
-            options.onEdgeDelete(edge.data())
+            options.onEdgeDelete?.(edge.data())
           })
         }
         return
@@ -68,7 +68,7 @@ export function useCytoscape(options: UseCytoscapeOptions) {
         // 删除选中的节点
         if (options.onNodeDelete) {
           selectedNodes.forEach((node: any) => {
-            options.onNodeDelete(node.data())
+            options.onNodeDelete?.(node.data())
           })
         }
       }
@@ -132,7 +132,7 @@ export function useCytoscape(options: UseCytoscapeOptions) {
             'text-halign': 'center',
             'font-family': '"SF Mono", "Monaco", "Inconsolata", "Fira Code", "Fira Mono", "Roboto Mono", "Source Code Pro", "Courier New", monospace',
             'font-size': '15px',
-            'font-weight': '600',
+            'font-weight': 600,
             'min-width': '60px',
             'min-height': '60px',
             width: 'label',
@@ -687,7 +687,7 @@ export function useCytoscape(options: UseCytoscapeOptions) {
     const layout = cyInstance.value.layout(layoutOptions)
     layout.run()
 
-    layout.once('layoutstop', () => {
+    layout.one('layoutstop', () => {
       arrangeIsolatedNodes()
       focusOnRelationNodes(isFitModeActive.value ? 'fit' : 'center')
     })
