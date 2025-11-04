@@ -8,6 +8,7 @@ const STORAGE_KEYS = {
   POS_TYPES: 'wordnet_pos_types',
   PROJECTS: 'wordnet_projects',  // 项目列表
   CURRENT_PROJECT: 'wordnet_current_project',  // 当前激活的项目ID
+  ACTIVE_RELATIONS: 'wordnet_active_relations',  // 前台关系筛选偏好
 }
 
 export interface StoredWord extends WordNode {
@@ -32,6 +33,7 @@ export interface StoredRelationType {
   edgeLength?: number  // 边长度（用于力导向布局），默认 100
   description?: string
   pairWith?: string  // 配对关系键：可以是其他关系键、自己的键、或不配对（undefined）
+  defaultActive?: boolean  // 前台默认是否激活显示，默认为 true
 }
 
 export interface StoredPosType {
@@ -39,6 +41,11 @@ export interface StoredPosType {
   label: string  // 中文名称，如"名词"、"动词"等
   abbreviation?: string  // 缩写，如 n., v., adj. 等
   description?: string  // 说明
+}
+
+export interface ActiveRelationsPreference {
+  relations: string[]
+  signature?: string
 }
 
 export interface Project {
@@ -52,6 +59,8 @@ export interface Project {
     connections: StoredConnection[]
     relationTypes: StoredRelationType[]
     posTypes: StoredPosType[]
+    activeRelations?: string[]
+    activeRelationsSignature?: string
   }
 }
 
@@ -100,6 +109,7 @@ class StorageService {
         arrowStyle: defaultArrowMap[key] || 'filled',
         edgeLength: 100,  // 所有关系类型的默认边长度统一设置为 100
         pairWith: defaultPairMap[key],
+        defaultActive: true,  // 默认所有关系类型都激活
       }
     })
     this.saveRelationTypes(defaults)
@@ -130,6 +140,50 @@ class StorageService {
     const types = this.getRelationTypes()
     const filtered = types.filter((t) => t.key !== key)
     this.saveRelationTypes(filtered)
+  }
+
+  // 关系筛选偏好管理
+  getActiveRelationsSignature(): string {
+    const relationTypes = this.getRelationTypes()
+    return relationTypes
+      .map(rt => `${rt.key}:${rt.defaultActive !== false ? 1 : 0}`)
+      .sort()
+      .join('|')
+  }
+
+  getActiveRelationsPreference(): ActiveRelationsPreference | null {
+    const stored = localStorage.getItem(STORAGE_KEYS.ACTIVE_RELATIONS)
+    if (!stored) {
+      return null
+    }
+    try {
+      const parsed = JSON.parse(stored)
+      if (Array.isArray(parsed)) {
+        return { relations: parsed }
+      }
+      if (parsed && Array.isArray(parsed.relations)) {
+        return {
+          relations: parsed.relations,
+          signature: typeof parsed.signature === 'string' ? parsed.signature : undefined,
+        }
+      }
+      return null
+    } catch (error) {
+      console.error('Failed to parse active relations preference:', error)
+      return null
+    }
+  }
+
+  saveActiveRelationsPreference(relations: string[], signature?: string): void {
+    const payload: ActiveRelationsPreference = {
+      relations,
+      signature: signature ?? this.getActiveRelationsSignature(),
+    }
+    localStorage.setItem(STORAGE_KEYS.ACTIVE_RELATIONS, JSON.stringify(payload))
+  }
+
+  clearActiveRelationsPreference(): void {
+    localStorage.removeItem(STORAGE_KEYS.ACTIVE_RELATIONS)
   }
 
   // 词性类型管理
@@ -307,11 +361,14 @@ class StorageService {
 
   // 导出/导入数据
   exportData() {
+    const activeRelationsPreference = this.getActiveRelationsPreference()
     return {
       words: this.getWords(),
       connections: this.getConnections(),
       relationTypes: this.getRelationTypes(),
       posTypes: this.getPosTypes(),
+      activeRelations: activeRelationsPreference?.relations,
+      activeRelationsSignature: activeRelationsPreference?.signature,
       exportedAt: new Date().toISOString(),
     }
   }
@@ -321,12 +378,19 @@ class StorageService {
     connections: StoredConnection[]
     relationTypes: StoredRelationType[]
     posTypes?: StoredPosType[]
+    activeRelations?: string[]
+    activeRelationsSignature?: string
   }): void {
     this.saveWords(data.words)
     this.saveConnections(data.connections)
     this.saveRelationTypes(data.relationTypes)
     if (data.posTypes) {
       this.savePosTypes(data.posTypes)
+    }
+    if (data.activeRelations !== undefined) {
+      this.saveActiveRelationsPreference(data.activeRelations, data.activeRelationsSignature)
+    } else {
+      this.clearActiveRelationsPreference()
     }
   }
 
@@ -335,6 +399,7 @@ class StorageService {
     localStorage.removeItem(STORAGE_KEYS.CONNECTIONS)
     localStorage.removeItem(STORAGE_KEYS.RELATION_TYPES)
     localStorage.removeItem(STORAGE_KEYS.POS_TYPES)
+    localStorage.removeItem(STORAGE_KEYS.ACTIVE_RELATIONS)
   }
 
   // ========== 多项目管理 ==========
@@ -364,6 +429,7 @@ class StorageService {
   createProjectFromCurrentData(name: string, description?: string): Project {
     const projects = this.getProjects()
     const now = new Date().toISOString()
+    const activePreference = this.getActiveRelationsPreference()
 
     const newProject: Project = {
       id: `project_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
@@ -376,6 +442,8 @@ class StorageService {
         connections: this.getConnections(),
         relationTypes: this.getRelationTypes(),
         posTypes: this.getPosTypes(),
+        activeRelations: activePreference?.relations ?? [],
+        activeRelationsSignature: activePreference?.signature ?? this.getActiveRelationsSignature(),
       }
     }
 
@@ -392,6 +460,8 @@ class StorageService {
     connections: StoredConnection[]
     relationTypes: StoredRelationType[]
     posTypes?: StoredPosType[]
+    activeRelations?: string[]
+    activeRelationsSignature?: string
   }, description?: string): Project {
     const projects = this.getProjects()
     const now = new Date().toISOString()
@@ -407,6 +477,8 @@ class StorageService {
         connections: data.connections,
         relationTypes: data.relationTypes,
         posTypes: data.posTypes || [],
+        activeRelations: data.activeRelations ?? [],
+        activeRelationsSignature: data.activeRelationsSignature ?? this.getActiveRelationsSignature(),
       }
     }
 
@@ -430,6 +502,14 @@ class StorageService {
     this.saveConnections(project.data.connections)
     this.saveRelationTypes(project.data.relationTypes)
     this.savePosTypes(project.data.posTypes)
+    if (project.data.activeRelations !== undefined) {
+      this.saveActiveRelationsPreference(
+        project.data.activeRelations,
+        project.data.activeRelationsSignature
+      )
+    } else {
+      this.clearActiveRelationsPreference()
+    }
 
     this.setCurrentProject(projectId)
     return true
@@ -450,15 +530,28 @@ class StorageService {
     }
 
     // 比较当前工作区数据和项目保存的数据
+    const currentActivePreference = this.getActiveRelationsPreference()
+
     const currentData = {
       words: this.getWords(),
       connections: this.getConnections(),
       relationTypes: this.getRelationTypes(),
       posTypes: this.getPosTypes(),
+      activeRelations: currentActivePreference?.relations ?? [],
+      activeRelationsSignature: currentActivePreference?.signature ?? this.getActiveRelationsSignature(),
+    }
+
+    const projectDataSnapshot = {
+      words: project.data.words,
+      connections: project.data.connections,
+      relationTypes: project.data.relationTypes,
+      posTypes: project.data.posTypes,
+      activeRelations: project.data.activeRelations ?? [],
+      activeRelationsSignature: project.data.activeRelationsSignature ?? this.getActiveRelationsSignature(),
     }
 
     // 使用 JSON 字符串比较（简单但有效）
-    return JSON.stringify(currentData) !== JSON.stringify(project.data)
+    return JSON.stringify(currentData) !== JSON.stringify(projectDataSnapshot)
   }
 
   // 更新当前项目数据
@@ -475,11 +568,15 @@ class StorageService {
       return false
     }
 
+    const activePreference = this.getActiveRelationsPreference()
+
     projects[index].data = {
       words: this.getWords(),
       connections: this.getConnections(),
       relationTypes: this.getRelationTypes(),
       posTypes: this.getPosTypes(),
+      activeRelations: activePreference?.relations ?? [],
+      activeRelationsSignature: activePreference?.signature ?? this.getActiveRelationsSignature(),
     }
     projects[index].updatedAt = new Date().toISOString()
 

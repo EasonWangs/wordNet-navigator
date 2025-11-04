@@ -4,7 +4,6 @@ import type { GraphData, WordNode, LayoutType } from '@/types/wordnet'
 import { storageService } from '@/services/storageService'
 
 // Cookie keys for user preferences
-const ACTIVE_RELATIONS_KEY = 'wordnet_active_relations'
 const MAX_NODES_KEY = 'wordnet_max_nodes'
 const RELATION_DEPTH_KEY = 'wordnet_relation_depth'
 const LAYOUT_KEY = 'wordnet_layout'
@@ -60,39 +59,54 @@ export const useGraphStore = defineStore('graph', () => {
     parseInt(getCookie(MAX_NODES_KEY) || '50', 10)
   )
 
-  // 从 cookie 加载激活的关系类型
-  const loadActiveRelationsFromCache = (): string[] | null => {
-    try {
-      const cached = getCookie(ACTIVE_RELATIONS_KEY)
-      if (cached) {
-        return JSON.parse(cached)
-      }
-    } catch (error) {
-      console.error('Failed to load active relations from cookie:', error)
-    }
-    return null
+  const sanitizeActiveRelations = (relations: string[]): string[] => {
+    const availableRelationKeys = new Set(storageService.getRelationTypes().map(rt => rt.key))
+    return Array.from(new Set(relations.filter(key => availableRelationKeys.has(key))))
   }
 
-  // 保存激活的关系类型到 cookie（有效期 1 年）
-  const saveActiveRelationsToCache = (relations: string[]) => {
-    try {
-      setCookie(ACTIVE_RELATIONS_KEY, JSON.stringify(relations), 365)
-    } catch (error) {
-      console.error('Failed to save active relations to cookie:', error)
+  const persistActiveRelations = (relations: string[]): string[] => {
+    const sanitized = sanitizeActiveRelations(relations)
+    storageService.saveActiveRelationsPreference(sanitized)
+    return sanitized
+  }
+
+  // 从存储加载激活的关系类型
+  const loadActiveRelationsFromStorage = (): string[] | null => {
+    const storedPreference = storageService.getActiveRelationsPreference()
+    if (!storedPreference) {
+      return null
     }
+
+    const currentSignature = storageService.getActiveRelationsSignature()
+    if (!storedPreference.signature || storedPreference.signature !== currentSignature) {
+      return null
+    }
+
+    const sanitized = sanitizeActiveRelations(storedPreference.relations)
+    if (sanitized.length !== storedPreference.relations.length) {
+      storageService.saveActiveRelationsPreference(sanitized)
+    }
+    return sanitized
   }
 
   // 获取默认激活的关系类型
   const getDefaultActiveRelations = (): string[] => {
     const relationTypes = storageService.getRelationTypes()
-    // 默认激活所有关系类型（用户可以通过图例筛选）
-    return relationTypes.map(rt => rt.key)
+    // 只激活 defaultActive !== false 的关系类型
+    return relationTypes
+      .filter(rt => rt.defaultActive !== false)
+      .map(rt => rt.key)
   }
 
-  // 初始化 activeRelations：优先从缓存加载，否则使用默认值
+  // 初始化 activeRelations：优先从存储加载，否则使用默认值
+  const storedActiveRelations = loadActiveRelationsFromStorage()
   const activeRelations = ref<string[]>(
-    loadActiveRelationsFromCache() || getDefaultActiveRelations()
+    storedActiveRelations !== null ? storedActiveRelations : getDefaultActiveRelations()
   )
+
+  if (storedActiveRelations === null) {
+    activeRelations.value = persistActiveRelations(activeRelations.value)
+  }
 
   // Computed (if needed)
   const hasGraphData = computed(() => graphData.value.nodes.length > 0)
@@ -134,14 +148,12 @@ export const useGraphStore = defineStore('graph', () => {
     } else {
       activeRelations.value.push(relation)
     }
-    // 保存到缓存
-    saveActiveRelationsToCache(activeRelations.value)
+    // 保存到存储
+    activeRelations.value = persistActiveRelations([...activeRelations.value])
   }
 
   function setActiveRelations(relations: string[]) {
-    activeRelations.value = relations
-    // 保存到缓存
-    saveActiveRelationsToCache(relations)
+    activeRelations.value = persistActiveRelations(relations)
   }
 
   function setRelationDepth(depth: number) {
@@ -158,9 +170,7 @@ export const useGraphStore = defineStore('graph', () => {
 
   // 重新加载默认激活关系（在关系类型更新后调用）
   function reloadActiveRelations() {
-    activeRelations.value = getDefaultActiveRelations()
-    // 保存到缓存
-    saveActiveRelationsToCache(activeRelations.value)
+    activeRelations.value = persistActiveRelations(getDefaultActiveRelations())
   }
 
   return {

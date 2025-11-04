@@ -189,6 +189,17 @@
               placeholder="关系类型说明"
             />
           </div>
+          <div>
+            <label class="flex items-center gap-2 cursor-pointer">
+              <input
+                v-model="formData.isActiveInFrontend"
+                type="checkbox"
+                class="w-4 h-4 text-primary-500 rounded focus:ring-2 focus:ring-primary-500"
+              />
+              <span class="text-sm font-medium text-gray-700">前台激活显示</span>
+            </label>
+            <p class="text-xs text-gray-500 mt-1">勾选后，此关系类型在前台图谱中立即显示；取消勾选则立即隐藏（与前台状态实时同步）</p>
+          </div>
         </div>
         <div class="mt-6 flex justify-end space-x-3">
           <button
@@ -212,6 +223,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { useAdminStore } from '@/stores/adminStore'
+import { storageService } from '@/services/storageService'
 import type { StoredRelationType } from '@/services/storageService'
 
 const adminStore = useAdminStore()
@@ -226,6 +238,8 @@ const formData = ref({
   edgeLength: 100,
   description: '',
   pairWith: '' as string | undefined,
+  defaultActive: true,
+  isActiveInFrontend: true, // 前台当前激活状态
 })
 
 // 可用的配对关系类型列表（包括当前正在编辑的类型，排除其他正在编辑的）
@@ -255,6 +269,13 @@ onMounted(async () => {
 
 function editType(type: StoredRelationType) {
   editingType.value = type
+
+  // 读取当前前台的激活状态
+  const activePreference = storageService.getActiveRelationsPreference()
+  const isCurrentlyActive = activePreference
+    ? activePreference.relations.includes(type.key)
+    : (type.defaultActive !== false) // 如果没有偏好，使用 defaultActive
+
   formData.value = {
     key: type.key,
     label: type.label,
@@ -264,6 +285,8 @@ function editType(type: StoredRelationType) {
     edgeLength: type.edgeLength || 100,
     description: type.description || '',
     pairWith: type.pairWith,
+    defaultActive: type.defaultActive !== false,  // 默认为 true
+    isActiveInFrontend: isCurrentlyActive, // 前台当前激活状态
   }
 }
 
@@ -279,6 +302,8 @@ function closeDialog() {
     edgeLength: 100,
     description: '',
     pairWith: undefined,
+    defaultActive: true,
+    isActiveInFrontend: true,
   }
 }
 
@@ -342,7 +367,36 @@ function saveType() {
 
     adminStore.addRelationType(formData.value)
   }
+
+  // 更新前台激活状态
+  updateFrontendActiveStatus(formData.value.key, formData.value.isActiveInFrontend)
+
   closeDialog()
+}
+
+// 更新前台激活状态
+function updateFrontendActiveStatus(key: string, isActive: boolean) {
+  const activePreference = storageService.getActiveRelationsPreference()
+  let currentActiveRelations = activePreference
+    ? activePreference.relations
+    : storageService.getRelationTypes()
+        .filter(rt => rt.defaultActive !== false)
+        .map(rt => rt.key)
+
+  // 更新激活状态
+  if (isActive) {
+    // 添加到激活列表
+    if (!currentActiveRelations.includes(key)) {
+      currentActiveRelations.push(key)
+    }
+  } else {
+    // 从激活列表移除
+    currentActiveRelations = currentActiveRelations.filter(k => k !== key)
+  }
+
+  // 保存更新后的偏好
+  storageService.saveActiveRelationsPreference(currentActiveRelations)
+  console.log(`🔄 已${isActive ? '激活' : '隐藏'}关系类型 "${key}"，前台将立即更新`)
 }
 
 // 获取使用该关系键的连接数量

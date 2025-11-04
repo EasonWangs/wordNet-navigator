@@ -119,16 +119,32 @@ export const useAdminStore = defineStore('admin', () => {
   }
 
   function updateRelationType(key: string, updates: Partial<StoredRelationType>) {
+    // 检查 defaultActive 是否发生变化
+    const oldType = relationTypes.value.find((t) => t.key === key)
+    const defaultActiveChanged = oldType && updates.defaultActive !== undefined &&
+                                  oldType.defaultActive !== updates.defaultActive
+
     storageService.updateRelationType(key, updates)
     const index = relationTypes.value.findIndex((t) => t.key === key)
     if (index !== -1) {
       relationTypes.value[index] = { ...relationTypes.value[index], ...updates }
     }
     clearRelationTypesCache() // 清除缓存
+
+    // 如果 defaultActive 发生变化，清除前台关系筛选偏好，强制使用新的默认值
+    if (defaultActiveChanged) {
+      storageService.clearActiveRelationsPreference()
+      console.log(`🔄 关系类型 "${key}" 的默认激活状态已更改，前台筛选偏好已重置`)
+    }
   }
 
   // 更新关系类型的键（同时迁移所有历史连接）
   function updateRelationTypeKey(oldKey: string, newKey: string, updates: Partial<StoredRelationType>) {
+    // 检查 defaultActive 是否发生变化
+    const oldType = relationTypes.value.find((t) => t.key === oldKey)
+    const defaultActiveChanged = oldType && updates.defaultActive !== undefined &&
+                                  oldType.defaultActive !== updates.defaultActive
+
     // 1. 更新所有使用旧关系键的连接
     const affectedConnections = connections.value.filter(c => c.relation === oldKey)
     affectedConnections.forEach(conn => {
@@ -152,6 +168,12 @@ export const useAdminStore = defineStore('admin', () => {
       relationTypes.value[index] = { ...relationTypes.value[index], ...fullUpdates }
     }
     clearRelationTypesCache() // 清除缓存
+
+    // 如果 defaultActive 发生变化，清除前台关系筛选偏好
+    if (defaultActiveChanged) {
+      storageService.clearActiveRelationsPreference()
+      console.log(`🔄 关系类型 "${newKey}" 的默认激活状态已更改，前台筛选偏好已重置`)
+    }
   }
 
   function deleteRelationType(key: string) {

@@ -405,7 +405,8 @@
       "lineStyle": "solid",
       "arrowStyle": "filled",
       "edgeLength": 100,
-      "pairWith": "hyponym"
+      "pairWith": "hyponym",
+      "defaultActive": true
     },
     {
       "key": "hyponym",
@@ -414,7 +415,8 @@
       "lineStyle": "solid",
       "arrowStyle": "filled",
       "edgeLength": 100,
-      "pairWith": "hypernym"
+      "pairWith": "hypernym",
+      "defaultActive": false
     },
     {
       "key": "synonym",
@@ -423,7 +425,8 @@
       "lineStyle": "dashed",
       "arrowStyle": "none",
       "edgeLength": 100,
-      "pairWith": "synonym"
+      "pairWith": "synonym",
+      "defaultActive": true
     },
     {
       "key": "antonym",
@@ -432,7 +435,8 @@
       "lineStyle": "dotted",
       "arrowStyle": "none",
       "edgeLength": 100,
-      "pairWith": "antonym"
+      "pairWith": "antonym",
+      "defaultActive": true
     },
     {
       "key": "meronym",
@@ -441,7 +445,8 @@
       "lineStyle": "solid",
       "arrowStyle": "hollow",
       "edgeLength": 100,
-      "pairWith": "holonym"
+      "pairWith": "holonym",
+      "defaultActive": true
     },
     {
       "key": "holonym",
@@ -450,7 +455,8 @@
       "lineStyle": "solid",
       "arrowStyle": "hollow",
       "edgeLength": 100,
-      "pairWith": "meronym"
+      "pairWith": "meronym",
+      "defaultActive": false
     },
     {
       "key": "compound",
@@ -458,7 +464,8 @@
       "color": "#e67e22",
       "lineStyle": "dashed",
       "arrowStyle": "filled",
-      "edgeLength": 100
+      "edgeLength": 100,
+      "defaultActive": true
     },
     {
       "key": "graphonyms",
@@ -467,7 +474,8 @@
       "lineStyle": "dotted",
       "arrowStyle": "none",
       "edgeLength": 100,
-      "pairWith": "graphonyms"
+      "pairWith": "graphonyms",
+      "defaultActive": true
     },
     {
       "key": "variant",
@@ -476,7 +484,8 @@
       "lineStyle": "dotted",
       "arrowStyle": "none",
       "edgeLength": 100,
-      "pairWith": "variant"
+      "pairWith": "variant",
+      "defaultActive": true
     }
   ],
   "posTypes": [
