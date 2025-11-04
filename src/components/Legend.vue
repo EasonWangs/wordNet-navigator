@@ -66,15 +66,13 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { computed } from 'vue'
 import { useGraphStore } from '@/stores/graphStore'
-import { storageService } from '@/services/storageService'
-import type { StoredRelationType } from '@/services/storageService'
+import { useAdminStore } from '@/stores/adminStore'
 
 const graphStore = useGraphStore()
-const relationTypes = ref<StoredRelationType[]>([])
+const adminStore = useAdminStore()
 
-onMounted(() => {
-  relationTypes.value = storageService.getRelationTypes()
-})
+// 使用 computed 从 adminStore 获取关系类型，这样当数据更新时会自动响应
+const relationTypes = computed(() => adminStore.relationTypes)
 </script>
