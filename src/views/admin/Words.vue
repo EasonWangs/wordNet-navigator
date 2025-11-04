@@ -630,8 +630,8 @@ import type { PosDefinitionPair, WordNode } from '@/types/wordnet'
 import { migrateWordData, getWordPosList } from '@/utils/wordDataUtils'
 import * as XLSX from 'xlsx'
 
-const MAX_POS_DEFINITIONS = 10
-const MAX_EXAMPLE_COUNT = 10
+const MAX_POS_DEFINITIONS = 3
+const MAX_EXAMPLE_COUNT = 3
 
 type WordLike = StoredWord | WordNode
 
@@ -1096,8 +1096,14 @@ function downloadTemplate() {
       phonetic: '/dɒg/',
       posDefinitions: [
         { pos: 'noun', definition: '狗，犬科动物' },
+        { pos: 'noun', definition: '无用的人；废物' },
+        { pos: 'verb', definition: '跟踪；尾随' },
       ],
-      examples: ['I have a dog.', 'Dogs are loyal animals.'],
+      examples: [
+        'I have a dog.',
+        'Dogs are loyal animals.',
+        'The dog barked loudly.'
+      ],
     },
     {
       label: 'run',
@@ -1105,16 +1111,27 @@ function downloadTemplate() {
       posDefinitions: [
         { pos: 'verb', definition: '跑；奔跑' },
         { pos: 'noun', definition: '跑步；奔跑' },
+        { pos: 'verb', definition: '经营；管理' },
       ],
-      examples: ['I run every morning.', 'He went for a run.'],
+      examples: [
+        'I run every morning.',
+        'He went for a run.',
+        'She runs a small business.'
+      ],
     },
     {
       label: 'beautiful',
       phonetic: '/ˈbjuːtɪfl/',
       posDefinitions: [
         { pos: 'adjective', definition: '美丽的；漂亮的' },
+        { pos: 'adjective', definition: '出色的；完美的' },
+        { pos: 'adjective', definition: '令人愉快的' },
       ],
-      examples: ['She is beautiful.'],
+      examples: [
+        'She is beautiful.',
+        'What a beautiful day!',
+        'That was a beautiful performance.'
+      ],
     },
   ]
 
