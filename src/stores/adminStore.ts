@@ -14,11 +14,49 @@ export const useAdminStore = defineStore('admin', () => {
   const posTypes = ref<StoredPosType[]>([])
 
   // Actions
-  function loadData() {
+  async function loadData() {
+    // 检查是否是首次运行应用（用于判断是否需要导入 demo 数据）
+    const APP_INITIALIZED_KEY = 'wordnet_app_initialized'
+    const isFirstRun = !localStorage.getItem(APP_INITIALIZED_KEY)
+
+    // 检查当前数据状态
+    const hasWords = storageService.getWords().length > 0
+    const hasRelationTypes = storageService.getRelationTypes().length > 0
+    const hasPosTypes = storageService.getPosTypes().length > 0
+    const isEmpty = !hasWords && !hasRelationTypes && !hasPosTypes
+
+    // 只在首次运行且数据为空时，自动导入 demo 数据
+    let dataImported = false
+    if (isFirstRun && isEmpty) {
+      try {
+        console.log('📚 首次运行应用，正在自动导入 demo 数据...')
+        const response = await fetch('/demo-data.json')
+        if (response.ok) {
+          const demoData = await response.json()
+          storageService.importData(demoData)
+          dataImported = true
+          console.log('✅ Demo 数据导入成功！')
+        } else {
+          console.warn('⚠️ 无法加载 demo-data.json')
+        }
+      } catch (error) {
+        console.error('❌ 导入 demo 数据失败:', error)
+      }
+    }
+
+    // 标记应用已初始化（只要调用过 loadData，就说明应用已运行过）
+    if (isFirstRun) {
+      localStorage.setItem(APP_INITIALIZED_KEY, 'true')
+    }
+
+    // 加载数据到 store
     words.value = storageService.getWords()
     connections.value = storageService.getConnections()
     relationTypes.value = storageService.getRelationTypes()
     posTypes.value = storageService.getPosTypes()
+
+    // 返回是否导入了数据，用于通知其他 store 更新
+    return dataImported
   }
 
   // Words
@@ -218,9 +256,9 @@ export const useAdminStore = defineStore('admin', () => {
     return storageService.exportData()
   }
 
-  function importData(data: StorageImportPayload) {
+  async function importData(data: StorageImportPayload) {
     storageService.importData(data)
-    loadData()
+    await loadData()
   }
 
   // Pos Types

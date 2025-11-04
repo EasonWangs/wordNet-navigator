@@ -379,8 +379,14 @@ interface WordFormState {
 type RelationEdgeData = Pick<WordEdge, 'source' | 'target' | 'relation'> & { id?: string }
 
 // 组件初始化时加载一次数据
-onMounted(() => {
-  adminStore.loadData()
+onMounted(async () => {
+  const dataImported = await adminStore.loadData()
+
+  // 如果导入了新数据（首次运行），需要重新加载 graphStore 的激活关系列表
+  if (dataImported) {
+    graphStore.reloadActiveRelations()
+    console.log('🔄 已更新激活的关系类型列表')
+  }
 })
 
 // 选中的节点

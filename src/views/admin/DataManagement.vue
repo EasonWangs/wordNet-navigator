@@ -406,9 +406,9 @@ const currentProjectHasUnsavedChanges = computed(() => {
   return storageService.hasUnsavedChanges()
 })
 
-onMounted(() => {
+onMounted(async () => {
   loadProjects()
-  adminStore.loadData()
+  await adminStore.loadData()
 })
 
 // 加载项目列表
@@ -454,7 +454,7 @@ function createProject() {
 }
 
 // 切换项目
-function switchProject(projectId: string) {
+async function switchProject(projectId: string) {
   // 检查是否有未保存的修改
   hasUnsavedChanges.value = storageService.hasUnsavedChanges()
 
@@ -462,7 +462,7 @@ function switchProject(projectId: string) {
   if (!hasUnsavedChanges.value) {
     if (storageService.switchToProject(projectId)) {
       currentProjectId.value = projectId
-      adminStore.loadData()
+      await adminStore.loadData()
       loadProjects()
       alert('项目切换成功！')
     } else {
@@ -477,7 +477,7 @@ function switchProject(projectId: string) {
 }
 
 // 保存并切换
-function handleSwitchWithSave() {
+async function handleSwitchWithSave() {
   if (!targetSwitchProjectId.value) return
 
   // 先保存当前项目
@@ -488,7 +488,7 @@ function handleSwitchWithSave() {
   // 切换到目标项目
   if (storageService.switchToProject(targetSwitchProjectId.value)) {
     currentProjectId.value = targetSwitchProjectId.value
-    adminStore.loadData()
+    await adminStore.loadData()
     loadProjects()
     closeSwitchConfirmDialog()
     alert('项目已保存并切换成功！')
@@ -498,13 +498,13 @@ function handleSwitchWithSave() {
 }
 
 // 放弃并切换
-function handleSwitchWithoutSave() {
+async function handleSwitchWithoutSave() {
   if (!targetSwitchProjectId.value) return
 
   // 直接切换到目标项目（不保存当前修改）
   if (storageService.switchToProject(targetSwitchProjectId.value)) {
     currentProjectId.value = targetSwitchProjectId.value
-    adminStore.loadData()
+    await adminStore.loadData()
     loadProjects()
     closeSwitchConfirmDialog()
     alert('项目切换成功！')
@@ -563,7 +563,7 @@ function renameProject() {
 }
 
 // 确认删除项目
-function confirmDeleteProject(projectId: string) {
+async function confirmDeleteProject(projectId: string) {
   const project = projects.value.find(p => p.id === projectId)
   if (!project) return
 
@@ -574,7 +574,7 @@ function confirmDeleteProject(projectId: string) {
   if (storageService.deleteProject(projectId)) {
     loadProjects()
     if (projectId === currentProjectId.value) {
-      adminStore.loadData()
+      await adminStore.loadData()
       alert('当前项目已删除，工作区已清空')
     } else {
       alert('项目删除成功！')
@@ -654,7 +654,7 @@ function importFile(file: File) {
   const projectDescription = prompt('项目描述（可选）：')
 
   const reader = new FileReader()
-  reader.onload = (e) => {
+  reader.onload = async (e) => {
     try {
       const data = JSON.parse(e.target?.result as string)
 
@@ -676,7 +676,7 @@ function importFile(file: File) {
       if (projects.value.length === 1) {
         storageService.switchToProject(project.id)
         currentProjectId.value = project.id
-        adminStore.loadData()
+        await adminStore.loadData()
         alert(`项目 "${project.name}" 导入成功并已自动激活！\n\n词汇: ${data.words.length}\n关系: ${data.connections.length}`)
       } else {
         alert(`项目 "${project.name}" 导入成功！\n\n词汇: ${data.words.length}\n关系: ${data.connections.length}\n\n提示：点击"切换"按钮激活该项目`)
@@ -705,7 +705,7 @@ function handleImportAsProject(event: Event) {
 }
 
 // 清空工作区
-function clearWorkspace() {
+async function clearWorkspace() {
   if (!confirm('确定要清空当前工作区吗？\n\n此操作不会删除已保存的项目。')) {
     return
   }
@@ -713,7 +713,7 @@ function clearWorkspace() {
   storageService.clearAll()
   localStorage.removeItem('wordnet_current_project')
   currentProjectId.value = null
-  adminStore.loadData()
+  await adminStore.loadData()
 
   alert('工作区已清空！')
 }

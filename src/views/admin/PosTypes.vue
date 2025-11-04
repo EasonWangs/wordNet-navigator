@@ -139,8 +139,8 @@ const formData = ref({
   description: '',
 })
 
-onMounted(() => {
-  adminStore.loadData()
+onMounted(async () => {
+  await adminStore.loadData()
 })
 
 function editType(type: StoredPosType) {

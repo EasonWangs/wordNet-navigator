@@ -249,8 +249,8 @@ const availableRelationTypes = computed(() => {
   }
 })
 
-onMounted(() => {
-  adminStore.loadData()
+onMounted(async () => {
+  await adminStore.loadData()
 })
 
 function editType(type: StoredRelationType) {

@@ -274,8 +274,8 @@ const availableWords = computed(() => {
   return adminStore.words.filter((w) => w.id !== editingWord.value?.id)
 })
 
-onMounted(() => {
-  adminStore.loadData()
+onMounted(async () => {
+  await adminStore.loadData()
 })
 
 function getWordLabel(id: string): string {

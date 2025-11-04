@@ -819,8 +819,8 @@ const filteredAvailableWords = computed(() => {
   })
 })
 
-onMounted(() => {
-  adminStore.loadData()
+onMounted(async () => {
+  await adminStore.loadData()
 })
 
 function getWordLabel(id: string): string {

@@ -5,6 +5,7 @@ import path from 'path'
 // https://vitejs.dev/config/
 export default defineConfig({
   plugins: [vue()],
+  publicDir: 'data', // 使用 data 目录作为静态资源目录
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
