@@ -79,7 +79,13 @@ export function useCytoscape(options: UseCytoscapeOptions) {
     if (!containerRef.value) return
 
     // 动态加载关系类型配置
-    const relationTypes = storageService.getRelationTypes()
+    let relationTypes = storageService.getRelationTypes()
+
+    // 如果关系类型为空（首次初始化），使用默认配置
+    if (relationTypes.length === 0) {
+      relationTypes = storageService.initializeDefaultRelationTypes()
+    }
+
     const edgeStyles = relationTypes.map((rt) => {
       // 箭头形状映射
       const arrowStyle = rt.arrowStyle || 'filled'
@@ -606,7 +612,12 @@ export function useCytoscape(options: UseCytoscapeOptions) {
 
     if (options.layout === 'cose') {
       // 获取关系类型配置
-      const relationTypes = storageService.getRelationTypes()
+      let relationTypes = storageService.getRelationTypes()
+
+      // 如果关系类型为空，使用默认配置
+      if (relationTypes.length === 0) {
+        relationTypes = storageService.initializeDefaultRelationTypes()
+      }
 
       // 创建边长度函数，根据关系类型返回不同的理想长度
       const idealEdgeLengthFn = (edge: any) => {
