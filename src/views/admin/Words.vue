@@ -10,16 +10,16 @@
           + 添加词汇
         </button>
         <button
-          class="px-4 py-2 bg-emerald-500 text-white rounded-md hover:bg-emerald-600 transition-colors"
-          @click="exportWords"
-        >
-          📄 导出词汇
-        </button>
-        <button
           class="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors"
           @click="showBulkImportDialog = true"
         >
           📤 批量导入
+        </button>
+        <button
+          class="px-4 py-2 bg-emerald-500 text-white rounded-md hover:bg-emerald-600 transition-colors"
+          @click="exportWords"
+        >
+          📄 导出词汇
         </button>
       </div>
     </div>

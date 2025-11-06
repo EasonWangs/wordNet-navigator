@@ -77,139 +77,189 @@
     <!-- 添加/编辑对话框 -->
     <div
       v-if="showAddDialog || editingType"
-      class="fixed inset-0 bg-black/50 flex items-center justify-center z-50"
+      class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
       @click.self="closeDialog"
     >
-      <div class="bg-white rounded-lg p-6 w-full max-w-md">
-        <h3 class="text-lg font-semibold mb-4">{{ editingType ? '编辑关系类型' : '添加关系类型' }}</h3>
-        <div class="space-y-4">
+      <div class="flex w-full max-w-3xl flex-col overflow-hidden rounded-2xl bg-white shadow-2xl max-h-[90vh]">
+        <div class="flex items-start justify-between border-b border-gray-100 px-5 py-3">
           <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">关系键 <span class="text-red-500">*</span></label>
-            <input
-              v-model="formData.key"
-              type="text"
-              class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-              :class="{ 'bg-gray-100': editingType }"
-              placeholder="例如: homograph (只能包含小写字母、数字和下划线)"
-              required
-            />
-            <p v-if="!editingType" class="text-xs text-gray-500 mt-1">关系键用于程序识别</p>
-            <p v-else class="text-xs text-orange-600 mt-1">
-              ⚠️ 修改关系键会同步更新所有使用此关系的历史连接（{{ getConnectionCount(editingType.key) }} 条）
+            <p class="text-xs font-semibold uppercase tracking-wide text-primary-600">
+              {{ editingType ? '编辑关系类型' : '添加关系类型' }}
             </p>
+            <h3 class="mt-1 text-lg font-semibold text-gray-900">关系类型设置</h3>
           </div>
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">名称 <span class="text-red-500">*</span></label>
-            <input
-              v-model="formData.label"
-              type="text"
-              class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-              placeholder="例如: 上位词"
-              required
-            />
-          </div>
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">颜色</label>
-            <input
-              v-model="formData.color"
-              type="color"
-              class="w-full h-10 border border-gray-300 rounded-md"
-            />
-          </div>
-          <div class="grid grid-cols-2 gap-4">
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">线条样式</label>
-              <select
-                v-model="formData.lineStyle"
-                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary-500"
-              >
-                <option value="solid">实线</option>
-                <option value="dashed">虚线</option>
-                <option value="dotted">点线</option>
-              </select>
+          <button
+            type="button"
+            class="text-lg leading-none text-gray-400 transition hover:text-gray-600"
+            @click="closeDialog"
+          >
+            ×
+          </button>
+        </div>
+
+        <div class="flex-1 overflow-y-auto px-5 py-4">
+          <div class="grid gap-3">
+          <section class="rounded-xl border border-gray-100 bg-gray-50/60 p-4">
+            <h4 class="mb-3 text-sm font-semibold text-gray-800">基础信息</h4>
+            <div class="grid gap-4 md:grid-cols-2">
+              <div>
+                <label class="mb-1 block text-xs font-medium text-gray-600">关系键 *</label>
+                <input
+                  v-model="formData.key"
+                  :class="editingType ? 'bg-gray-100' : ''"
+                  class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-primary-400 focus:ring-2 focus:ring-primary-200"
+                  placeholder="如 homograph，仅小写字母、数字、下划线"
+                  required
+                  type="text"
+                />
+                <p v-if="!editingType" class="mt-1 text-xs text-gray-500">用于唯一标识此关系类型。</p>
+                <p v-else class="mt-1 text-xs text-orange-600">
+                  修改关系键会同步更新 {{ getConnectionCount(editingType.key) }} 条历史连接。
+                </p>
+              </div>
+              <div>
+                <label class="mb-1 block text-xs font-medium text-gray-600">显示名称 *</label>
+                <input
+                  v-model="formData.label"
+                  class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-primary-400 focus:ring-2 focus:ring-primary-200"
+                  placeholder="如 上位词"
+                  required
+                  type="text"
+                />
+              </div>
             </div>
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">箭头样式</label>
-              <select
-                v-model="formData.arrowStyle"
-                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary-500"
-              >
-                <option value="filled">实心箭头 ▶</option>
-                <option value="hollow">空心箭头 ▷</option>
-                <option value="line">线条箭头 ►</option>
-                <option value="none">无箭头 —</option>
-              </select>
+          </section>
+
+          <section class="rounded-xl border border-gray-100 p-4">
+            <h4 class="mb-3 text-sm font-semibold text-gray-800">视觉样式</h4>
+            <div class="grid gap-4 md:grid-cols-3">
+              <div class="md:col-span-1">
+                <label class="mb-1 block text-xs font-medium text-gray-600">颜色</label>
+                <input
+                  v-model="formData.color"
+                  class="h-10 w-full cursor-pointer rounded-lg border border-gray-300"
+                  type="color"
+                />
+              </div>
+              <div>
+                <label class="mb-1 block text-xs font-medium text-gray-600">线条样式</label>
+                <select
+                  v-model="formData.lineStyle"
+                  class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-primary-400 focus:ring-2 focus:ring-primary-200"
+                >
+                  <option value="solid">实线</option>
+                  <option value="dashed">虚线</option>
+                  <option value="dotted">点线</option>
+                </select>
+              </div>
+              <div>
+                <label class="mb-1 block text-xs font-medium text-gray-600">箭头样式</label>
+                <select
+                  v-model="formData.arrowStyle"
+                  class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-primary-400 focus:ring-2 focus:ring-primary-200"
+                >
+                  <option value="filled">实心箭头 ▶</option>
+                  <option value="hollow">空心箭头 ▷</option>
+                  <option value="line">线条箭头 ►</option>
+                  <option value="none">无箭头 —</option>
+                </select>
+              </div>
             </div>
-          </div>
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">边长度（力导向布局）</label>
-            <div class="flex items-center gap-3">
-              <input
-                v-model.number="formData.edgeLength"
-                type="range"
-                min="50"
-                max="300"
-                step="10"
-                class="flex-1"
-              />
-              <input
-                v-model.number="formData.edgeLength"
-                type="number"
-                min="50"
-                max="300"
-                class="w-20 px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary-500"
-              />
-              <span class="text-sm text-gray-600">px</span>
+
+            <div class="mt-4 grid gap-3 md:grid-cols-5 md:items-center">
+              <div class="md:col-span-3">
+                <label class="mb-1 block text-xs font-medium text-gray-600">力导向布局边长</label>
+                <input
+                  v-model.number="formData.edgeLength"
+                  class="w-full accent-primary-500"
+                  max="300"
+                  min="50"
+                  step="10"
+                  type="range"
+                />
+              </div>
+              <div class="flex items-center justify-end gap-2 md:col-span-2">
+                <input
+                  v-model.number="formData.edgeLength"
+                  class="w-24 rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-primary-400 focus:ring-2 focus:ring-primary-200"
+                  max="300"
+                  min="50"
+                  type="number"
+                />
+                <span class="text-xs text-gray-500">px</span>
+              </div>
             </div>
-            <p class="text-xs text-gray-500 mt-1">控制力导向布局中此类型连接线的理想长度</p>
-          </div>
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">配对关系</label>
-            <select
-              v-model="formData.pairWith"
-              class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary-500"
-            >
-              <option :value="undefined">不配对</option>
-              <option
-                v-for="type in availableRelationTypes"
-                :key="type.key"
-                :value="type.key"
-              >
-                {{ type.label }} ({{ type.key }})
-              </option>
-            </select>
-            <p class="text-xs text-gray-500 mt-1">配对后，添加此关系会自动在目标词汇添加配对关系</p>
-          </div>
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">说明</label>
+          </section>
+
+          <section class="rounded-xl border border-gray-100 p-4">
+            <h4 class="mb-3 text-sm font-semibold text-gray-800">行为设置</h4>
+            <div class="grid gap-4 md:grid-cols-2">
+              <div>
+                <label class="mb-1 block text-xs font-medium text-gray-600">配对关系</label>
+                <select
+                  v-model="formData.pairWith"
+                  class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-primary-400 focus:ring-2 focus:ring-primary-200"
+                >
+                  <option :value="undefined">不配对</option>
+                  <option
+                    v-for="type in availableRelationTypes"
+                    :key="type.key"
+                    :value="type.key"
+                  >
+                    {{ type.label }} ({{ type.key }})
+                  </option>
+                </select>
+                <p class="mt-1 text-xs text-gray-500">
+                  配对后，添加该关系会自动为对方添加相反方向关系。
+                </p>
+              </div>
+
+              <div class="space-y-2 rounded-lg border border-gray-200 bg-gray-50 px-4 py-3">
+                <label class="flex items-center gap-2">
+                  <input
+                    v-model="formData.defaultActive"
+                    class="h-4 w-4 text-primary-500 focus:ring-primary-500"
+                    type="checkbox"
+                  />
+                  <span class="text-sm font-medium text-gray-700">默认在前台显示</span>
+                </label>
+                <label class="flex items-center gap-2">
+                  <input
+                    v-model="formData.isActiveInFrontend"
+                    class="h-4 w-4 text-primary-500 focus:ring-primary-500"
+                    type="checkbox"
+                  />
+                  <span class="text-sm font-medium text-gray-700">立即在前台激活</span>
+                </label>
+                <p class="text-xs text-gray-500">
+                  “默认显示”影响新数据；“立即激活”会更新当前前台筛选。
+                </p>
+              </div>
+            </div>
+          </section>
+
+          <section class="rounded-xl border border-gray-100 p-4">
+            <h4 class="mb-2 text-sm font-semibold text-gray-800">补充说明</h4>
             <textarea
               v-model="formData.description"
-              rows="3"
-              class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary-500"
-              placeholder="关系类型说明"
+              class="min-h-[90px] w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-primary-400 focus:ring-2 focus:ring-primary-200"
+              placeholder="用于解释此关系类型的语义或使用提示"
             />
-          </div>
-          <div>
-            <label class="flex items-center gap-2 cursor-pointer">
-              <input
-                v-model="formData.isActiveInFrontend"
-                type="checkbox"
-                class="w-4 h-4 text-primary-500 rounded focus:ring-2 focus:ring-primary-500"
-              />
-              <span class="text-sm font-medium text-gray-700">前台激活显示</span>
-            </label>
-            <p class="text-xs text-gray-500 mt-1">勾选后，此关系类型在前台图谱中立即显示；取消勾选则立即隐藏（与前台状态实时同步）</p>
+          </section>
           </div>
         </div>
-        <div class="mt-6 flex justify-end space-x-3">
+
+        <div class="flex items-center justify-end gap-3 border-t border-gray-100 px-5 py-3">
           <button
-            class="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-md transition-colors"
+            type="button"
+            class="rounded-lg px-3 py-1.5 text-sm text-gray-600 transition hover:bg-gray-100"
             @click="closeDialog"
           >
             取消
           </button>
           <button
-            class="px-4 py-2 bg-primary-500 text-white rounded-md hover:bg-primary-600 transition-colors"
+            type="button"
+            class="rounded-lg bg-primary-500 px-3 py-1.5 text-sm font-semibold text-white transition hover:bg-primary-600"
             @click="saveType"
           >
             保存
