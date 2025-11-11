@@ -97,6 +97,9 @@
     <div class="flex-1 overflow-hidden relative">
       <GraphCanvas ref="graphCanvasRef" />
 
+      <!-- 节点详情面板 -->
+      <NodeDetail />
+
       <!-- 性能统计信息 -->
       <div v-if="graphStore.graphData.nodes.length > 0" class="absolute top-4 left-4 bg-blue-500/90 text-white text-xs px-3 py-2 rounded-lg backdrop-blur-sm">
         <div class="font-semibold">📊 当前显示</div>
@@ -122,6 +125,7 @@ import type { Ref as VueRef } from 'vue'
 import { useGraphStore } from '@/stores/graphStore'
 import { WordNetService } from '@/services/wordnetService'
 import GraphCanvas from '@/components/GraphCanvas.vue'
+import NodeDetail from '@/components/NodeDetail.vue'
 import type { LayoutType } from '@/types/wordnet'
 
 const graphStore = useGraphStore()

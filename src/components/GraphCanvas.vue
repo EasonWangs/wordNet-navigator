@@ -27,12 +27,30 @@
       <!-- Header -->
       <div class="bg-gradient-to-r from-green-500/60 to-blue-500/60 backdrop-blur-sm text-white px-4 py-3 flex justify-between items-center sticky top-0 z-10">
         <h3 class="text-base font-bold">{{ showEditWordDialog ? '✏️ 编辑词汇' : '➕ 快速添加词汇' }}</h3>
-        <button
-          class="w-7 h-7 bg-white/20 rounded-full text-xl leading-none hover:bg-white/30 transition-all hover:rotate-90 duration-200"
-          @click="closeWordDialog"
-        >
-          ×
-        </button>
+        <div class="flex items-center gap-2">
+          <!-- 朗读按钮 -->
+          <button
+            v-if="isSupported && wordForm.label.trim()"
+            @click="smartSpeak(wordForm.label, { rate: 0.9 })"
+            :disabled="isSpeaking"
+            class="p-1.5 bg-white/20 hover:bg-white/30 rounded-full transition-all disabled:opacity-50"
+            :title="isSpeaking ? '正在朗读...' : '朗读词汇'"
+          >
+            <svg v-if="!isSpeaking" class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+              <path d="M10 3.5a1 1 0 011 1v11a1 1 0 01-1.707.707l-3.5-3.5H3a1 1 0 010-2h2.793l3.5-3.5A1 1 0 0110 3.5z"/>
+              <path d="M13.5 7a1 1 0 011.414 0 5 5 0 010 7.071 1 1 0 11-1.414-1.414 3 3 0 000-4.243A1 1 0 0113.5 7z"/>
+            </svg>
+            <svg v-else class="w-4 h-4 animate-pulse" fill="currentColor" viewBox="0 0 20 20">
+              <path fill-rule="evenodd" d="M5 4a2 2 0 00-2 2v8a2 2 0 002 2h2V4H5zm4 0v12h2V4H9zm4 0v12h2a2 2 0 002-2V6a2 2 0 00-2-2h-2z" clip-rule="evenodd"/>
+            </svg>
+          </button>
+          <button
+            class="w-7 h-7 bg-white/20 rounded-full text-xl leading-none hover:bg-white/30 transition-all hover:rotate-90 duration-200"
+            @click="closeWordDialog"
+          >
+            ×
+          </button>
+        </div>
       </div>
 
       <!-- Content -->
@@ -357,12 +375,16 @@ import { useAdminStore } from '@/stores/adminStore'
 import { useCytoscape } from '@/composables/useCytoscape'
 import { WordNetService } from '@/services/wordnetService'
 import { migrateWordData } from '@/utils/wordDataUtils'
+import { useTTS } from '@/composables/useTTS'
 import type { PosDefinitionPair, WordNode, WordEdge } from '@/types/wordnet'
 import type { StoredConnection, StoredWord, StoredRelationType } from '@/services/storageService'
 import Legend from './Legend.vue'
 
 const graphStore = useGraphStore()
 const adminStore = useAdminStore()
+
+// TTS 功能
+const { smartSpeak, isSpeaking, isSupported } = useTTS()
 
 interface SelectedNode {
   id: string
