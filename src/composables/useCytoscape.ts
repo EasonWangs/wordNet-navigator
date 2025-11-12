@@ -587,9 +587,22 @@ export function useCytoscape(options: UseCytoscapeOptions) {
 
   const focusOnRelationNodes = (mode: FocusMode = 'fit') => {
     if (!cyInstance.value) return
-    const connectedNodes = cyInstance.value.nodes().filter(node => node.connectedEdges().length > 0)
-    const target = connectedNodes.length > 0 ? connectedNodes : cyInstance.value.nodes()
+
+    // 优先检查是否有中心节点（搜索的目标节点）
+    const centerNodes = cyInstance.value.nodes().filter((node: any) => node.data('isCenter') === true)
+
+    let target
+    if (centerNodes.length > 0) {
+      // 如果有中心节点，只聚焦中心节点
+      target = centerNodes
+    } else {
+      // 否则聚焦所有有关系的节点
+      const connectedNodes = cyInstance.value.nodes().filter(node => node.connectedEdges().length > 0)
+      target = connectedNodes.length > 0 ? connectedNodes : cyInstance.value.nodes()
+    }
+
     if (!target.length) return
+
     if (mode === 'fit') {
       cyInstance.value.fit(target, 80)
     } else {
