@@ -376,6 +376,7 @@ import { useCytoscape } from '@/composables/useCytoscape'
 import { WordNetService } from '@/services/wordnetService'
 import { migrateWordData } from '@/utils/wordDataUtils'
 import { useTTS } from '@/composables/useTTS'
+import { addSearchHistory } from '@/utils/searchHistory'
 import type { PosDefinitionPair, WordNode, WordEdge } from '@/types/wordnet'
 import type { StoredConnection, StoredWord, StoredRelationType } from '@/services/storageService'
 import Legend from './Legend.vue'
@@ -1323,14 +1324,19 @@ const {
     // 双击节点：以该节点为核心进行搜索
     if (!nodeData || !nodeData.label) return
 
+    const searchWord = nodeData.label
+
     // 更新搜索关键词
-    graphStore.setSearchQuery(nodeData.label)
+    graphStore.setSearchQuery(searchWord)
+
+    // 保存到搜索历史
+    addSearchHistory(searchWord)
 
     // 重新加载图表，以该节点为中心
     graphStore.setLoading(true)
     try {
       const data = await WordNetService.fetchWordGraph(
-        nodeData.label,
+        searchWord,
         graphStore.relationDepth,
         graphStore.maxNodes
       )

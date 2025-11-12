@@ -7,14 +7,41 @@
         <h1 class="text-lg font-bold text-gray-800 flex-shrink-0">📚 WordNet</h1>
 
         <!-- 搜索框 -->
-        <div class="flex items-center gap-2 flex-1">
-          <input
-            v-model="graphStore.searchQuery"
-            type="text"
-            placeholder="搜索词汇 (* 显示全部)"
-            class="w-64 px-3 py-1.5 border border-gray-300 rounded text-sm focus:outline-none focus:border-blue-500"
-            @keypress.enter="handleLoadGraph"
-          />
+        <div class="flex items-center gap-2 flex-1 relative">
+          <div class="relative">
+            <input
+              ref="searchInputRef"
+              v-model="graphStore.searchQuery"
+              type="text"
+              placeholder="搜索词汇 (* 显示全部)"
+              class="w-64 px-3 py-1.5 border border-gray-300 rounded text-sm focus:outline-none focus:border-blue-500"
+              @focus="handleSearchFocus"
+              @blur="handleSearchBlur"
+              @keypress.enter="handleLoadGraph"
+            />
+
+            <!-- 搜索历史下拉框 -->
+            <div
+              v-if="showSearchHistory && searchHistory.length > 0"
+              class="absolute top-full left-0 w-64 mt-1 bg-white border border-gray-300 rounded-md shadow-lg z-50 max-h-64 overflow-y-auto"
+            >
+              <div class="px-3 py-2 bg-gray-50 border-b border-gray-200 text-xs text-gray-600 font-semibold">
+                🕐 最近搜索
+              </div>
+              <div
+                v-for="(item, index) in searchHistory"
+                :key="index"
+                class="px-3 py-2 hover:bg-blue-50 cursor-pointer text-sm flex items-center justify-between group"
+                @click="handleHistoryItemClick(item.word)"
+              >
+                <span class="text-gray-700">{{ item.word }}</span>
+                <svg class="w-4 h-4 text-gray-400 group-hover:text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                </svg>
+              </div>
+            </div>
+          </div>
+
           <button
             :disabled="graphStore.loading"
             class="px-4 py-1.5 bg-blue-500 text-white rounded text-sm font-medium hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed"
@@ -130,8 +157,14 @@ import { WordNetService } from '@/services/wordnetService'
 import GraphCanvas from '@/components/GraphCanvas.vue'
 import NodeDetail from '@/components/NodeDetail.vue'
 import type { LayoutType } from '@/types/wordnet'
+import { getSearchHistory, addSearchHistory, type SearchHistoryItem } from '@/utils/searchHistory'
 
 const graphStore = useGraphStore()
+
+// 搜索历史相关
+const showSearchHistory = ref(false)
+const searchHistory = ref<SearchHistoryItem[]>([])
+const searchInputRef = ref<HTMLInputElement | null>(null)
 
 interface GraphCanvasExposed {
   fitView: () => void
@@ -156,11 +189,43 @@ const handleNodeEdit = (nodeData: any) => {
   }
 }
 
+// 处理搜索框获得焦点事件
+const handleSearchFocus = () => {
+  // 清空搜索框
+  graphStore.setSearchQuery('')
+  // 加载搜索历史
+  searchHistory.value = getSearchHistory()
+  // 显示下拉框
+  showSearchHistory.value = true
+}
+
+// 处理搜索框失去焦点事件
+const handleSearchBlur = () => {
+  // 延迟关闭，以便点击历史项时能触发
+  setTimeout(() => {
+    showSearchHistory.value = false
+  }, 200)
+}
+
+// 点击历史项
+const handleHistoryItemClick = (word: string) => {
+  graphStore.setSearchQuery(word)
+  showSearchHistory.value = false
+  handleLoadGraph()
+}
+
 const handleLoadGraph = async () => {
+  const query = graphStore.searchQuery.trim()
+
+  // 保存到搜索历史
+  if (query && query !== '*') {
+    addSearchHistory(query)
+  }
+
   graphStore.setLoading(true)
   try {
     const data = await WordNetService.fetchWordGraph(
-      graphStore.searchQuery,
+      query,
       graphStore.relationDepth,
       graphStore.maxNodes
     )
