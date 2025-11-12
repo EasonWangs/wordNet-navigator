@@ -1352,6 +1352,77 @@ const {
   onSelectionChange: (nodes) => handleSelectionChange(nodes),
   onNodeDelete: (nodeData) => handleNodeDelete(nodeData),
   onEdgeDelete: (edgeData) => handleEdgeDelete(edgeData),
+  onMoreNodeClick: async (moreNodeData) => {
+    // Extract parent node ID from "+" node ID (e.g., "word_123_more" -> "word_123")
+    const parentNodeId = moreNodeData.id.replace('_more', '')
+
+    // Get current node IDs from the graph (to exclude already shown nodes)
+    const existingNodeIds = new Set(graphStore.graphData.nodes.map(n => n.data.id))
+
+    try {
+      // Fetch expanded connections
+      const expandedData = await WordNetService.expandNode(parentNodeId, existingNodeIds)
+
+      // Get parent node position from cytoscape
+      const parentNode = cyInstance.value?.getElementById(parentNodeId)
+      if (!parentNode || !parentNode.position()) {
+        console.error('Parent node not found')
+        return
+      }
+
+      const parentPos = parentNode.position()
+      const nodeCount = expandedData.nodes.length
+
+      // Calculate circular positions around parent node
+      const radius = 180 // Distance from parent node
+      const angleStep = (2 * Math.PI) / nodeCount // Evenly distribute around circle
+
+      // Add new nodes to the graph with positions around parent node
+      expandedData.nodes.forEach((node, index) => {
+        if (addNode) {
+          // Calculate position in a circle around parent
+          const angle = index * angleStep
+          const position = {
+            x: parentPos.x + radius * Math.cos(angle),
+            y: parentPos.y + radius * Math.sin(angle)
+          }
+          addNode(node.data, position)
+        }
+      })
+
+      // Add new edges to the graph
+      expandedData.edges.forEach(edge => {
+        if (addEdge) {
+          addEdge(edge.data.source, edge.data.target, edge.data.relation)
+        }
+      })
+
+      // Remove the "+" node and its connecting edge
+      if (removeNode && removeEdge) {
+        removeEdge(parentNodeId, moreNodeData.id, 'more')
+        removeNode(moreNodeData.id)
+      }
+
+      // Update the graph store (add new nodes and edges)
+      graphStore.graphData.nodes.push(...expandedData.nodes)
+      graphStore.graphData.edges.push(...expandedData.edges)
+
+      // Remove the "+" node from graph store
+      const moreNodeIndex = graphStore.graphData.nodes.findIndex(n => n.data.id === moreNodeData.id)
+      if (moreNodeIndex !== -1) {
+        graphStore.graphData.nodes.splice(moreNodeIndex, 1)
+      }
+      const moreEdgeIndex = graphStore.graphData.edges.findIndex(
+        e => e.data.source === parentNodeId && e.data.target === moreNodeData.id
+      )
+      if (moreEdgeIndex !== -1) {
+        graphStore.graphData.edges.splice(moreEdgeIndex, 1)
+      }
+    } catch (error) {
+      console.error('Failed to expand node:', error)
+      alert('加载节点失败')
+    }
+  },
 })
 
 // 导出方法供父组件调用

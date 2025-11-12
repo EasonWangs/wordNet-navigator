@@ -274,4 +274,70 @@ export class WordNetService {
   static getAllWords(): string[] {
     return storageService.getWords().map((w) => w.label)
   }
+
+  // Expand a specific node to get its direct connections
+  static async expandNode(nodeId: string, excludeNodeIds: Set<string>): Promise<GraphData> {
+    return new Promise((resolve) => {
+      setTimeout(() => {
+        const allWords = storageService.getWords()
+        const allConnections = storageService.getConnections()
+        const symmetricTypes = getSymmetricRelationTypes()
+
+        // 找到直接连接到该节点的所有节点
+        const connectedNodeIds = new Set<string>()
+        const newEdges = new Set<string>()
+
+        // 查找出边
+        allConnections.forEach((conn) => {
+          if (conn.source === nodeId && !excludeNodeIds.has(conn.target)) {
+            connectedNodeIds.add(conn.target)
+            newEdges.add(conn.id)
+          }
+        })
+
+        // 查找入边
+        allConnections.forEach((conn) => {
+          if (conn.target === nodeId && !excludeNodeIds.has(conn.source)) {
+            connectedNodeIds.add(conn.source)
+            newEdges.add(conn.id)
+          }
+        })
+
+        // 构建新节点数据
+        const nodes = allWords
+          .filter((w) => connectedNodeIds.has(w.id))
+          .map((w) => ({
+            data: {
+              id: w.id,
+              label: w.label,
+              phonetic: w.phonetic,
+              posDefinitions: w.posDefinitions,
+              examples: w.examples,
+              hasMore: false, // 新扩展的节点暂不检测是否还有更多
+            },
+          }))
+
+        // 构建边数据，过滤对称关系
+        const edges = allConnections
+          .filter((c) => {
+            if (!newEdges.has(c.id)) return false
+
+            // 对于对称关系，只保留源ID < 目标ID的边
+            if (symmetricTypes.has(c.relation)) {
+              return c.source < c.target
+            }
+            return true
+          })
+          .map((c) => ({
+            data: {
+              source: c.source,
+              target: c.target,
+              relation: c.relation,
+            },
+          }))
+
+        resolve({ nodes, edges })
+      }, 100)
+    })
+  }
 }

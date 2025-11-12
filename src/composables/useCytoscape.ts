@@ -13,6 +13,7 @@ interface UseCytoscapeOptions {
   showDefinitionInNode: boolean
   onNodeClick?: (nodeData: any) => void
   onNodeRightClick?: (nodeData: any) => void
+  onMoreNodeClick?: (moreNodeData: any) => void
   onBackgroundDblClick?: (position: { x: number; y: number }) => void
   onNodeDblClick?: (nodeData: any) => void
   onEdgeDblClick?: (edgeData: any) => void
@@ -222,8 +223,11 @@ export function useCytoscape(options: UseCytoscapeOptions) {
       const nodeData = node.data()
       const nodeId = nodeData.id
 
-      // 忽略"+"节点的点击
+      // 处理"+"节点的点击
       if (nodeData.isMoreNode) {
+        if (options.onMoreNodeClick) {
+          options.onMoreNodeClick(nodeData)
+        }
         return
       }
 
