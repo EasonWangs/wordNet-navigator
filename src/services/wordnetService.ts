@@ -59,6 +59,18 @@ export class WordNetService {
 
           const limitedNodeIds = new Set(limitedWords.map(w => w.id))
 
+          // 检测边缘节点（有未显示关联的节点）
+          const nodesWithMore = new Set<string>()
+          limitedNodeIds.forEach(nodeId => {
+            const hasMoreConnections = allConnections.some(c =>
+              (c.source === nodeId && !limitedNodeIds.has(c.target)) ||
+              (c.target === nodeId && !limitedNodeIds.has(c.source))
+            )
+            if (hasMoreConnections) {
+              nodesWithMore.add(nodeId)
+            }
+          })
+
           const nodes = limitedWords.map((w) => ({
             data: {
               id: w.id,
@@ -66,8 +78,31 @@ export class WordNetService {
               phonetic: w.phonetic,
               posDefinitions: w.posDefinitions,
               examples: w.examples,
+              hasMore: nodesWithMore.has(w.id), // 标记是否还有未显示的关联
             },
           }))
+
+          // 为有 hasMore 标记的节点创建虚拟"+"节点
+          const moreNodes: any[] = []
+          const moreEdges: any[] = []
+          nodesWithMore.forEach(nodeId => {
+            // 创建虚拟"+"节点
+            moreNodes.push({
+              data: {
+                id: `${nodeId}_more`,
+                label: '+',
+                isMoreNode: true, // 标记为虚拟节点
+              }
+            })
+            // 创建连接边
+            moreEdges.push({
+              data: {
+                source: nodeId,
+                target: `${nodeId}_more`,
+                relation: 'more', // 特殊关系类型
+              }
+            })
+          })
 
           // 只显示限制节点之间的边
           const filteredEdges = allConnections.filter((c) => {
@@ -90,7 +125,10 @@ export class WordNetService {
             },
           }))
 
-          resolve({ nodes, edges })
+          resolve({
+            nodes: [...nodes, ...moreNodes],
+            edges: [...edges, ...moreEdges]
+          })
           return
         }
 
@@ -107,6 +145,7 @@ export class WordNetService {
         const visitedWords = new Set<string>()
         const nodesToInclude = new Set<string>()
         const edgesToInclude = new Set<string>()
+        const nodeDepths = new Map<string, number>() // 记录每个节点的深度
 
         // BFS to find all connected words (可配置深度)
         // 将所有同名词汇作为起点加入队列
@@ -115,6 +154,7 @@ export class WordNetService {
           queue.push({ id: targetWord.id, level: 0 })
           visitedWords.add(targetWord.id)
           nodesToInclude.add(targetWord.id)
+          nodeDepths.set(targetWord.id, 0)
         })
 
         while (queue.length > 0) {
@@ -128,6 +168,7 @@ export class WordNetService {
               if (!visitedWords.has(conn.target)) {
                 visitedWords.add(conn.target)
                 nodesToInclude.add(conn.target)
+                nodeDepths.set(conn.target, level + 1)
                 queue.push({ id: conn.target, level: level + 1 })
               }
             })
@@ -139,11 +180,28 @@ export class WordNetService {
               if (!visitedWords.has(conn.source)) {
                 visitedWords.add(conn.source)
                 nodesToInclude.add(conn.source)
+                nodeDepths.set(conn.source, level + 1)
                 queue.push({ id: conn.source, level: level + 1 })
               }
             })
           }
         }
+
+        // 检测边缘节点（达到最大深度的节点是否还有未显示的关联）
+        const nodesWithMore = new Set<string>()
+        nodesToInclude.forEach(nodeId => {
+          const depth = nodeDepths.get(nodeId) || 0
+          // 如果节点处于最大深度，检查是否还有未包含的关联
+          if (depth === maxDepth) {
+            const hasMoreConnections = allConnections.some(c =>
+              (c.source === nodeId && !nodesToInclude.has(c.target)) ||
+              (c.target === nodeId && !nodesToInclude.has(c.source))
+            )
+            if (hasMoreConnections) {
+              nodesWithMore.add(nodeId)
+            }
+          }
+        })
 
         // Build the graph data
         // 创建中心词ID集合，用于标记
@@ -159,8 +217,31 @@ export class WordNetService {
               posDefinitions: w.posDefinitions,
               examples: w.examples,
               isCenter: centerWordIds.has(w.id), // 标记所有同名的中心词
+              hasMore: nodesWithMore.has(w.id), // 标记是否还有未显示的关联
             },
           }))
+
+        // 为有 hasMore 标记的节点创建虚拟"+"节点
+        const moreNodes: any[] = []
+        const moreEdges: any[] = []
+        nodesWithMore.forEach(nodeId => {
+          // 创建虚拟"+"节点
+          moreNodes.push({
+            data: {
+              id: `${nodeId}_more`,
+              label: '+',
+              isMoreNode: true, // 标记为虚拟节点
+            }
+          })
+          // 创建连接边
+          moreEdges.push({
+            data: {
+              source: nodeId,
+              target: `${nodeId}_more`,
+              relation: 'more', // 特殊关系类型
+            }
+          })
+        })
 
         // 过滤对称关系，只显示单向关系
         const filteredEdges = allConnections.filter((c) => {
@@ -181,7 +262,10 @@ export class WordNetService {
           },
         }))
 
-        resolve({ nodes, edges })
+        resolve({
+          nodes: [...nodes, ...moreNodes],
+          edges: [...edges, ...moreEdges]
+        })
       }, 300)
     })
   }

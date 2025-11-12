@@ -161,6 +161,26 @@ export function useCytoscape(options: UseCytoscapeOptions) {
           },
         },
         {
+          selector: 'node[?isMoreNode]',
+          style: {
+            'background-color': '#95a5a6',
+            'border-color': '#7f8c8d',
+            'border-width': 2,
+            shape: 'ellipse',
+            width: '30px',
+            height: '30px',
+            'font-size': '20px',
+            'font-weight': 'bold',
+            'text-valign': 'center',
+            'text-halign': 'center',
+            'min-width': '30px',
+            'min-height': '30px',
+            padding: '0px',
+            'text-outline-width': 0,
+            'text-wrap': 'none',
+          },
+        },
+        {
           selector: 'edge',
           style: {
             width: 2,
@@ -177,6 +197,16 @@ export function useCytoscape(options: UseCytoscapeOptions) {
             'target-arrow-color': '#e74c3c',
           },
         },
+        {
+          selector: 'edge[relation="more"]',
+          style: {
+            'line-color': '#95a5a6',
+            'target-arrow-color': '#95a5a6',
+            'line-style': 'dashed',
+            width: 1.5,
+            'target-arrow-shape': 'none',
+          },
+        },
         ...edgeStyles,
       ],
       minZoom: 0.3,
@@ -189,7 +219,13 @@ export function useCytoscape(options: UseCytoscapeOptions) {
     // Node click handler
     cy.on('tap', 'node', (e: any) => {
       const node = e.target as NodeSingular
-      const nodeId = node.data().id
+      const nodeData = node.data()
+      const nodeId = nodeData.id
+
+      // 忽略"+"节点的点击
+      if (nodeData.isMoreNode) {
+        return
+      }
 
       // 如果是多选模式（按住 Ctrl/Cmd 或者 Shift）
       if (e.originalEvent.ctrlKey || e.originalEvent.metaKey || e.originalEvent.shiftKey) {
@@ -203,19 +239,25 @@ export function useCytoscape(options: UseCytoscapeOptions) {
       }
 
       if (options.onNodeClick) {
-        options.onNodeClick(node.data())
+        options.onNodeClick(nodeData)
       }
     })
 
     // Node right-click handler (context menu)
     cy.on('cxttap', 'node', (e: any) => {
       const node = e.target as NodeSingular
+      const nodeData = node.data()
+
+      // 忽略"+"节点的右键点击
+      if (nodeData.isMoreNode) {
+        return
+      }
 
       // 阻止浏览器默认右键菜单
       e.originalEvent.preventDefault()
 
       if (options.onNodeRightClick) {
-        options.onNodeRightClick(node.data())
+        options.onNodeRightClick(nodeData)
       }
     })
 
@@ -229,10 +271,17 @@ export function useCytoscape(options: UseCytoscapeOptions) {
           options.onBackgroundDblClick(position)
         }
       } else if (e.target.isNode && e.target.isNode()) {
-        // 双击节点 - 编辑词汇（不触发单击事件）
+        // 双击节点 - 搜索该节点（不触发单击事件）
+        const node = e.target as NodeSingular
+        const nodeData = node.data()
+
+        // 忽略"+"节点的双击
+        if (nodeData.isMoreNode) {
+          return
+        }
+
         if (options.onNodeDblClick) {
-          const node = e.target as NodeSingular
-          options.onNodeDblClick(node.data())
+          options.onNodeDblClick(nodeData)
           // 阻止显示词汇详情
           e.stopPropagation()
           return false
@@ -250,6 +299,12 @@ export function useCytoscape(options: UseCytoscapeOptions) {
 
     // Selection change handler - notify when selection changes
     cy.on('select unselect', 'node', () => {
+      // 自动取消选中"+"节点
+      const selectedMoreNodes = cy.nodes(':selected').filter((node: any) => node.data().isMoreNode)
+      if (selectedMoreNodes.length > 0) {
+        selectedMoreNodes.unselect()
+      }
+
       if (options.onSelectionChange) {
         const selectedNodesSet = cy.nodes(':selected')
 
@@ -507,6 +562,13 @@ export function useCytoscape(options: UseCytoscapeOptions) {
     // 遍历所有边，根据 activeRelations 设置可见性
     cyInstance.value.edges().forEach((edge) => {
       const relation = edge.data('relation') as string
+
+      // "more" 关系边始终显示
+      if (relation === 'more') {
+        edge.style('display', 'element')
+        return
+      }
+
       if (options.activeRelations.includes(relation)) {
         edge.style('display', 'element')
       } else {
@@ -522,7 +584,14 @@ export function useCytoscape(options: UseCytoscapeOptions) {
     const allEdges = cyInstance.value.edges().jsons()
 
     cyInstance.value.nodes().forEach((node: any) => {
-      const nodeId = node.data('id')
+      const nodeData = node.data()
+
+      // 跳过"+"虚拟节点
+      if (nodeData.isMoreNode) {
+        return
+      }
+
+      const nodeId = nodeData.id
       const colors = getNodeColorByDegree(nodeId, allEdges)
 
       // 只有未选中时才更新颜色（保持选中时的红色）
@@ -815,6 +884,11 @@ export function useCytoscape(options: UseCytoscapeOptions) {
 
     cyInstance.value.nodes().forEach((node: any) => {
       const data = node.data()
+
+      // 跳过"+"虚拟节点
+      if (data.isMoreNode) {
+        return
+      }
 
       // 新数据结构使用 posDefinitions 数组
       let definition = ''
