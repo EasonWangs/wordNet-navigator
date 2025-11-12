@@ -98,7 +98,7 @@
       <GraphCanvas ref="graphCanvasRef" />
 
       <!-- 节点详情面板 -->
-      <NodeDetail />
+      <NodeDetail @edit="handleNodeEdit" />
 
       <!-- 性能统计信息 -->
       <div v-if="graphStore.graphData.nodes.length > 0" class="absolute top-4 left-4 bg-blue-500/90 text-white text-xs px-3 py-2 rounded-lg backdrop-blur-sm">
@@ -110,6 +110,9 @@
 
       <!-- 提示文字 -->
       <div class="absolute bottom-4 right-4 bg-gray-800/80 text-white text-xs px-3 py-2 rounded-lg backdrop-blur-sm space-y-1">
+        <div>👆 单击节点：查看详情</div>
+        <div>🖱️ 右键单击节点：编辑词汇</div>
+        <div>🔍 双击节点：搜索该词汇</div>
         <div>💡 双击空白区域：快速添加词汇</div>
         <div>🔗 按Ctrl/Cmd选中两个节点：创建关系</div>
         <div>⚡ 双击关系线：编辑关系</div>
@@ -134,6 +137,7 @@ interface GraphCanvasExposed {
   fitView: () => void
   exportPNG: () => void
   isFitModeActive: VueRef<boolean>
+  openEditWordDialog: (nodeData: any) => void
 }
 
 const graphCanvasRef = ref<GraphCanvasExposed | null>(null)
@@ -143,6 +147,13 @@ const syncFitViewLabel = () => {
   const fitModeRef = graphCanvasRef.value?.isFitModeActive
   const isFit = fitModeRef !== undefined ? unref(fitModeRef) : true
   fitViewButtonLabel.value = isFit ? '适应视图' : '正常大小'
+}
+
+// 处理节点详情面板的编辑事件
+const handleNodeEdit = (nodeData: any) => {
+  if (graphCanvasRef.value && graphCanvasRef.value.openEditWordDialog) {
+    graphCanvasRef.value.openEditWordDialog(nodeData)
+  }
 }
 
 const handleLoadGraph = async () => {

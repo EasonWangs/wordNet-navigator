@@ -8,6 +8,16 @@
     <div class="bg-gradient-to-r from-blue-500/60 to-purple-500/60 backdrop-blur-sm text-white px-4 py-3 flex justify-between items-center sticky top-0 z-10">
       <h2 class="text-base font-bold">节点详情</h2>
       <div class="flex items-center gap-2">
+        <!-- 编辑按钮 -->
+        <button
+          @click="handleEdit"
+          class="p-1.5 bg-green-500/80 hover:bg-green-600/80 rounded-full transition-all"
+          title="编辑词汇"
+        >
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+          </svg>
+        </button>
         <!-- 停止朗读按钮 -->
         <button
           v-if="isSupported && isSpeaking"
@@ -148,10 +158,21 @@ const adminStore = useAdminStore()
 // TTS 功能
 const { smartSpeak, stop, isSpeaking, isSupported } = useTTS()
 
+// 定义事件发射器
+const emit = defineEmits<{
+  edit: [nodeData: any]
+}>()
+
 // 关闭面板时停止朗读
 const closePanel = () => {
   stop()
   graphStore.setSelectedNode(null)
+}
+
+// 编辑按钮处理
+const handleEdit = () => {
+  if (!graphStore.selectedNode) return
+  emit('edit', graphStore.selectedNode)
 }
 
 // 获取词性-定义对（自动迁移旧数据）

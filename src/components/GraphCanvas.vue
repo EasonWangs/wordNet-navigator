@@ -1307,9 +1307,38 @@ const {
   },
   onNodeClick: (nodeData) => {
     if (nodeData) {
-      openEditWordDialog(nodeData)
+      // 单击节点：显示节点详情
+      graphStore.setSelectedNode(nodeData)
     } else {
       closeWordDialog()
+    }
+  },
+  onNodeRightClick: (nodeData) => {
+    // 右键单击节点：打开编辑对话框
+    if (nodeData) {
+      openEditWordDialog(nodeData)
+    }
+  },
+  onNodeDblClick: async (nodeData) => {
+    // 双击节点：以该节点为核心进行搜索
+    if (!nodeData || !nodeData.label) return
+
+    // 更新搜索关键词
+    graphStore.setSearchQuery(nodeData.label)
+
+    // 重新加载图表，以该节点为中心
+    graphStore.setLoading(true)
+    try {
+      const data = await WordNetService.fetchWordGraph(
+        nodeData.label,
+        graphStore.relationDepth,
+        graphStore.maxNodes
+      )
+      graphStore.setGraphData(data)
+    } catch (error) {
+      console.error('Failed to load graph:', error)
+    } finally {
+      graphStore.setLoading(false)
     }
   },
   onBackgroundDblClick: (position) => openAddWordDialog(position),
@@ -1324,5 +1353,6 @@ defineExpose({
   fitView,
   exportPNG,
   isFitModeActive,
+  openEditWordDialog,
 })
 </script>

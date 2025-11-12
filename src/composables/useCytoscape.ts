@@ -12,6 +12,7 @@ interface UseCytoscapeOptions {
   layout: LayoutType
   showDefinitionInNode: boolean
   onNodeClick?: (nodeData: any) => void
+  onNodeRightClick?: (nodeData: any) => void
   onBackgroundDblClick?: (position: { x: number; y: number }) => void
   onNodeDblClick?: (nodeData: any) => void
   onEdgeDblClick?: (edgeData: any) => void
@@ -203,6 +204,18 @@ export function useCytoscape(options: UseCytoscapeOptions) {
 
       if (options.onNodeClick) {
         options.onNodeClick(node.data())
+      }
+    })
+
+    // Node right-click handler (context menu)
+    cy.on('cxttap', 'node', (e: any) => {
+      const node = e.target as NodeSingular
+
+      // 阻止浏览器默认右键菜单
+      e.originalEvent.preventDefault()
+
+      if (options.onNodeRightClick) {
+        options.onNodeRightClick(node.data())
       }
     })
 
