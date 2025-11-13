@@ -17,7 +17,7 @@
               class="w-64 px-3 py-1.5 border border-gray-300 rounded text-sm focus:outline-none focus:border-blue-500"
               @focus="handleSearchFocus"
               @blur="handleSearchBlur"
-              @keypress.enter="handleLoadGraph"
+              @keypress.enter="handleLoadGraph()"
             />
 
             <!-- 搜索历史下拉框 -->
@@ -45,7 +45,7 @@
           <button
             :disabled="graphStore.loading"
             class="px-4 py-1.5 bg-blue-500 text-white rounded text-sm font-medium hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed"
-            @click="handleLoadGraph"
+            @click="handleLoadGraph()"
           >
             {{ graphStore.loading ? '加载中...' : '搜索' }}
           </button>
@@ -122,7 +122,7 @@
 
     <!-- 图表显示区域 -->
     <div class="flex-1 overflow-hidden relative">
-      <GraphCanvas ref="graphCanvasRef" />
+      <GraphCanvas ref="graphCanvasRef" @search="handleGraphCanvasSearch" />
 
       <!-- 节点详情面板 -->
       <NodeDetail @edit="handleNodeEdit" />
@@ -152,7 +152,7 @@
 <script setup lang="ts">
 import { onMounted, ref, watch, unref } from 'vue'
 import type { Ref as VueRef } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import type { LocationQueryValue } from 'vue-router'
 import { useGraphStore } from '@/stores/graphStore'
 import { WordNetService } from '@/services/wordnetService'
@@ -163,6 +163,7 @@ import { getSearchHistory, addSearchHistory, type SearchHistoryItem } from '@/ut
 
 const graphStore = useGraphStore()
 const route = useRoute()
+const router = useRouter()
 
 // 搜索历史相关
 const showSearchHistory = ref(false)
@@ -217,12 +218,16 @@ const handleHistoryItemClick = (word: string) => {
   handleLoadGraph()
 }
 
-const handleLoadGraph = async () => {
+const handleLoadGraph = async ({ syncRoute = true }: { syncRoute?: boolean } = {}) => {
   const query = graphStore.searchQuery.trim()
 
   // 保存到搜索历史
   if (query && query !== '*') {
     addSearchHistory(query)
+  }
+
+  if (syncRoute) {
+    await updateRouteKeyword(query)
   }
 
   graphStore.setLoading(true)
@@ -282,6 +287,40 @@ const getKeywordFromQuery = (
   return typeof value === 'string' ? value.trim() : ''
 }
 
+const getRouteKeywordValue = (keyword: string) => {
+  const trimmed = keyword.trim()
+  return trimmed && trimmed !== '*' ? trimmed : undefined
+}
+
+let pendingRouteKeyword: string | null = null
+
+const updateRouteKeyword = async (keyword: string) => {
+  const normalizedKeyword = getRouteKeywordValue(keyword)
+  const normalizedForTracking = normalizedKeyword ?? ''
+  const currentKeyword = getKeywordFromQuery(route.query.keyword) || ''
+
+  if (normalizedForTracking === currentKeyword) {
+    return
+  }
+
+  const nextQuery = { ...route.query }
+
+  if (normalizedKeyword) {
+    nextQuery.keyword = normalizedKeyword
+  } else {
+    delete nextQuery.keyword
+  }
+
+  pendingRouteKeyword = normalizedForTracking
+
+  try {
+    await router.push({ query: nextQuery })
+  } catch (error) {
+    pendingRouteKeyword = null
+    throw error
+  }
+}
+
 const loadAllWords = async () => {
   graphStore.setLoading(true)
   try {
@@ -298,10 +337,14 @@ const loadAllWords = async () => {
   }
 }
 
-const searchByKeyword = async (keyword: string) => {
+const searchByKeyword = async (keyword: string, options: { syncRoute?: boolean } = {}) => {
   if (!keyword) return
   graphStore.setSearchQuery(keyword)
-  await handleLoadGraph()
+  await handleLoadGraph(options)
+}
+
+const handleGraphCanvasSearch = (keyword: string) => {
+  void searchByKeyword(keyword)
 }
 
 const shouldAutoSelectKeyword = (keyword: string) => {
@@ -354,7 +397,7 @@ const autoSelectNodeForSearch = (keyword: string) => {
 onMounted(async () => {
   const keyword = getKeywordFromQuery(route.query.keyword)
   if (keyword) {
-    await searchByKeyword(keyword)
+    await searchByKeyword(keyword, { syncRoute: false })
     return
   }
 
@@ -367,12 +410,20 @@ watch(
     const newKeyword = getKeywordFromQuery(newValue)
     const previousKeyword = getKeywordFromQuery(oldValue)
 
+    if (pendingRouteKeyword !== null) {
+      const normalizedNewKeyword = newKeyword || ''
+      if (normalizedNewKeyword === pendingRouteKeyword) {
+        pendingRouteKeyword = null
+        return
+      }
+    }
+
     if (newKeyword === previousKeyword) {
       return
     }
 
     if (newKeyword) {
-      void searchByKeyword(newKeyword)
+      void searchByKeyword(newKeyword, { syncRoute: false })
     } else if (previousKeyword) {
       graphStore.setSearchQuery('')
       void loadAllWords()
