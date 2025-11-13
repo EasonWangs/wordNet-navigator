@@ -1311,6 +1311,7 @@ const {
       // 单击节点：显示节点详情
       graphStore.setSelectedNode(nodeData)
     } else {
+      graphStore.setSelectedNode(null)
       closeWordDialog()
     }
   },

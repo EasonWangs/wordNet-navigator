@@ -22,6 +22,9 @@ export interface WordNode {
   id: string
   label: string
   phonetic?: string  // 音标，如 /dɒg/ 或 /dɔːg/
+  isCenter?: boolean // 搜索结果中的中心节点
+  hasMore?: boolean  // 是否还有未展示的关联
+  isMoreNode?: boolean // 虚拟的“更多”节点标记
 
   // 新结构：词性-定义对数组
   posDefinitions?: PosDefinitionPair[]

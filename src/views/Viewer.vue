@@ -152,14 +152,16 @@
 <script setup lang="ts">
 import { onMounted, ref, watch, unref } from 'vue'
 import type { Ref as VueRef } from 'vue'
+import { useRoute } from 'vue-router'
 import { useGraphStore } from '@/stores/graphStore'
 import { WordNetService } from '@/services/wordnetService'
 import GraphCanvas from '@/components/GraphCanvas.vue'
 import NodeDetail from '@/components/NodeDetail.vue'
-import type { LayoutType } from '@/types/wordnet'
+import type { LayoutType, WordNode } from '@/types/wordnet'
 import { getSearchHistory, addSearchHistory, type SearchHistoryItem } from '@/utils/searchHistory'
 
 const graphStore = useGraphStore()
+const route = useRoute()
 
 // 搜索历史相关
 const showSearchHistory = ref(false)
@@ -270,14 +272,16 @@ const handleMaxNodesChange = async (e: Event) => {
   await handleLoadGraph()
 }
 
-// 注意：已移除实时搜索功能
-// 用户需要手动点击"搜索"按钮或按回车键触发搜索
-// 这样可以避免输入时频繁触发搜索，提升用户体验
+const getKeywordFromQuery = (value: string | string[] | null | undefined) => {
+  if (Array.isArray(value)) {
+    return (value[0] ?? '').trim()
+  }
+  return typeof value === 'string' ? value.trim() : ''
+}
 
-onMounted(async () => {
+const loadAllWords = async () => {
   graphStore.setLoading(true)
   try {
-    // Load all words initially (use '*' to show all)
     const data = await WordNetService.fetchWordGraph(
       '*',
       graphStore.relationDepth,
@@ -285,11 +289,101 @@ onMounted(async () => {
     )
     graphStore.setGraphData(data)
   } catch (error) {
-    console.error('Failed to load initial data:', error)
+    console.error('Failed to load all words:', error)
   } finally {
     graphStore.setLoading(false)
   }
+}
+
+const searchByKeyword = async (keyword: string) => {
+  if (!keyword) return
+  graphStore.setSearchQuery(keyword)
+  await handleLoadGraph()
+}
+
+const shouldAutoSelectKeyword = (keyword: string) => {
+  const trimmed = keyword.trim()
+  return trimmed !== '' && trimmed !== '*'
+}
+
+const findNodeForKeyword = (keyword: string): WordNode | null => {
+  if (!shouldAutoSelectKeyword(keyword)) {
+    return null
+  }
+
+  const normalizedKeyword = keyword.trim().toLowerCase()
+  if (!normalizedKeyword) {
+    return null
+  }
+
+  const candidateNodes = graphStore.graphData.nodes
+    .map(node => node.data)
+    .filter(node => Boolean(node?.label) && !node?.isMoreNode)
+
+  const isExactMatch = (node: WordNode) =>
+    node.label.trim().toLowerCase() === normalizedKeyword
+
+  const centerMatch = candidateNodes.find(node => node.isCenter && isExactMatch(node))
+  if (centerMatch) return centerMatch
+
+  const exactMatch = candidateNodes.find(isExactMatch)
+  if (exactMatch) return exactMatch
+
+  return candidateNodes.find(node =>
+    node.label.trim().toLowerCase().includes(normalizedKeyword)
+  ) ?? null
+}
+
+const autoSelectNodeForSearch = (keyword: string) => {
+  if (!shouldAutoSelectKeyword(keyword)) {
+    graphStore.setSelectedNode(null)
+    return
+  }
+
+  const targetNode = findNodeForKeyword(keyword)
+  graphStore.setSelectedNode(targetNode ?? null)
+}
+
+// 注意：已移除实时搜索功能
+// 用户需要手动点击"搜索"按钮或按回车键触发搜索
+// 这样可以避免输入时频繁触发搜索，提升用户体验
+
+onMounted(async () => {
+  const keyword = getKeywordFromQuery(route.query.keyword)
+  if (keyword) {
+    await searchByKeyword(keyword)
+    return
+  }
+
+  await loadAllWords()
 })
+
+watch(
+  () => route.query.keyword,
+  (newValue, oldValue) => {
+    const newKeyword = getKeywordFromQuery(newValue)
+    const previousKeyword = getKeywordFromQuery(oldValue)
+
+    if (newKeyword === previousKeyword) {
+      return
+    }
+
+    if (newKeyword) {
+      void searchByKeyword(newKeyword)
+    } else if (previousKeyword) {
+      graphStore.setSearchQuery('')
+      void loadAllWords()
+    }
+  }
+)
+
+watch(
+  () => graphStore.graphVersion,
+  () => {
+    autoSelectNodeForSearch(graphStore.searchQuery || '')
+  },
+  { immediate: true }
+)
 
 watch(
   () => {
