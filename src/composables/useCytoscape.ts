@@ -162,6 +162,14 @@ export function useCytoscape(options: UseCytoscapeOptions) {
           },
         },
         {
+          selector: 'node.active-node',
+          style: {
+            'border-width': 4,
+            'border-color': '#fb923c',
+            'background-color': '#fff7ed',
+          },
+        },
+        {
           selector: 'node[?isMoreNode]',
           style: {
             'background-color': '#95a5a6',

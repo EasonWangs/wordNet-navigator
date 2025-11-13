@@ -1406,6 +1406,54 @@ const {
   },
 })
 
+let pendingHighlightedNodeId: string | null = null
+
+const applySelectedNodeHighlight = () => {
+  if (!cyInstance.value) return
+
+  const cy = cyInstance.value
+  cy.nodes('.active-node').removeClass('active-node')
+
+  if (!pendingHighlightedNodeId) {
+    return
+  }
+
+  const targetNode = cy.$id(pendingHighlightedNodeId)
+  if (targetNode && targetNode.length > 0) {
+    targetNode.addClass('active-node')
+  }
+}
+
+watch(
+  () => graphStore.selectedNode?.id ?? null,
+  (newId) => {
+    pendingHighlightedNodeId = newId
+
+    if (!cyInstance.value) {
+      return
+    }
+
+    applySelectedNodeHighlight()
+  },
+  { immediate: true }
+)
+
+watch(
+  graphVersionRef,
+  () => {
+    applySelectedNodeHighlight()
+  }
+)
+
+watch(
+  () => cyInstance.value,
+  (cy) => {
+    if (cy) {
+      applySelectedNodeHighlight()
+    }
+  }
+)
+
 // 导出方法供父组件调用
 defineExpose({
   fitView,
