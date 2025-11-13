@@ -153,6 +153,7 @@
 import { onMounted, ref, watch, unref } from 'vue'
 import type { Ref as VueRef } from 'vue'
 import { useRoute } from 'vue-router'
+import type { LocationQueryValue } from 'vue-router'
 import { useGraphStore } from '@/stores/graphStore'
 import { WordNetService } from '@/services/wordnetService'
 import GraphCanvas from '@/components/GraphCanvas.vue'
@@ -272,7 +273,9 @@ const handleMaxNodesChange = async (e: Event) => {
   await handleLoadGraph()
 }
 
-const getKeywordFromQuery = (value: string | string[] | null | undefined) => {
+const getKeywordFromQuery = (
+  value: LocationQueryValue | LocationQueryValue[] | null | undefined
+) => {
   if (Array.isArray(value)) {
     return (value[0] ?? '').trim()
   }
