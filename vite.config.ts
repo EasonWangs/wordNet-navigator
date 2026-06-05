@@ -4,7 +4,10 @@ import path from 'path'
 
 // https://vitejs.dev/config/
 export default defineConfig({
-  base: process.env.GITHUB_PAGES ? '/wordNet-navigator/' : '/',
+  base:
+    process.env.GITHUB_PAGES && !process.env.CUSTOM_DOMAIN
+      ? '/wordNet-navigator/'
+      : '/',
   plugins: [vue()],
   publicDir: 'data', // 使用 data 目录作为静态资源目录
   resolve: {
