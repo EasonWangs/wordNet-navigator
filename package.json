@@ -14,6 +14,7 @@
     "typecheck": "vue-tsc --noEmit"
   },
   "dependencies": {
+    "cyto-orbit": "github:NeoWangs/cyto-orbit",
     "cytoscape": "^3.28.1",
     "pinia": "^2.1.7",
     "vue": "^3.4.21",

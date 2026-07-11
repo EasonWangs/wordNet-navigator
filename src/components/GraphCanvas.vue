@@ -372,11 +372,12 @@
 import { ref, toRef, computed, nextTick, watch, onMounted } from 'vue'
 import { useGraphStore } from '@/stores/graphStore'
 import { useAdminStore } from '@/stores/adminStore'
-import { useCytoscape } from '@/composables/useCytoscape'
+import { useCytoscape } from 'cyto-orbit'
 import { WordNetService } from '@/services/wordnetService'
 import { migrateWordData } from '@/utils/wordDataUtils'
 import { useTTS } from '@/composables/useTTS'
 import type { PosDefinitionPair, WordNode, WordEdge } from '@/types/wordnet'
+import { storageService } from '@/services/storageService'
 import type { StoredConnection, StoredWord, StoredRelationType } from '@/services/storageService'
 import Legend from './Legend.vue'
 
@@ -1308,6 +1309,11 @@ const {
   },
   get showDefinitionInNode() {
     return showDefinitionInNodeRef.value
+  },
+  // 关系类型配置注入（cyto-orbit 与存储层解耦）；为空时初始化默认配置
+  get relationTypes() {
+    const types = storageService.getRelationTypes()
+    return types.length > 0 ? types : storageService.initializeDefaultRelationTypes()
   },
   onNodeClick: (nodeData) => {
     if (nodeData) {
