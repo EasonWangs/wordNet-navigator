@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any -- Cytoscape's event payloads expose loosely typed data; encapsulating every variant here would add excessive boilerplate */
-import { ref, onMounted, onBeforeUnmount, watch } from 'vue'
+import { ref, shallowRef, onMounted, onBeforeUnmount, watch } from 'vue'
 import cytoscape, { type Core, type NodeSingular } from 'cytoscape'
 import type { GraphData, LayoutType } from '@/types/wordnet'
 import { storageService } from '@/services/storageService'
@@ -24,7 +24,9 @@ interface UseCytoscapeOptions {
 
 export function useCytoscape(options: UseCytoscapeOptions) {
   const containerRef = ref<HTMLElement | null>(null)
-  const cyInstance = ref<Core | null>(null)
+  // shallowRef：cytoscape 实例不能被 Vue 深层代理，
+  // 否则其内部基于对象身份的样式脏标记会偶发失效（表现为部分节点样式不刷新）
+  const cyInstance = shallowRef<Core | null>(null)
 
   // Keyboard event handler for Delete key
   const handleKeyDown = (e: KeyboardEvent) => {
@@ -139,7 +141,7 @@ export function useCytoscape(options: UseCytoscapeOptions) {
             'text-valign': 'center',
             'text-halign': 'center',
             'font-family': '"SF Mono", "Monaco", "Inconsolata", "Fira Code", "Fira Mono", "Roboto Mono", "Source Code Pro", "Courier New", monospace',
-            'font-size': '15px',
+            'font-size': '16px',
             'font-weight': 600,
             'min-width': '60px',
             'min-height': '60px',
@@ -155,6 +157,33 @@ export function useCytoscape(options: UseCytoscapeOptions) {
           },
         },
         {
+          // 展示用标签（可能含定义），由 updateNodeLabels 写入 data
+          selector: 'node[displayLabel]',
+          style: {
+            label: 'data(displayLabel)',
+          },
+        },
+        {
+          // 基于关系数量的着色，由 updateNodeColors 写入 data
+          selector: 'node[degreeColor]',
+          style: {
+            'background-color': 'data(degreeColor)',
+            'border-color': 'data(degreeBorder)',
+          },
+        },
+        {
+          // 节点内显示定义时的排版
+          selector: 'node.with-definition',
+          style: {
+            'font-size': '14px',
+            'line-height': 1.25,
+            'text-max-width': '180px',
+            'min-width': '85px',
+            'min-height': '85px',
+          },
+        },
+        {
+          // 置于 degreeColor 之后，保证选中色能覆盖度数着色
           selector: 'node:selected',
           style: {
             'background-color': '#e74c3c',
@@ -196,6 +225,13 @@ export function useCytoscape(options: UseCytoscapeOptions) {
             'target-arrow-shape': 'triangle',
             'curve-style': 'bezier',
             'arrow-scale': 1.5,
+          },
+        },
+        {
+          // 被关系类型筛选隐藏的边，由 updateEdgeVisibility 切换 class
+          selector: 'edge.hidden-relation',
+          style: {
+            display: 'none',
           },
         },
         {
@@ -414,7 +450,8 @@ export function useCytoscape(options: UseCytoscapeOptions) {
 
     cy.on('mouseover', 'node', (e: any) => {
       const node = e.target as NodeSingular
-      const definition = node.data('definition')
+      // 数据结构使用 posDefinitions 数组，取第一个词性定义对的定义
+      const definition = node.data('posDefinitions')?.[0]?.definition
 
       if (definition) {
         if (!tooltipDiv) {
@@ -467,17 +504,13 @@ export function useCytoscape(options: UseCytoscapeOptions) {
   const updateGraph = () => {
     if (!cyInstance.value) return
 
-    // 清除现有元素
-    cyInstance.value.elements().remove()
+    const cy = cyInstance.value
 
-    const nodes = options.graphData.nodes
-    const edges = options.graphData.edges
-    const BATCH_SIZE = 500 // 每批处理500个节点
-
-    // 如果节点数量较少,直接添加
-    if (nodes.length <= BATCH_SIZE) {
-      cyInstance.value.add(nodes)
-      cyInstance.value.add(edges)
+    // batch 内的元素增删和样式更新只触发一次重绘
+    cy.batch(() => {
+      cy.elements().remove()
+      cy.add(options.graphData.nodes)
+      cy.add(options.graphData.edges)
 
       // 设置边的初始可见性
       updateEdgeVisibility()
@@ -487,54 +520,12 @@ export function useCytoscape(options: UseCytoscapeOptions) {
 
       // 应用基于关系数量的节点颜色
       updateNodeColors()
+    })
 
-      // 选中中心词并触发详情显示
-      selectCenterNode()
+    // 选中中心词并触发详情显示
+    selectCenterNode()
 
-      runLayout()
-      return
-    }
-
-    // 分批渲染大量节点
-    let currentBatch = 0
-    const totalBatches = Math.ceil(nodes.length / BATCH_SIZE)
-
-    const addBatch = () => {
-      const start = currentBatch * BATCH_SIZE
-      const end = Math.min(start + BATCH_SIZE, nodes.length)
-      const batchNodes = nodes.slice(start, end)
-
-      // 添加当前批次的节点
-      cyInstance.value?.add(batchNodes)
-
-      currentBatch++
-
-      if (currentBatch < totalBatches) {
-        // 使用 requestAnimationFrame 确保不阻塞UI
-        requestAnimationFrame(addBatch)
-      } else {
-        // 所有节点添加完成,添加边
-        cyInstance.value?.add(edges)
-
-        // 设置边的初始可见性
-        updateEdgeVisibility()
-
-        // 更新节点标签显示
-        updateNodeLabels()
-
-        // 应用基于关系数量的节点颜色
-        updateNodeColors()
-
-        // 选中中心词并触发详情显示
-        selectCenterNode()
-
-        // 运行布局
-        runLayout()
-      }
-    }
-
-    // 开始分批添加
-    addBatch()
+    runLayout()
   }
 
   // 选中中心词的辅助函数
@@ -552,21 +543,15 @@ export function useCytoscape(options: UseCytoscapeOptions) {
   const updateEdgeVisibility = () => {
     if (!cyInstance.value) return
 
-    // 遍历所有边，根据 activeRelations 设置可见性
-    cyInstance.value.edges().forEach((edge) => {
-      const relation = edge.data('relation') as string
+    const activeRelationSet = new Set(options.activeRelations)
 
-      // "more" 关系边始终显示
-      if (relation === 'more') {
-        edge.style('display', 'element')
-        return
-      }
-
-      if (options.activeRelations.includes(relation)) {
-        edge.style('display', 'element')
-      } else {
-        edge.style('display', 'none')
-      }
+    // 根据 activeRelations 切换隐藏 class（"more" 关系边始终显示）
+    cyInstance.value.batch(() => {
+      cyInstance.value!.edges().forEach((edge) => {
+        const relation = edge.data('relation') as string
+        const visible = relation === 'more' || activeRelationSet.has(relation)
+        edge.toggleClass('hidden-relation', !visible)
+      })
     })
   }
 
@@ -584,23 +569,23 @@ export function useCytoscape(options: UseCytoscapeOptions) {
       degreeMap.set(target, (degreeMap.get(target) || 0) + 1)
     })
 
-    cyInstance.value.nodes().forEach((node: any) => {
-      const nodeData = node.data()
+    // 颜色写入 data，由样式表的 node[degreeColor] 规则应用；
+    // 选中态的红色由排在其后的 node:selected 规则覆盖，无需特判
+    cyInstance.value.batch(() => {
+      cyInstance.value!.nodes().forEach((node: any) => {
+        const nodeData = node.data()
 
-      // 跳过"+"虚拟节点
-      if (nodeData.isMoreNode) {
-        return
-      }
+        // 跳过"+"虚拟节点
+        if (nodeData.isMoreNode) {
+          return
+        }
 
-      const colors = getNodeColorByDegree(degreeMap.get(nodeData.id) || 0)
-
-      // 只有未选中时才更新颜色（保持选中时的红色）
-      if (!node.selected()) {
-        node.style({
-          'background-color': colors.bg,
-          'border-color': colors.border,
+        const colors = getNodeColorByDegree(degreeMap.get(nodeData.id) || 0)
+        node.data({
+          degreeColor: colors.bg,
+          degreeBorder: colors.border,
         })
-      }
+      })
     })
   }
 
@@ -875,50 +860,41 @@ export function useCytoscape(options: UseCytoscapeOptions) {
       Object.keys(newData).forEach(key => {
         node.data(key, newData[key])
       })
+      // 重新计算展示标签（label/定义可能已变化）
+      updateNodeLabels()
     }
   }
 
   // 更新节点标签显示（是否包含定义）
+  // 标签内容写入 displayLabel data，排版差异通过 with-definition class 切换
   const updateNodeLabels = () => {
     if (!cyInstance.value) return
 
-    cyInstance.value.nodes().forEach((node: any) => {
-      const data = node.data()
+    cyInstance.value.batch(() => {
+      cyInstance.value!.nodes().forEach((node: any) => {
+        const data = node.data()
 
-      // 跳过"+"虚拟节点
-      if (data.isMoreNode) {
-        return
-      }
-
-      // 新数据结构使用 posDefinitions 数组
-      let definition = ''
-      if (data.posDefinitions && data.posDefinitions.length > 0) {
-        // 取第一个词性定义对的定义
-        const firstDef = data.posDefinitions[0].definition
-        if (firstDef) {
-          definition = firstDef
+        // 跳过"+"虚拟节点
+        if (data.isMoreNode) {
+          return
         }
-      }
 
-      if (options.showDefinitionInNode && definition) {
-        // 显示：词汇\n定义（限制长度）
-        const truncatedDef = definition.length > 40
-          ? definition.substring(0, 40) + '...'
-          : definition
-        node.style('label', `${data.label}\n${truncatedDef}`)
-        node.style('line-height', 1.25)
-        node.style('font-size', '14px')
-        node.style('text-max-width', '180px')
-        node.style('min-width', '85px')
-        node.style('min-height', '85px')
-      } else {
-        // 只显示词汇
-        node.style('label', data.label)
-        node.style('font-size', '16px')
-        node.style('text-max-width', '150px')
-        node.style('min-width', '60px')
-        node.style('min-height', '60px')
-      }
+        // 新数据结构使用 posDefinitions 数组，取第一个词性定义对的定义
+        const definition = data.posDefinitions?.[0]?.definition || ''
+
+        if (options.showDefinitionInNode && definition) {
+          // 显示：词汇\n定义（限制长度）
+          const truncatedDef = definition.length > 40
+            ? definition.substring(0, 40) + '...'
+            : definition
+          node.data('displayLabel', `${data.label}\n${truncatedDef}`)
+          node.addClass('with-definition')
+        } else {
+          // 只显示词汇
+          node.data('displayLabel', data.label)
+          node.removeClass('with-definition')
+        }
+      })
     })
   }
 
@@ -1037,11 +1013,7 @@ export function useCytoscape(options: UseCytoscapeOptions) {
     const newEdge = cyInstance.value.add(edgeConfig)
 
     // 设置边的可见性（根据 activeRelations）
-    if (options.activeRelations.includes(relation)) {
-      newEdge.style('display', 'element')
-    } else {
-      newEdge.style('display', 'none')
-    }
+    newEdge.toggleClass('hidden-relation', !options.activeRelations.includes(relation))
 
     // 更新节点颜色（因为节点的关系数量变化了）
     updateNodeColors()
