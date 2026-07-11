@@ -28,6 +28,45 @@ export function useCytoscape(options: UseCytoscapeOptions) {
   // 否则其内部基于对象身份的样式脏标记会偶发失效（表现为部分节点样式不刷新）
   const cyInstance = shallowRef<Core | null>(null)
 
+  // 布局伸缩的累计倍率（滚轮缩放不改变画布 zoom，而是伸缩节点间距）
+  let layoutScale = 1
+  const MIN_LAYOUT_SCALE = 0.2
+  const MAX_LAYOUT_SCALE = 5
+
+  // 自定义滚轮缩放：保持节点大小不变，以鼠标位置为锚点伸缩节点间距（连线长度）
+  const handleWheel = (e: WheelEvent) => {
+    if (!cyInstance.value || !containerRef.value) return
+    e.preventDefault()
+
+    const cy = cyInstance.value
+
+    // 计算本次伸缩系数，并钳制累计倍率，避免布局收缩成一点或无限扩散
+    let factor = Math.pow(1.002, -e.deltaY)
+    const clampedScale = Math.min(MAX_LAYOUT_SCALE, Math.max(MIN_LAYOUT_SCALE, layoutScale * factor))
+    factor = clampedScale / layoutScale
+    if (factor === 1) return
+    layoutScale = clampedScale
+
+    // 把鼠标位置换算成模型坐标作为锚点
+    const rect = containerRef.value.getBoundingClientRect()
+    const pan = cy.pan()
+    const zoom = cy.zoom()
+    const anchor = {
+      x: (e.clientX - rect.left - pan.x) / zoom,
+      y: (e.clientY - rect.top - pan.y) / zoom,
+    }
+
+    cy.batch(() => {
+      cy.nodes().positions((node) => {
+        const p = node.position()
+        return {
+          x: anchor.x + (p.x - anchor.x) * factor,
+          y: anchor.y + (p.y - anchor.y) * factor,
+        }
+      })
+    })
+  }
+
   // Keyboard event handler for Delete key
   const handleKeyDown = (e: KeyboardEvent) => {
     // 支持 Delete (Windows/Linux) 和 Backspace (Mac) 键
@@ -129,7 +168,9 @@ export function useCytoscape(options: UseCytoscapeOptions) {
 
     const cy = cytoscape({
       container: containerRef.value,
-      wheelSensitivity: 0.1,  // 降低滚轮灵敏度，使缩放更平滑（默认1）
+      // 禁用默认的滚轮/双指缩放：改由自定义 wheel 处理器伸缩节点间距，
+      // 保持节点大小不变（程序化 zoom 如 fit/center 不受影响）
+      userZoomingEnabled: false,
       style: [
         {
           selector: 'node',
@@ -777,6 +818,9 @@ export function useCytoscape(options: UseCytoscapeOptions) {
       })
     }
 
+    // 新布局重置伸缩倍率基准
+    layoutScale = 1
+
     const layout = cyInstance.value.layout(layoutOptions)
     layout.run()
 
@@ -816,9 +860,12 @@ export function useCytoscape(options: UseCytoscapeOptions) {
     updateGraph()
     // Add keyboard event listener
     window.addEventListener('keydown', handleKeyDown)
+    // 自定义滚轮缩放（passive: false 才能 preventDefault 阻止页面滚动）
+    containerRef.value?.addEventListener('wheel', handleWheel, { passive: false })
   })
 
   onBeforeUnmount(() => {
+    containerRef.value?.removeEventListener('wheel', handleWheel)
     cyInstance.value?.destroy()
     // Remove keyboard event listener
     window.removeEventListener('keydown', handleKeyDown)
