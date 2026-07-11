@@ -630,6 +630,62 @@ export function useCytoscape(options: UseCytoscapeOptions) {
       hideTooltip(edgeTooltipDiv)
     })
 
+    // 拖动力传导：拖动节点时邻居跟随移动，一跳最强、二跳变弱、三跳最弱，更远不动
+    const DRAG_PROPAGATION_FACTORS = [0.55, 0.25, 0.1]
+
+    let dragContext: {
+      nodeId: string
+      start: { x: number; y: number }
+      followers: Array<{ node: any; start: { x: number; y: number }; factor: number }>
+    } | null = null
+
+    cy.on('grab', 'node', (e: any) => {
+      const grabbed = e.target
+
+      // 多选拖动时其他选中节点由 cytoscape 原生联动，不参与传导
+      const excludeSelected = grabbed.selected()
+
+      // BFS 按跳数收集邻居及对应传导系数
+      const visited = new Set<string>([grabbed.id()])
+      let frontier = grabbed as any
+      const followers: Array<{ node: any; start: { x: number; y: number }; factor: number }> = []
+
+      for (let hop = 0; hop < DRAG_PROPAGATION_FACTORS.length; hop++) {
+        const next = frontier.neighborhood('node').filter((n: any) =>
+          !visited.has(n.id()) && !(excludeSelected && n.selected())
+        )
+        if (!next.length) break
+        next.forEach((n: any) => {
+          visited.add(n.id())
+          followers.push({ node: n, start: { ...n.position() }, factor: DRAG_PROPAGATION_FACTORS[hop] })
+        })
+        frontier = next
+      }
+
+      dragContext = { nodeId: grabbed.id(), start: { ...grabbed.position() }, followers }
+    })
+
+    cy.on('drag', 'node', (e: any) => {
+      if (!dragContext || e.target.id() !== dragContext.nodeId) return
+
+      const p = e.target.position()
+      const dx = p.x - dragContext.start.x
+      const dy = p.y - dragContext.start.y
+
+      cy.batch(() => {
+        dragContext!.followers.forEach((f) => {
+          f.node.position({
+            x: f.start.x + dx * f.factor,
+            y: f.start.y + dy * f.factor,
+          })
+        })
+      })
+    })
+
+    cy.on('free', 'node', () => {
+      dragContext = null
+    })
+
     cyInstance.value = cy
   }
 
