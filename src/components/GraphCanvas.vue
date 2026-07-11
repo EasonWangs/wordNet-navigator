@@ -1358,6 +1358,9 @@ const {
       const radius = 180 // Distance from parent node
       const angleStep = (2 * Math.PI) / nodeCount // Evenly distribute around circle
 
+      // 新节点层级 = 父节点层级 + 1（用于伪3D尺寸递减）
+      const parentDepth = parentNode.data('depth')
+
       // Add new nodes to the graph with positions around parent node
       expandedData.nodes.forEach((node, index) => {
         if (addNode) {
@@ -1367,7 +1370,10 @@ const {
             x: parentPos.x + radius * Math.cos(angle),
             y: parentPos.y + radius * Math.sin(angle)
           }
-          addNode(node.data, position)
+          const nodeData = parentDepth !== undefined
+            ? { ...node.data, depth: parentDepth + 1 }
+            : node.data
+          addNode(nodeData, position)
         }
       })
 

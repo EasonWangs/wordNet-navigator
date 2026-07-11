@@ -219,6 +219,7 @@ export class WordNetService {
               examples: w.examples,
               isCenter: centerWordIds.has(w.id), // 标记所有同名的中心词
               hasMore: nodesWithMore.has(w.id), // 标记是否还有未显示的关联
+              depth: nodeDepths.get(w.id) ?? 0, // 距中心词的 BFS 层级，用于伪3D递减
             },
           }))
 
@@ -260,6 +261,8 @@ export class WordNetService {
             source: c.source,
             target: c.target,
             relation: c.relation,
+            // 边的层级取两端节点层级的较小值（0 = 与中心词直接相连）
+            depth: Math.min(nodeDepths.get(c.source) ?? 0, nodeDepths.get(c.target) ?? 0),
           },
         }))
 

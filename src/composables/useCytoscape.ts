@@ -231,6 +231,31 @@ export function useCytoscape(options: UseCytoscapeOptions) {
             'border-color': 'data(degreeBorder)',
           },
         },
+        // 伪3D：按距中心词的层级递减节点尺寸（depth 0 中心词保持基础尺寸）
+        {
+          selector: 'node[depth = 1]',
+          style: {
+            'font-size': '15px',
+            'min-width': '52px',
+            'min-height': '52px',
+          },
+        },
+        {
+          selector: 'node[depth = 2]',
+          style: {
+            'font-size': '14px',
+            'min-width': '44px',
+            'min-height': '44px',
+          },
+        },
+        {
+          selector: 'node[depth >= 3]',
+          style: {
+            'font-size': '13px',
+            'min-width': '38px',
+            'min-height': '38px',
+          },
+        },
         {
           // 节点内显示定义时的排版
           selector: 'node.with-definition',
@@ -307,6 +332,27 @@ export function useCytoscape(options: UseCytoscapeOptions) {
             'target-arrow-shape': 'triangle',
             'curve-style': 'bezier',
             'arrow-scale': 1.5,
+          },
+        },
+        // 伪3D：按层级递减连线粗细（depth 0 = 与中心词直接相连的边最粗）
+        {
+          selector: 'edge[depth = 0]',
+          style: {
+            width: 2.5,
+          },
+        },
+        {
+          selector: 'edge[depth = 1]',
+          style: {
+            width: 1.6,
+            'arrow-scale': 1.2,
+          },
+        },
+        {
+          selector: 'edge[depth >= 2]',
+          style: {
+            width: 1,
+            'arrow-scale': 1,
           },
         },
         {
@@ -796,11 +842,16 @@ export function useCytoscape(options: UseCytoscapeOptions) {
         relationTypes = storageService.initializeDefaultRelationTypes()
       }
 
-      // 创建边长度函数，根据关系类型返回不同的理想长度
+      // 创建边长度函数，根据关系类型返回不同的理想长度；
+      // 伪3D：层级越深的边越短（depth 0 = 与中心词直接相连）
       const idealEdgeLengthFn = (edge: any) => {
         const relation = edge.data('relation')
         const relationType = relationTypes.find(rt => rt.key === relation)
-        return relationType?.edgeLength || 100
+        const base = relationType?.edgeLength || 100
+
+        const depth = edge.data('depth')
+        const depthFactor = depth === undefined ? 1 : depth <= 0 ? 1 : depth === 1 ? 0.75 : 0.55
+        return base * depthFactor
       }
 
       // 根据节点数量动态调整迭代次数（平衡质量与性能）
@@ -1111,6 +1162,13 @@ export function useCytoscape(options: UseCytoscapeOptions) {
         target,
         relation,
       }
+    }
+
+    // 两端节点都有层级信息时，推导边的层级（用于伪3D粗细）
+    const sourceDepth = sourceNode.data('depth')
+    const targetDepth = targetNode.data('depth')
+    if (sourceDepth !== undefined && targetDepth !== undefined) {
+      edgeConfig.data.depth = Math.min(sourceDepth, targetDepth)
     }
 
     // 添加边到图表
