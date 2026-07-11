@@ -235,7 +235,7 @@ export function useCytoscape(options: UseCytoscapeOptions) {
         {
           selector: 'node[depth = 1]',
           style: {
-            'font-size': '15px',
+            'font-size': '14px',
             'min-width': '52px',
             'min-height': '52px',
           },
@@ -243,7 +243,7 @@ export function useCytoscape(options: UseCytoscapeOptions) {
         {
           selector: 'node[depth = 2]',
           style: {
-            'font-size': '14px',
+            'font-size': '12px',
             'min-width': '44px',
             'min-height': '44px',
           },
@@ -251,7 +251,7 @@ export function useCytoscape(options: UseCytoscapeOptions) {
         {
           selector: 'node[depth >= 3]',
           style: {
-            'font-size': '13px',
+            'font-size': '10px',
             'min-width': '38px',
             'min-height': '38px',
           },
