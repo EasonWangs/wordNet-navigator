@@ -33,6 +33,20 @@ export function useCytoscape(options: UseCytoscapeOptions) {
   const MIN_LAYOUT_SCALE = 0.2
   const MAX_LAYOUT_SCALE = 5
 
+  // 缩小到低档位时降级节点显示：先缩小字体，再退化为空心圆点并把线条变细
+  const LOD_SMALL_FONT_SCALE = 0.45
+  const LOD_DOT_SCALE = 0.25
+
+  const updateLod = () => {
+    if (!cyInstance.value) return
+    const cy = cyInstance.value
+    cy.batch(() => {
+      cy.nodes().toggleClass('lod-small', layoutScale < LOD_SMALL_FONT_SCALE)
+      cy.nodes().toggleClass('lod-dot', layoutScale <= LOD_DOT_SCALE)
+      cy.edges().toggleClass('lod-thin', layoutScale <= LOD_DOT_SCALE)
+    })
+  }
+
   // 自定义滚轮缩放：保持节点大小不变，以鼠标位置为锚点伸缩节点间距（连线长度）
   const handleWheel = (e: WheelEvent) => {
     if (!cyInstance.value || !containerRef.value) return
@@ -65,6 +79,9 @@ export function useCytoscape(options: UseCytoscapeOptions) {
         }
       })
     })
+
+    // 根据新的伸缩档位更新降级显示
+    updateLod()
   }
 
   // Keyboard event handler for Delete key
@@ -242,6 +259,28 @@ export function useCytoscape(options: UseCytoscapeOptions) {
           },
         },
         {
+          // 缩小时先降字号
+          selector: 'node.lod-small',
+          style: {
+            'font-size': '12px',
+          },
+        },
+        {
+          // 缩到最小档位：隐藏文字，退化为空心圆点（边框色沿用度数色）
+          selector: 'node.lod-dot',
+          style: {
+            label: '',
+            shape: 'ellipse',
+            width: '14px',
+            height: '14px',
+            'min-width': '14px',
+            'min-height': '14px',
+            padding: '0px',
+            'background-opacity': 0,
+            'border-width': 2,
+          },
+        },
+        {
           selector: 'node[?isMoreNode]',
           style: {
             'background-color': '#95a5a6',
@@ -268,6 +307,14 @@ export function useCytoscape(options: UseCytoscapeOptions) {
             'target-arrow-shape': 'triangle',
             'curve-style': 'bezier',
             'arrow-scale': 1.5,
+          },
+        },
+        {
+          // 缩到最小档位时线条变细
+          selector: 'edge.lod-thin',
+          style: {
+            width: 1,
+            'arrow-scale': 0.8,
           },
         },
         {
@@ -825,8 +872,9 @@ export function useCytoscape(options: UseCytoscapeOptions) {
       })
     }
 
-    // 新布局重置伸缩倍率基准
+    // 新布局重置伸缩倍率基准，并清除降级显示
     layoutScale = 1
+    updateLod()
 
     const layout = cyInstance.value.layout(layoutOptions)
     layout.run()
@@ -1071,6 +1119,9 @@ export function useCytoscape(options: UseCytoscapeOptions) {
     // 设置边的可见性（根据 activeRelations）
     newEdge.toggleClass('hidden-relation', !options.activeRelations.includes(relation))
 
+    // 同步降级显示状态到新边
+    updateLod()
+
     // 更新节点颜色（因为节点的关系数量变化了）
     updateNodeColors()
 
@@ -1100,6 +1151,9 @@ export function useCytoscape(options: UseCytoscapeOptions) {
 
     // 更新节点颜色
     updateNodeColors()
+
+    // 同步降级显示状态到新节点
+    updateLod()
 
     // 如果没有提供位置，运行布局算法
     if (!position) {
