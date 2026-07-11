@@ -84,6 +84,31 @@ export function useCytoscape(options: UseCytoscapeOptions) {
     updateLod()
   }
 
+  // 按住空间键拖动节点时，暂停力传导，只移动被拖动的单个节点
+  let isSpacePressed = false
+
+  const isEditableTarget = (target: EventTarget | null) => {
+    if (!(target instanceof HTMLElement)) return false
+    return (
+      target.tagName === 'INPUT' ||
+      target.tagName === 'TEXTAREA' ||
+      target.isContentEditable ||
+      target.closest('input') !== null ||
+      target.closest('textarea') !== null
+    )
+  }
+
+  const handleSpaceKeyDown = (e: KeyboardEvent) => {
+    if (e.code !== 'Space' || isEditableTarget(e.target)) return
+    isSpacePressed = true
+  }
+
+  const handleSpaceKeyUp = (e: KeyboardEvent) => {
+    if (e.code === 'Space') {
+      isSpacePressed = false
+    }
+  }
+
   // Keyboard event handler for Delete key
   const handleKeyDown = (e: KeyboardEvent) => {
     // 支持 Delete (Windows/Linux) 和 Backspace (Mac) 键
@@ -668,6 +693,9 @@ export function useCytoscape(options: UseCytoscapeOptions) {
     cy.on('drag', 'node', (e: any) => {
       if (!dragContext || e.target.id() !== dragContext.nodeId) return
 
+      // 按住空间键：只拖动单个节点，跳过力传导
+      if (isSpacePressed) return
+
       const p = e.target.position()
       const dx = p.x - dragContext.start.x
       const dy = p.y - dragContext.start.y
@@ -1022,6 +1050,9 @@ export function useCytoscape(options: UseCytoscapeOptions) {
     updateGraph()
     // Add keyboard event listener
     window.addEventListener('keydown', handleKeyDown)
+    // 空间键状态跟踪（拖动力传导开关）
+    window.addEventListener('keydown', handleSpaceKeyDown)
+    window.addEventListener('keyup', handleSpaceKeyUp)
     // 自定义滚轮缩放（passive: false 才能 preventDefault 阻止页面滚动）
     containerRef.value?.addEventListener('wheel', handleWheel, { passive: false })
   })
@@ -1031,6 +1062,8 @@ export function useCytoscape(options: UseCytoscapeOptions) {
     cyInstance.value?.destroy()
     // Remove keyboard event listener
     window.removeEventListener('keydown', handleKeyDown)
+    window.removeEventListener('keydown', handleSpaceKeyDown)
+    window.removeEventListener('keyup', handleSpaceKeyUp)
   })
 
   // Watch for changes
