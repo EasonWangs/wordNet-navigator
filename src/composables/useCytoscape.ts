@@ -493,14 +493,21 @@ export function useCytoscape(options: UseCytoscapeOptions) {
 
     cy.on('mouseover', 'node', (e: any) => {
       const node = e.target as NodeSingular
-      // 数据结构使用 posDefinitions 数组，取第一个词性定义对的定义
-      const definition = node.data('posDefinitions')?.[0]?.definition
 
-      if (definition) {
+      // "+"虚拟节点不显示提示
+      if (node.data('isMoreNode')) {
+        return
+      }
+
+      // 数据结构使用 posDefinitions 数组，取第一个词性定义对的定义；
+      // 没有定义时回退显示词汇本身
+      const tooltipText = node.data('posDefinitions')?.[0]?.definition || node.data('label')
+
+      if (tooltipText) {
         if (!tooltipDiv) {
           tooltipDiv = createTooltipDiv()
         }
-        showTooltip(tooltipDiv, definition, e.originalEvent)
+        showTooltip(tooltipDiv, tooltipText, e.originalEvent)
       }
     })
 
