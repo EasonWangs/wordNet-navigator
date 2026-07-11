@@ -347,133 +347,114 @@ export function useCytoscape(options: UseCytoscapeOptions) {
       }
     })
 
-    // Hover tooltip - show definition on mouseover using HTML tooltip
+    // Hover tooltips - 节点显示定义，边显示关系说明
+    // mousemove 只注册一次，通过 activeTooltip 跟随当前显示中的 tooltip，
+    // 避免每次 mouseover 都注册新监听器造成泄漏
     let tooltipDiv: HTMLDivElement | null = null
+    let edgeTooltipDiv: HTMLDivElement | null = null
+    let activeTooltip: HTMLDivElement | null = null
+
+    // 关系类型标签映射（与边的颜色样式一样，在初始化时构建一次）
+    const relationLabelMap = new Map(relationTypes.map(rt => [rt.key, rt.label]))
+
+    const createTooltipDiv = (): HTMLDivElement => {
+      const div = document.createElement('div')
+      div.style.position = 'absolute'
+      div.style.backgroundColor = 'rgba(0, 0, 0, 0.85)'
+      div.style.color = 'white'
+      div.style.padding = '8px 12px'
+      div.style.borderRadius = '6px'
+      div.style.fontSize = '13px'
+      div.style.maxWidth = '300px'
+      div.style.zIndex = '1000'
+      div.style.pointerEvents = 'none'
+      div.style.boxShadow = '0 2px 8px rgba(0,0,0,0.2)'
+      div.style.backdropFilter = 'blur(4px)'
+      containerRef.value?.appendChild(div)
+      return div
+    }
+
+    const positionTooltip = (div: HTMLDivElement, evt: MouseEvent) => {
+      if (!containerRef.value) return
+      const containerRect = containerRef.value.getBoundingClientRect()
+      div.style.left = `${evt.clientX - containerRect.left + 15}px`
+      div.style.top = `${evt.clientY - containerRect.top + 15}px`
+    }
+
+    const showTooltip = (div: HTMLDivElement, text: string, evt?: MouseEvent) => {
+      div.textContent = text
+      div.style.display = 'block'
+      activeTooltip = div
+      if (evt) {
+        positionTooltip(div, evt)
+      }
+    }
+
+    const hideTooltip = (div: HTMLDivElement | null) => {
+      if (div) {
+        div.style.display = 'none'
+      }
+      if (activeTooltip === div) {
+        activeTooltip = null
+      }
+    }
+
+    cy.on('mousemove', (e: any) => {
+      if (activeTooltip && e.originalEvent) {
+        positionTooltip(activeTooltip, e.originalEvent)
+      }
+    })
+
+    // 悬浮中的元素被移除时（如切换深度、重新搜索）不会触发 mouseout，需主动隐藏
+    cy.on('remove', () => {
+      if (!activeTooltip) return
+      hideTooltip(tooltipDiv)
+      hideTooltip(edgeTooltipDiv)
+    })
 
     cy.on('mouseover', 'node', (e: any) => {
       const node = e.target as NodeSingular
       const definition = node.data('definition')
 
       if (definition) {
-        // Create tooltip element
         if (!tooltipDiv) {
-          tooltipDiv = document.createElement('div')
-          tooltipDiv.style.position = 'absolute'
-          tooltipDiv.style.backgroundColor = 'rgba(0, 0, 0, 0.85)'
-          tooltipDiv.style.color = 'white'
-          tooltipDiv.style.padding = '8px 12px'
-          tooltipDiv.style.borderRadius = '6px'
-          tooltipDiv.style.fontSize = '13px'
-          tooltipDiv.style.maxWidth = '300px'
-          tooltipDiv.style.zIndex = '1000'
-          tooltipDiv.style.pointerEvents = 'none'
-          tooltipDiv.style.boxShadow = '0 2px 8px rgba(0,0,0,0.2)'
-          tooltipDiv.style.backdropFilter = 'blur(4px)'
-          containerRef.value?.appendChild(tooltipDiv)
+          tooltipDiv = createTooltipDiv()
         }
-
-        tooltipDiv.textContent = definition
-        tooltipDiv.style.display = 'block'
-
-        // Position tooltip near the cursor
-        const updateTooltipPosition = (evt: any) => {
-          if (tooltipDiv && containerRef.value) {
-            const containerRect = containerRef.value.getBoundingClientRect()
-            tooltipDiv.style.left = `${evt.clientX - containerRect.left + 15}px`
-            tooltipDiv.style.top = `${evt.clientY - containerRect.top + 15}px`
-          }
-        }
-
-        updateTooltipPosition(e.originalEvent)
-        cy.on('mousemove', updateTooltipPosition)
-
-        node.on('mouseout', () => {
-          cy.off('mousemove', updateTooltipPosition)
-        })
+        showTooltip(tooltipDiv, definition, e.originalEvent)
       }
     })
 
     cy.on('mouseout', 'node', () => {
-      if (tooltipDiv) {
-        tooltipDiv.style.display = 'none'
-      }
+      hideTooltip(tooltipDiv)
     })
 
-    // Edge hover tooltip - show relation information
-    let edgeTooltipDiv: HTMLDivElement | null = null
-
     cy.on('mouseover', 'edge', (e: any) => {
-      const edge = e.target
-      const edgeData = edge.data()
+      const edgeData = e.target.data()
 
       // 获取源节点和目标节点的 label
-      const sourceNode = cy.getElementById(edgeData.source)
-      const targetNode = cy.getElementById(edgeData.target)
-      const sourceLabel = sourceNode.data('label')
-      const targetLabel = targetNode.data('label')
-
-      // 获取关系类型信息
-      const relationTypes = storageService.getRelationTypes()
-      const relationType = relationTypes.find(rt => rt.key === edgeData.relation)
-      const relationLabel = relationType ? relationType.label : edgeData.relation
+      const sourceLabel = cy.getElementById(edgeData.source).data('label')
+      const targetLabel = cy.getElementById(edgeData.target).data('label')
+      const relationLabel = relationLabelMap.get(edgeData.relation) || edgeData.relation
 
       // 创建提示文本：目标词 是 源词 的 关系类型
       // 例如：边 dog->animal，关系是hypernym（上位词），显示"animal 是 dog 的上位词"
       const tooltipText = `${targetLabel} 是 ${sourceLabel} 的${relationLabel}`
 
-      // 创建或更新 tooltip 元素
       if (!edgeTooltipDiv) {
-        edgeTooltipDiv = document.createElement('div')
-        edgeTooltipDiv.style.position = 'absolute'
-        edgeTooltipDiv.style.backgroundColor = 'rgba(0, 0, 0, 0.85)'
-        edgeTooltipDiv.style.color = 'white'
-        edgeTooltipDiv.style.padding = '8px 12px'
-        edgeTooltipDiv.style.borderRadius = '6px'
-        edgeTooltipDiv.style.fontSize = '13px'
-        edgeTooltipDiv.style.maxWidth = '300px'
-        edgeTooltipDiv.style.zIndex = '1000'
-        edgeTooltipDiv.style.pointerEvents = 'none'
-        edgeTooltipDiv.style.boxShadow = '0 2px 8px rgba(0,0,0,0.2)'
-        edgeTooltipDiv.style.backdropFilter = 'blur(4px)'
-        containerRef.value?.appendChild(edgeTooltipDiv)
+        edgeTooltipDiv = createTooltipDiv()
       }
-
-      edgeTooltipDiv.textContent = tooltipText
-      edgeTooltipDiv.style.display = 'block'
-
-      // 定位 tooltip 跟随鼠标
-      const updateEdgeTooltipPosition = (evt: any) => {
-        if (edgeTooltipDiv && containerRef.value) {
-          const containerRect = containerRef.value.getBoundingClientRect()
-          edgeTooltipDiv.style.left = `${evt.clientX - containerRect.left + 15}px`
-          edgeTooltipDiv.style.top = `${evt.clientY - containerRect.top + 15}px`
-        }
-      }
-
-      updateEdgeTooltipPosition(e.originalEvent)
-      cy.on('mousemove', updateEdgeTooltipPosition)
-
-      edge.on('mouseout', () => {
-        cy.off('mousemove', updateEdgeTooltipPosition)
-      })
+      showTooltip(edgeTooltipDiv, tooltipText, e.originalEvent)
     })
 
     cy.on('mouseout', 'edge', () => {
-      if (edgeTooltipDiv) {
-        edgeTooltipDiv.style.display = 'none'
-      }
+      hideTooltip(edgeTooltipDiv)
     })
 
     cyInstance.value = cy
   }
 
-  // 计算节点的关系数量并返回对应的颜色
-  const getNodeColorByDegree = (nodeId: string, edges: any[]) => {
-    // 计算该节点的关系总数（入度 + 出度）
-    const degree = edges.filter(edge =>
-      edge.data.source === nodeId || edge.data.target === nodeId
-    ).length
-
+  // 根据节点的关系数量返回对应的颜色
+  const getNodeColorByDegree = (degree: number) => {
     // 根据关系数量返回不同的颜色
     if (degree === 0) return { bg: '#95a5a6', border: '#7f8c8d' }        // 灰色 - 孤立节点
     if (degree <= 2) return { bg: '#3498db', border: '#2980b9' }        // 蓝色 - 少量关系
@@ -593,7 +574,15 @@ export function useCytoscape(options: UseCytoscapeOptions) {
   const updateNodeColors = () => {
     if (!cyInstance.value) return
 
-    const allEdges = cyInstance.value.edges().jsons()
+    // 一次遍历统计所有节点的度数（排除指向虚拟"+"节点的 more 边）
+    const degreeMap = new Map<string, number>()
+    cyInstance.value.edges().forEach((edge) => {
+      if (edge.data('relation') === 'more') return
+      const source = edge.data('source') as string
+      const target = edge.data('target') as string
+      degreeMap.set(source, (degreeMap.get(source) || 0) + 1)
+      degreeMap.set(target, (degreeMap.get(target) || 0) + 1)
+    })
 
     cyInstance.value.nodes().forEach((node: any) => {
       const nodeData = node.data()
@@ -603,8 +592,7 @@ export function useCytoscape(options: UseCytoscapeOptions) {
         return
       }
 
-      const nodeId = nodeData.id
-      const colors = getNodeColorByDegree(nodeId, allEdges)
+      const colors = getNodeColorByDegree(degreeMap.get(nodeData.id) || 0)
 
       // 只有未选中时才更新颜色（保持选中时的红色）
       if (!node.selected()) {

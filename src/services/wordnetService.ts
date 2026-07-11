@@ -13,6 +13,18 @@ export class WordNetService {
         const allConnections = storageService.getConnections()
         const symmetricTypes = getSymmetricRelationTypes()
 
+        // 构建邻接表（节点ID -> 与其相连的所有连接），BFS 和边缘节点检测都基于它，
+        // 避免每个节点都全量扫描 allConnections
+        const adjacency = new Map<string, typeof allConnections>()
+        allConnections.forEach((conn) => {
+          if (!adjacency.has(conn.source)) adjacency.set(conn.source, [])
+          adjacency.get(conn.source)!.push(conn)
+          if (conn.target !== conn.source) {
+            if (!adjacency.has(conn.target)) adjacency.set(conn.target, [])
+            adjacency.get(conn.target)!.push(conn)
+          }
+        })
+
         // If word is empty or "*", return limited data (智能分区)
         if (!word || word.trim() === '' || word === '*') {
           // 性能优化：显示全部时限制节点数量
@@ -62,9 +74,8 @@ export class WordNetService {
           // 检测边缘节点（有未显示关联的节点）
           const nodesWithMore = new Set<string>()
           limitedNodeIds.forEach(nodeId => {
-            const hasMoreConnections = allConnections.some(c =>
-              (c.source === nodeId && !limitedNodeIds.has(c.target)) ||
-              (c.target === nodeId && !limitedNodeIds.has(c.source))
+            const hasMoreConnections = (adjacency.get(nodeId) || []).some(c =>
+              !limitedNodeIds.has(c.source === nodeId ? c.target : c.source)
             )
             if (hasMoreConnections) {
               nodesWithMore.add(nodeId)
@@ -157,31 +168,22 @@ export class WordNetService {
           nodeDepths.set(targetWord.id, 0)
         })
 
-        while (queue.length > 0) {
-          const { id, level } = queue.shift()!
+        // 用下标出队代替 shift()，避免每次出队都整体移动数组
+        let queueHead = 0
+        while (queueHead < queue.length) {
+          const { id, level } = queue[queueHead++]
 
           if (level < maxDepth) {
-            // Find all connections from this word
-            const outgoingConnections = allConnections.filter((c) => c.source === id)
-            outgoingConnections.forEach((conn) => {
+            // 邻接表中同时包含该节点的出边和入边
+            const connections = adjacency.get(id) || []
+            connections.forEach((conn) => {
               edgesToInclude.add(conn.id)
-              if (!visitedWords.has(conn.target)) {
-                visitedWords.add(conn.target)
-                nodesToInclude.add(conn.target)
-                nodeDepths.set(conn.target, level + 1)
-                queue.push({ id: conn.target, level: level + 1 })
-              }
-            })
-
-            // Find all connections to this word
-            const incomingConnections = allConnections.filter((c) => c.target === id)
-            incomingConnections.forEach((conn) => {
-              edgesToInclude.add(conn.id)
-              if (!visitedWords.has(conn.source)) {
-                visitedWords.add(conn.source)
-                nodesToInclude.add(conn.source)
-                nodeDepths.set(conn.source, level + 1)
-                queue.push({ id: conn.source, level: level + 1 })
+              const neighbor = conn.source === id ? conn.target : conn.source
+              if (!visitedWords.has(neighbor)) {
+                visitedWords.add(neighbor)
+                nodesToInclude.add(neighbor)
+                nodeDepths.set(neighbor, level + 1)
+                queue.push({ id: neighbor, level: level + 1 })
               }
             })
           }
@@ -193,9 +195,8 @@ export class WordNetService {
           const depth = nodeDepths.get(nodeId) || 0
           // 如果节点处于最大深度，检查是否还有未包含的关联
           if (depth === maxDepth) {
-            const hasMoreConnections = allConnections.some(c =>
-              (c.source === nodeId && !nodesToInclude.has(c.target)) ||
-              (c.target === nodeId && !nodesToInclude.has(c.source))
+            const hasMoreConnections = (adjacency.get(nodeId) || []).some(c =>
+              !nodesToInclude.has(c.source === nodeId ? c.target : c.source)
             )
             if (hasMoreConnections) {
               nodesWithMore.add(nodeId)
